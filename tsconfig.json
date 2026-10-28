@@ -22,6 +22,7 @@
   "include": [
     "individual/src/**/*.ts",
     "individual/test/**/*.ts",
-    "cli/**/*.ts"
+    "cli/**/*.ts",
+    "experiments/runner/**/*.ts"
   ]
 }

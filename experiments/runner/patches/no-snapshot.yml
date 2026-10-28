@@ -1,0 +1,4 @@
+# 消融：不附自我狀態快照（自我模型、目標、重要感受不再每步進入上下文）。
+- id: temir-self
+  config:
+    snapshot: false

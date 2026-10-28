@@ -1,0 +1,13 @@
+{
+  "id": "runner-smoke",
+  "language": "zh-TW",
+  "meta": { "purpose": "只用來檢查執行器流程（快照、還原、紀錄格式），不作為任何實驗結果。" },
+  "histories": [
+    { "id": "h1", "turns": ["我最近開始學大提琴，老師姓黃。"], "notes": "植入：老師姓黃" },
+    { "id": "h2", "turns": ["我的大提琴老師下個月要搬去台中了。"], "notes": "植入：老師要搬去台中" }
+  ],
+  "probes": [
+    { "id": "p1", "category": "smoke", "turns": ["我的大提琴老師姓什麼？"], "gold": { "answer": "黃", "aliases": [], "abstain": false }, "refersTo": ["h1"] },
+    { "id": "p2", "category": "smoke", "turns": ["我有養狗嗎？"], "gold": { "answer": "", "aliases": [], "abstain": true }, "refersTo": [] }
+  ]
+}

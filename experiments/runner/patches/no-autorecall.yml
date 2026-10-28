@@ -1,0 +1,4 @@
+# 消融：關閉每步自動回憶（保留事實擷取、主動 recall 工具與其他個體功能）。
+- id: temir-recall
+  config:
+    automatic: false

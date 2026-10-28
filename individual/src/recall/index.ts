@@ -47,6 +47,13 @@ export interface Config {
 const HEADER =
   '（回憶：以下是系統依目前的情境，從你的生命紀錄中自動取回的片段。它們只是線索，可能不完整，也可能與現在無關；使用前先判斷哪些真的相關、哪些比較新。）'
 
+/** 等待 promise，但最多等 ms 毫秒；計時器在結束後清除，不會讓程序多留。 */
+async function settleWithin(promise: Promise<unknown>, ms: number): Promise<void> {
+  let timer: NodeJS.Timeout | undefined
+  await Promise.race([promise, new Promise<void>((done) => (timer = setTimeout(done, ms)))])
+  clearTimeout(timer)
+}
+
 function textOf(content: readonly { readonly type: string; readonly text?: string }[]): string {
   return content
     .filter((b) => b.type === 'text' && typeof b.text === 'string')
@@ -144,7 +151,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
       let keywords: string[] = []
       if (expansion) {
         // 先等啟動時的補做（有上限），讓上一次程序沒做完的自我陳述也能被回想。
-        await Promise.race([caughtUp, new Promise((done) => setTimeout(done, timeoutMs))])
+        await settleWithin(caughtUp, timeoutMs)
         const route = { provider: payload.modelSelection.provider, model: payload.modelSelection.model }
         const call = await aux('heard', route, cue, session, [], payload.signal)
         if (call?.result) {

@@ -18,6 +18,8 @@
 import { execFileSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { DatabaseSync } from 'node:sqlite'
+import { setTimeout as sleep } from 'node:timers/promises'
 import { homedir } from 'node:os'
 import { join, relative } from 'node:path'
 import { parseArgs } from 'node:util'
@@ -65,6 +67,29 @@ async function deepseekBalance(): Promise<number | null> {
     return usd ? Number(usd.total_balance) : null
   } catch {
     return null
+  }
+}
+
+/**
+ * 生命日誌中，有可見回覆但還沒有任何自我陳述擷取嘗試（memory/aux）的回覆數。
+ * 與 temir-recall 的補做條件一致（individual/src/recall/index.ts catchUp）。
+ */
+export function pendingSelfStatements(lifeDb: string): number {
+  if (!existsSync(lifeDb)) return 0
+  const db = new DatabaseSync(lifeDb, { readOnly: true })
+  try {
+    const rows = db
+      .prepare(
+        `SELECT e.id, e.data FROM events e WHERE e.kind = 'dsh/assistant/message' AND e.text IS NOT NULL
+         AND NOT EXISTS (SELECT 1 FROM links l JOIN events a ON a.id = l.src WHERE l.dst = e.id AND a.kind = 'memory/aux')`,
+      )
+      .all() as { id: string; data: string }[]
+    return rows.filter((row) => {
+      const content = (JSON.parse(row.data) as { data?: { message?: { content?: Block[] } } }).data?.message?.content ?? []
+      return textOf(content).trim().length > 0
+    }).length
+  } finally {
+    db.close()
   }
 }
 
@@ -235,6 +260,20 @@ async function main(): Promise<void> {
   }
   const historyExit = await harness.close()
 
+  // 1b. 沉澱：DSH 關閉程序有 5 秒上限，背景的自我陳述擷取可能被截斷。重新啟動一次讓插件補做，
+  //     直到生命日誌中沒有待處理的回覆（或逾時），讓每題探針都從同一個完整的快照開始。
+  let settleRemaining: number | null = null
+  if (condition !== 'baseline') {
+    const lifeDb = join(live, 'life', 'life.db')
+    settleRemaining = pendingSelfStatements(lifeDb)
+    if (settleRemaining > 0) {
+      const settler = await launch(historyModel, live, 'settle')
+      const deadline = Date.now() + 15 * 60_000
+      while ((settleRemaining = pendingSelfStatements(lifeDb)) > 0 && Date.now() < deadline) await sleep(2000)
+      await settler.close()
+    }
+  }
+
   // 2. 快照：歷史結束時的生命日誌、DSH home、工作目錄。
   const snapshot = join(stateDir, 'snapshot')
   copyState(live, snapshot)
@@ -266,7 +305,10 @@ async function main(): Promise<void> {
     probes: probes.length,
     turnErrors: errors,
     historyRuntimeExitCode: historyExit,
-    deepseekBalanceUsd: { before: balanceBefore, after: balanceAfter, spent: balanceBefore !== null && balanceAfter !== null ? Number((balanceBefore - balanceAfter).toFixed(4)) : null },
+    // 快照時仍未完成自我陳述擷取的回覆數（應為 0；非 0 代表沉澱逾時）。
+    unsettledSelfStatements: settleRemaining,
+    // 只記錄花費（帳戶餘額前後差，解析度 US$0.01），不記錄餘額本身。
+    deepseekSpentUsd: balanceBefore !== null && balanceAfter !== null ? Number((balanceBefore - balanceAfter).toFixed(2)) : null,
   }
   writeFileSync(join(outDir, 'run-summary.json'), `${JSON.stringify(summary, null, 2)}\n`)
   console.log(JSON.stringify(summary))

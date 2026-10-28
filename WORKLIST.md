@@ -12,8 +12,13 @@
 - [x] `temir-self`：處境描述（取消 DSH 預設角色）、自我狀態快照、self_revise／goal／appraise（驗證：e2e 中個體自發使用 appraise；系統提示內容檢查）
 - [x] `temir-recall`：每步自動回憶＋recall 工具；記憶工具結果不再被索引（驗證：跨 session 回答正確且日誌顯示來源為自動回憶；跨模型 DeepSeek→EVE-27B 延續）
 - [~] Web：DSH Web UI 帶個體插件可啟動（驗證：`dsh web` 啟動、temir-life 寫入啟動事件）；**透過 Web 實際對話尚未驗證**
-- [ ] 互動式 CLI：DSH 目前提供 headless（單次＋`--session-id` 續談）與 Web；是否需要互動式終端介面待評估
+- [x] 互動式 CLI：`scripts/temir.sh chat`（DSH SDK 協定；續談、換模型、工具審核、個體提問；驗證見 session log 02）
 - [x] `kill -9` 中斷恢復測試（驗證：10 步 bash 任務做到第 6 步時終止整個程序群組；生命日誌 integrity_check ok；以 `--session-id` 續談後個體檢查實際狀態、不重做已完成的 b6，完成 b7–b10，10 個檔案內容正確；session log 01）
+
+## 實驗 v1（預先登記：experiments/specs/）
+- [x] 記憶準確率與人格一致性：規格、資料集、評估器（65 測試）、執行器；DeepSeek 必要 cell 全部完成（報告 experiments/results/v1-report.md）
+- [ ] 本機模型恢復後補跑：人格 × 個體 × EVE-27B（必要）、消融 × EVE-27B、雙向換模型（選用）
+- [ ] v2（若要更大樣本或不同目錄配置）：重新預先登記
 
 ## M1 記憶與 PC 紀錄
 - [ ] 價值／看法紀錄（連到證據事件）

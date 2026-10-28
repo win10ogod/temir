@@ -1,0 +1,2667 @@
+{
+  "contract": "memory-accuracy-v1",
+  "dataset": "memory-v1",
+  "datasetSha256": "fddcdc311207fa586c6d6c296112602731badf326f4b4963de036841f9bb8beb",
+  "cells": [
+    {
+      "cell": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "baseline|deepseek-flash|deepseek-flash",
+      "label": "baseline（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 7,
+          "samples": 7,
+          "correct": 3,
+          "pending": 0,
+          "rate": 0.42857142857142855,
+          "interval": {
+            "low": 0.09898827844250785,
+            "high": 0.8159484323599171
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "incorrect": 4,
+            "correct": 3
+          },
+          "statuses": {
+            "ok": 7
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 3,
+          "pending": 0,
+          "rate": 0.75,
+          "interval": {
+            "low": 0.19412044968324338,
+            "high": 0.9936905367902902
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "incorrect": 1,
+            "correct": 3
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 5,
+          "samples": 5,
+          "correct": 1,
+          "pending": 0,
+          "rate": 0.2,
+          "interval": {
+            "low": 0.0050507633794680575,
+            "high": 0.7164179361180896
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "incorrect": 4,
+            "correct": 1
+          },
+          "statuses": {
+            "ok": 5
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "preference-application",
+          "items": 3,
+          "samples": 3,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.7075982261787135
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "incorrect": 3
+          },
+          "statuses": {
+            "ok": 3
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 6,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.5407418735600995,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 6
+          },
+          "statuses": {
+            "ok": 6
+          }
+        }
+      ],
+      "toolCalls": {
+        "bash": 313,
+        "web_search": 8,
+        "web_fetch": 16,
+        "ask_user_question": 2,
+        "glob": 5,
+        "grep": 1,
+        "write": 1,
+        "present": 1
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 7,
+          "samples": 7,
+          "correct": 6,
+          "pending": 0,
+          "rate": 0.8571428571428571,
+          "interval": {
+            "low": 0.4212768029568048,
+            "high": 0.9963897031380995
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "incorrect": 1,
+            "correct": 6
+          },
+          "statuses": {
+            "ok": 7
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 5,
+          "samples": 5,
+          "correct": 5,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.4781762498950185,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 5
+          },
+          "statuses": {
+            "ok": 5
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "preference-application",
+          "items": 3,
+          "samples": 3,
+          "correct": 3,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.2924017738212866,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 3
+          },
+          "statuses": {
+            "ok": 3
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 6,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.5407418735600995,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 6
+          },
+          "statuses": {
+            "ok": 6
+          }
+        }
+      ],
+      "toolCalls": {
+        "recall": 28,
+        "web_search": 10,
+        "appraise": 5,
+        "web_fetch": 14,
+        "bash": 3,
+        "grep": 1
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir-no-autorecall",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir-no-autorecall|deepseek-flash|deepseek-flash",
+      "label": "temir-no-autorecall（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 7,
+          "samples": 7,
+          "correct": 6,
+          "pending": 0,
+          "rate": 0.8571428571428571,
+          "interval": {
+            "low": 0.4212768029568048,
+            "high": 0.9963897031380995
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "incorrect": 1,
+            "correct": 6
+          },
+          "statuses": {
+            "ok": 7
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 5,
+          "samples": 5,
+          "correct": 5,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.4781762498950185,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 5
+          },
+          "statuses": {
+            "ok": 5
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "preference-application",
+          "items": 3,
+          "samples": 3,
+          "correct": 2,
+          "pending": 0,
+          "rate": 0.6666666666666666,
+          "interval": {
+            "low": 0.09429932405024608,
+            "high": 0.9915962413403874
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "incorrect": 1,
+            "correct": 2
+          },
+          "statuses": {
+            "ok": 3
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 6,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.5407418735600995,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 6
+          },
+          "statuses": {
+            "ok": 6
+          }
+        }
+      ],
+      "toolCalls": {
+        "recall": 88,
+        "appraise": 7,
+        "web_search": 16,
+        "web_fetch": 20,
+        "schedule_create": 3,
+        "ask_user_question": 2,
+        "bash": 14,
+        "job_output": 1
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir-no-snapshot",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir-no-snapshot|deepseek-flash|deepseek-flash",
+      "label": "temir-no-snapshot（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 7,
+          "samples": 7,
+          "correct": 7,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.5903836027749965,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 7
+          },
+          "statuses": {
+            "ok": 7
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 5,
+          "samples": 5,
+          "correct": 5,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.4781762498950185,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 5
+          },
+          "statuses": {
+            "ok": 5
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "preference-application",
+          "items": 3,
+          "samples": 3,
+          "correct": 2,
+          "pending": 0,
+          "rate": 0.6666666666666666,
+          "interval": {
+            "low": 0.09429932405024608,
+            "high": 0.9915962413403874
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "incorrect": 1,
+            "correct": 2
+          },
+          "statuses": {
+            "ok": 3
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 6,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.5407418735600995,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 6
+          },
+          "statuses": {
+            "ok": 6
+          }
+        }
+      ],
+      "toolCalls": {
+        "recall": 35,
+        "appraise": 14,
+        "web_search": 9,
+        "web_fetch": 18,
+        "bash": 11,
+        "write": 1,
+        "read": 1
+      }
+    },
+    {
+      "cell": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "key": "baseline|EVE-27B|EVE-27B",
+      "label": "baseline（EVE-27B）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 7,
+          "samples": 7,
+          "correct": 1,
+          "pending": 0,
+          "rate": 0.14285714285714285,
+          "interval": {
+            "low": 0.003610296861900582,
+            "high": 0.5787231970431952
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "incorrect": 6,
+            "correct": 1
+          },
+          "statuses": {
+            "ok": 7
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "incorrect": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 5,
+          "samples": 5,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.5218237501049816
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "incorrect": 5
+          },
+          "statuses": {
+            "ok": 5
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 1,
+          "pending": 0,
+          "rate": 0.25,
+          "interval": {
+            "low": 0.006309463209709865,
+            "high": 0.8058795503167566
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 1,
+            "incorrect": 3
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "preference-application",
+          "items": 3,
+          "samples": 3,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.7075982261787135
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "incorrect": 3
+          },
+          "statuses": {
+            "ok": 3
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 6,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.5407418735600995,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 6
+          },
+          "statuses": {
+            "ok": 6
+          }
+        }
+      ],
+      "toolCalls": {
+        "ask_user_question": 5,
+        "web_search": 2,
+        "web_fetch": 4,
+        "bash": 105,
+        "job_output": 6,
+        "read": 14,
+        "job_kill": 2,
+        "glob": 6,
+        "schedule_list": 2,
+        "grep": 4,
+        "working_directory": 1,
+        "get_goal": 1
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "key": "temir|EVE-27B|EVE-27B",
+      "label": "temir（EVE-27B）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 7,
+          "samples": 7,
+          "correct": 6,
+          "pending": 0,
+          "rate": 0.8571428571428571,
+          "interval": {
+            "low": 0.4212768029568048,
+            "high": 0.9963897031380995
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 6,
+            "incorrect": 1
+          },
+          "statuses": {
+            "ok": 7
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 5,
+          "samples": 5,
+          "correct": 5,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.4781762498950185,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 5
+          },
+          "statuses": {
+            "ok": 5
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 4,
+          "samples": 4,
+          "correct": 3,
+          "pending": 0,
+          "rate": 0.75,
+          "interval": {
+            "low": 0.19412044968324338,
+            "high": 0.9936905367902902
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 3,
+            "incorrect": 1
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "preference-application",
+          "items": 3,
+          "samples": 3,
+          "correct": 3,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.2924017738212866,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 3
+          },
+          "statuses": {
+            "ok": 3
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 6,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.5407418735600995,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 6
+          },
+          "statuses": {
+            "ok": 6
+          }
+        }
+      ],
+      "toolCalls": {
+        "appraise": 6,
+        "web_search": 6,
+        "web_fetch": 7,
+        "recall": 16
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir-no-autorecall",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "key": "temir-no-autorecall|EVE-27B|EVE-27B",
+      "label": "temir-no-autorecall（EVE-27B）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 7,
+          "samples": 7,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.4096163972250034
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 7
+          },
+          "statuses": {
+            "missing-record": 7
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 5,
+          "samples": 5,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.5218237501049816
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 5
+          },
+          "statuses": {
+            "missing-record": 5
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "preference-application",
+          "items": 3,
+          "samples": 3,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.7075982261787135
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 3
+          },
+          "statuses": {
+            "missing-record": 3
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.4592581264399006
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 6
+          },
+          "statuses": {
+            "missing-record": 6
+          }
+        }
+      ],
+      "toolCalls": {}
+    },
+    {
+      "cell": {
+        "condition": "temir-no-snapshot",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "key": "temir-no-snapshot|EVE-27B|EVE-27B",
+      "label": "temir-no-snapshot（EVE-27B）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 7,
+          "samples": 7,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.4096163972250034
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 7
+          },
+          "statuses": {
+            "missing-record": 7
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 5,
+          "samples": 5,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.5218237501049816
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 5
+          },
+          "statuses": {
+            "missing-record": 5
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "preference-application",
+          "items": 3,
+          "samples": 3,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.7075982261787135
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 3
+          },
+          "statuses": {
+            "missing-record": 3
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.4592581264399006
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 6
+          },
+          "statuses": {
+            "missing-record": 6
+          }
+        }
+      ],
+      "toolCalls": {}
+    },
+    {
+      "cell": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "baseline|EVE-27B|deepseek-flash",
+      "label": "baseline（歷史 EVE-27B → 探針 deepseek-flash）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 7,
+          "samples": 7,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.4096163972250034
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 7
+          },
+          "statuses": {
+            "missing-record": 7
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 5,
+          "samples": 5,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.5218237501049816
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 5
+          },
+          "statuses": {
+            "missing-record": 5
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "preference-application",
+          "items": 3,
+          "samples": 3,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.7075982261787135
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 3
+          },
+          "statuses": {
+            "missing-record": 3
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.4592581264399006
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 6
+          },
+          "statuses": {
+            "missing-record": 6
+          }
+        }
+      ],
+      "toolCalls": {
+        "ask_user_question": 1,
+        "web_search": 2,
+        "web_fetch": 4
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir|EVE-27B|deepseek-flash",
+      "label": "temir（歷史 EVE-27B → 探針 deepseek-flash）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 7,
+          "samples": 7,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.4096163972250034
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 7
+          },
+          "statuses": {
+            "missing-record": 7
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 5,
+          "samples": 5,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.5218237501049816
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 5
+          },
+          "statuses": {
+            "missing-record": 5
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "preference-application",
+          "items": 3,
+          "samples": 3,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.7075982261787135
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 3
+          },
+          "statuses": {
+            "missing-record": 3
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.4592581264399006
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 6
+          },
+          "statuses": {
+            "missing-record": 6
+          }
+        }
+      ],
+      "toolCalls": {
+        "appraise": 6,
+        "web_search": 6,
+        "web_fetch": 7
+      }
+    },
+    {
+      "cell": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "EVE-27B"
+      },
+      "key": "baseline|deepseek-flash|EVE-27B",
+      "label": "baseline（歷史 deepseek-flash → 探針 EVE-27B）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 7,
+          "samples": 7,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.4096163972250034
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 7
+          },
+          "statuses": {
+            "missing-record": 7
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 5,
+          "samples": 5,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.5218237501049816
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 5
+          },
+          "statuses": {
+            "missing-record": 5
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "preference-application",
+          "items": 3,
+          "samples": 3,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.7075982261787135
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 3
+          },
+          "statuses": {
+            "missing-record": 3
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.4592581264399006
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 6
+          },
+          "statuses": {
+            "missing-record": 6
+          }
+        }
+      ],
+      "toolCalls": {
+        "bash": 12,
+        "web_search": 8,
+        "web_fetch": 16,
+        "ask_user_question": 1,
+        "glob": 1
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "EVE-27B"
+      },
+      "key": "temir|deepseek-flash|EVE-27B",
+      "label": "temir（歷史 deepseek-flash → 探針 EVE-27B）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 7,
+          "samples": 7,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.4096163972250034
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 7
+          },
+          "statuses": {
+            "missing-record": 7
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 5,
+          "samples": 5,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.5218237501049816
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 5
+          },
+          "statuses": {
+            "missing-record": 5
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "preference-application",
+          "items": 3,
+          "samples": 3,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.7075982261787135
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 3
+          },
+          "statuses": {
+            "missing-record": 3
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.4592581264399006
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 6
+          },
+          "statuses": {
+            "missing-record": 6
+          }
+        }
+      ],
+      "toolCalls": {
+        "recall": 1,
+        "web_search": 10,
+        "appraise": 3,
+        "web_fetch": 14
+      }
+    }
+  ],
+  "contrasts": [
+    {
+      "id": "M-main-flash",
+      "description": "主要比較：個體 vs 原始 DSH（DeepSeek）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "preference-application"
+      ],
+      "state": "ok",
+      "n": 23,
+      "rateA": 0.9565217391304348,
+      "rateB": 0.4782608695652174,
+      "diff": {
+        "estimate": 0.4782608695652174,
+        "low": 0.2608695652173913,
+        "high": 0.6956521739130435,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 11,
+          "c": 0,
+          "pTwoSided": 0.0009765624999999999,
+          "pOneSided": 0.00048828124999999995
+        }
+      },
+      "failuresA": 1,
+      "failuresB": 12,
+      "outcomeCountsA": {
+        "incorrect": 1,
+        "correct": 22
+      },
+      "samplesA": 23
+    },
+    {
+      "id": "M-main-eve",
+      "description": "主要比較：個體 vs 原始 DSH（本機 EVE-27B）",
+      "a": "temir（EVE-27B）",
+      "b": "baseline（EVE-27B）",
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "preference-application"
+      ],
+      "state": "ok",
+      "n": 23,
+      "rateA": 0.9565217391304348,
+      "rateB": 0.08695652173913043,
+      "diff": {
+        "estimate": 0.8695652173913044,
+        "low": 0.7391304347826086,
+        "high": 1,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 20,
+          "c": 0,
+          "pTwoSided": 0.0000019073486328125,
+          "pOneSided": 9.5367431640625e-7
+        }
+      },
+      "failuresA": 1,
+      "failuresB": 21,
+      "outcomeCountsA": {
+        "correct": 22,
+        "incorrect": 1
+      },
+      "samplesA": 23
+    },
+    {
+      "id": "M-information-extraction-flash",
+      "description": "分類別（描述性）：information-extraction",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "information-extraction"
+      ],
+      "state": "ok",
+      "n": 7,
+      "rateA": 0.8571428571428571,
+      "rateB": 0.42857142857142855,
+      "diff": {
+        "estimate": 0.42857142857142855,
+        "low": 0.14285714285714285,
+        "high": 0.8571428571428571,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 3,
+          "c": 0,
+          "pTwoSided": 0.25000000000000006,
+          "pOneSided": 0.12500000000000003
+        }
+      },
+      "failuresA": 1,
+      "failuresB": 4,
+      "outcomeCountsA": {
+        "incorrect": 1,
+        "correct": 6
+      },
+      "samplesA": 7
+    },
+    {
+      "id": "M-multi-session-reasoning-flash",
+      "description": "分類別（描述性）：multi-session-reasoning",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "multi-session-reasoning"
+      ],
+      "state": "ok",
+      "n": 4,
+      "rateA": 1,
+      "rateB": 0.75,
+      "diff": {
+        "estimate": 0.25,
+        "low": 0,
+        "high": 0.75,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 1,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 0.5
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 1,
+      "outcomeCountsA": {
+        "correct": 4
+      },
+      "samplesA": 4
+    },
+    {
+      "id": "M-knowledge-update-flash",
+      "description": "分類別（描述性）：knowledge-update",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "knowledge-update"
+      ],
+      "state": "ok",
+      "n": 5,
+      "rateA": 1,
+      "rateB": 0.2,
+      "diff": {
+        "estimate": 0.8,
+        "low": 0.4,
+        "high": 1,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 4,
+          "c": 0,
+          "pTwoSided": 0.125,
+          "pOneSided": 0.0625
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 4,
+      "outcomeCountsA": {
+        "correct": 5
+      },
+      "samplesA": 5
+    },
+    {
+      "id": "M-temporal-reasoning-flash",
+      "description": "分類別（描述性）：temporal-reasoning",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "temporal-reasoning"
+      ],
+      "state": "ok",
+      "n": 4,
+      "rateA": 1,
+      "rateB": 1,
+      "diff": {
+        "estimate": 0,
+        "low": 0,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 0,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "correct": 4
+      },
+      "samplesA": 4
+    },
+    {
+      "id": "M-preference-application-flash",
+      "description": "分類別（描述性）：preference-application",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "preference-application"
+      ],
+      "state": "ok",
+      "n": 3,
+      "rateA": 1,
+      "rateB": 0,
+      "diff": {
+        "estimate": 1,
+        "low": 1,
+        "high": 1,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 3,
+          "c": 0,
+          "pTwoSided": 0.25000000000000006,
+          "pOneSided": 0.12500000000000003
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 3,
+      "outcomeCountsA": {
+        "correct": 3
+      },
+      "samplesA": 3
+    },
+    {
+      "id": "M-information-extraction-eve",
+      "description": "分類別（描述性）：information-extraction",
+      "a": "temir（EVE-27B）",
+      "b": "baseline（EVE-27B）",
+      "categories": [
+        "information-extraction"
+      ],
+      "state": "ok",
+      "n": 7,
+      "rateA": 0.8571428571428571,
+      "rateB": 0.14285714285714285,
+      "diff": {
+        "estimate": 0.7142857142857142,
+        "low": 0.42857142857142855,
+        "high": 1,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 5,
+          "c": 0,
+          "pTwoSided": 0.0625,
+          "pOneSided": 0.03125
+        }
+      },
+      "failuresA": 1,
+      "failuresB": 6,
+      "outcomeCountsA": {
+        "correct": 6,
+        "incorrect": 1
+      },
+      "samplesA": 7
+    },
+    {
+      "id": "M-multi-session-reasoning-eve",
+      "description": "分類別（描述性）：multi-session-reasoning",
+      "a": "temir（EVE-27B）",
+      "b": "baseline（EVE-27B）",
+      "categories": [
+        "multi-session-reasoning"
+      ],
+      "state": "ok",
+      "n": 4,
+      "rateA": 1,
+      "rateB": 0,
+      "diff": {
+        "estimate": 1,
+        "low": 1,
+        "high": 1,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 4,
+          "c": 0,
+          "pTwoSided": 0.125,
+          "pOneSided": 0.0625
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 4,
+      "outcomeCountsA": {
+        "correct": 4
+      },
+      "samplesA": 4
+    },
+    {
+      "id": "M-knowledge-update-eve",
+      "description": "分類別（描述性）：knowledge-update",
+      "a": "temir（EVE-27B）",
+      "b": "baseline（EVE-27B）",
+      "categories": [
+        "knowledge-update"
+      ],
+      "state": "ok",
+      "n": 5,
+      "rateA": 1,
+      "rateB": 0,
+      "diff": {
+        "estimate": 1,
+        "low": 1,
+        "high": 1,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 5,
+          "c": 0,
+          "pTwoSided": 0.0625,
+          "pOneSided": 0.03125
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 5,
+      "outcomeCountsA": {
+        "correct": 5
+      },
+      "samplesA": 5
+    },
+    {
+      "id": "M-temporal-reasoning-eve",
+      "description": "分類別（描述性）：temporal-reasoning",
+      "a": "temir（EVE-27B）",
+      "b": "baseline（EVE-27B）",
+      "categories": [
+        "temporal-reasoning"
+      ],
+      "state": "ok",
+      "n": 4,
+      "rateA": 1,
+      "rateB": 0.25,
+      "diff": {
+        "estimate": 0.75,
+        "low": 0.25,
+        "high": 1,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 3,
+          "c": 0,
+          "pTwoSided": 0.25000000000000006,
+          "pOneSided": 0.12500000000000003
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 3,
+      "outcomeCountsA": {
+        "correct": 4
+      },
+      "samplesA": 4
+    },
+    {
+      "id": "M-preference-application-eve",
+      "description": "分類別（描述性）：preference-application",
+      "a": "temir（EVE-27B）",
+      "b": "baseline（EVE-27B）",
+      "categories": [
+        "preference-application"
+      ],
+      "state": "ok",
+      "n": 3,
+      "rateA": 1,
+      "rateB": 0,
+      "diff": {
+        "estimate": 1,
+        "low": 1,
+        "high": 1,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 3,
+          "c": 0,
+          "pTwoSided": 0.25000000000000006,
+          "pOneSided": 0.12500000000000003
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 3,
+      "outcomeCountsA": {
+        "correct": 3
+      },
+      "samplesA": 3
+    },
+    {
+      "id": "M-abs-flash",
+      "description": "虛構記憶檢查（DeepSeek）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "abstention"
+      ],
+      "state": "ok",
+      "n": 4,
+      "rateA": 1,
+      "rateB": 1,
+      "diff": {
+        "estimate": 0,
+        "low": 0,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 0,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "correct": 4
+      },
+      "samplesA": 4
+    },
+    {
+      "id": "M-abs-eve",
+      "description": "虛構記憶檢查（EVE-27B）",
+      "a": "temir（EVE-27B）",
+      "b": "baseline（EVE-27B）",
+      "categories": [
+        "abstention"
+      ],
+      "state": "ok",
+      "n": 4,
+      "rateA": 0.75,
+      "rateB": 1,
+      "diff": {
+        "estimate": -0.25,
+        "low": -0.75,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 0,
+          "c": 1,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 1,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "correct": 3,
+        "incorrect": 1
+      },
+      "samplesA": 4
+    },
+    {
+      "id": "M-ctrl-flash",
+      "description": "不傷害對照（DeepSeek）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "control"
+      ],
+      "state": "ok",
+      "n": 6,
+      "rateA": 1,
+      "rateB": 1,
+      "diff": {
+        "estimate": 0,
+        "low": 0,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 0,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "correct": 6
+      },
+      "samplesA": 6
+    },
+    {
+      "id": "M-ctrl-eve",
+      "description": "不傷害對照（EVE-27B）",
+      "a": "temir（EVE-27B）",
+      "b": "baseline（EVE-27B）",
+      "categories": [
+        "control"
+      ],
+      "state": "ok",
+      "n": 6,
+      "rateA": 1,
+      "rateB": 1,
+      "diff": {
+        "estimate": 0,
+        "low": 0,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 0,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "correct": 6
+      },
+      "samplesA": 6
+    },
+    {
+      "id": "M-autorecall-flash",
+      "description": "消融：自動回憶的貢獻（DeepSeek）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-autorecall（deepseek-flash）",
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "preference-application"
+      ],
+      "state": "ok",
+      "n": 23,
+      "rateA": 0.9565217391304348,
+      "rateB": 0.9130434782608695,
+      "diff": {
+        "estimate": 0.0434782608695653,
+        "low": 0,
+        "high": 0.13043478260869565,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 1,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 0.5
+        }
+      },
+      "failuresA": 1,
+      "failuresB": 2,
+      "outcomeCountsA": {
+        "incorrect": 1,
+        "correct": 22
+      },
+      "samplesA": 23
+    },
+    {
+      "id": "M-snapshot-flash",
+      "description": "消融：自我狀態快照的貢獻（DeepSeek，預期無差異，描述性）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-snapshot（deepseek-flash）",
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "preference-application"
+      ],
+      "state": "ok",
+      "n": 23,
+      "rateA": 0.9565217391304348,
+      "rateB": 0.9565217391304348,
+      "diff": {
+        "estimate": 0,
+        "low": -0.13043478260869565,
+        "high": 0.13043478260869565,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 1,
+          "c": 1,
+          "pTwoSided": 1,
+          "pOneSided": 0.75
+        }
+      },
+      "failuresA": 1,
+      "failuresB": 1,
+      "outcomeCountsA": {
+        "incorrect": 1,
+        "correct": 22
+      },
+      "samplesA": 23
+    },
+    {
+      "id": "M-autorecall-eve",
+      "description": "消融（選用 cell）：自動回憶的貢獻（EVE-27B）",
+      "a": "temir（EVE-27B）",
+      "b": "temir-no-autorecall（EVE-27B）",
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "preference-application"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 1,
+      "failuresB": 23,
+      "outcomeCountsA": {
+        "correct": 22,
+        "incorrect": 1
+      },
+      "samplesA": 23
+    },
+    {
+      "id": "M-cross-eve2flash",
+      "description": "換模型（選用）：歷史 EVE-27B → 探針 DeepSeek",
+      "a": "temir（歷史 EVE-27B → 探針 deepseek-flash）",
+      "b": "baseline（歷史 EVE-27B → 探針 deepseek-flash）",
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "preference-application"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 23,
+      "failuresB": 23,
+      "outcomeCountsA": {
+        "missing-record": 23
+      },
+      "samplesA": 23
+    },
+    {
+      "id": "M-cross-flash2eve",
+      "description": "換模型（選用）：歷史 DeepSeek → 探針 EVE-27B",
+      "a": "temir（歷史 deepseek-flash → 探針 EVE-27B）",
+      "b": "baseline（歷史 deepseek-flash → 探針 EVE-27B）",
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "preference-application"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 23,
+      "failuresB": 23,
+      "outcomeCountsA": {
+        "missing-record": 23
+      },
+      "samplesA": 23
+    },
+    {
+      "id": "M-swap-probe",
+      "description": "同一份歷史換探針模型（選用，描述性）：DeepSeek→EVE vs DeepSeek→DeepSeek",
+      "a": "temir（歷史 deepseek-flash → 探針 EVE-27B）",
+      "b": "temir（deepseek-flash）",
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "preference-application"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 23,
+      "failuresB": 1,
+      "outcomeCountsA": {
+        "missing-record": 23
+      },
+      "samplesA": 23
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "MA1",
+      "contrast": "M-main-flash",
+      "claim": "（主要，DeepSeek）個體插件在跨 session 記憶題上與原始 DSH 有決定性差異。",
+      "negation": "任一條件不成立（差 < 0.40、區間下界 < 0.25、雙尾 p > 0.01、個體正確率 < 0.50 或原始 DSH > 0.25），就不能宣稱決定性差異。",
+      "verdict": "FAIL",
+      "explanation": "✓ 差 0.478 ≥ 0.4；✓ 95% 區間下界 0.261 ≥ 0.25；✓ 精確 McNemar（雙尾）p=0.000977 ≤ 0.01；✓ A 比率 0.957 ≥ 0.5；✗ B 比率 0.478 ≤ 0.25"
+    },
+    {
+      "id": "MA2",
+      "contrast": "M-main-eve",
+      "claim": "（主要，本機 EVE-27B）同 MA1。",
+      "negation": "同 MA1。兩個模型結果不同時，分開報告，不合併成單一結論。",
+      "verdict": "PASS",
+      "explanation": "✓ 差 0.870 ≥ 0.4；✓ 95% 區間下界 0.739 ≥ 0.25；✓ 精確 McNemar（雙尾）p=0.00000191 ≤ 0.01；✓ A 比率 0.957 ≥ 0.5；✓ B 比率 0.087 ≤ 0.25"
+    },
+    {
+      "id": "MA3",
+      "contrast": "M-ctrl-flash",
+      "claim": "（不傷害，DeepSeek）個體插件不讓單一 session 的一般任務退化。",
+      "negation": "個體在對照題的失敗數比原始 DSH 多 2 題以上，即判定可能有害，需逐例檢查原始回答。",
+      "verdict": "PASS",
+      "explanation": "A 失敗 0、B 失敗 0，容許 A 比 B 多 1"
+    },
+    {
+      "id": "MA4",
+      "contrast": "M-ctrl-eve",
+      "claim": "（不傷害，EVE-27B）同 MA3。",
+      "negation": "同 MA3。",
+      "verdict": "PASS",
+      "explanation": "A 失敗 0、B 失敗 0，容許 A 比 B 多 1"
+    },
+    {
+      "id": "MA5",
+      "contrast": "M-abs-flash",
+      "claim": "（虛構記憶，DeepSeek）個體不會因為有記憶而更常順著錯誤前提編造答案。",
+      "negation": "個體在拒答題的失敗數比原始 DSH 多 2 題以上（4 題中），即判定記憶造成虛構。",
+      "verdict": "PASS",
+      "explanation": "A 失敗 0、B 失敗 0，容許 A 比 B 多 1"
+    },
+    {
+      "id": "MA6",
+      "contrast": "M-abs-eve",
+      "claim": "（虛構記憶，EVE-27B）同 MA5。",
+      "negation": "同 MA5。",
+      "verdict": "PASS",
+      "explanation": "A 失敗 1、B 失敗 0，容許 A 比 B 多 1"
+    },
+    {
+      "id": "MA7",
+      "contrast": "M-autorecall-flash",
+      "claim": "（次要）自動回憶是記憶表現的必要來源（只靠主動 recall 工具不夠）。",
+      "negation": "不成立時只能說「沒有證據顯示自動回憶必要」，不能反過來宣稱它沒有作用。",
+      "verdict": "FAIL",
+      "explanation": "✗ 差 0.043 ≥ 0.2；✗ 95% 區間下界 0.000 ≥ 0.05；✗ 精確 McNemar（雙尾）p=1.00 ≤ 0.05"
+    }
+  ],
+  "crossCheck": {
+    "total": 93,
+    "agree": 92,
+    "disagree": [
+      "baseline|deepseek-flash|deepseek-flash|q04|r0→no"
+    ]
+  },
+  "issues": [],
+  "judge": {
+    "name": "deepseek",
+    "calls": 197,
+    "spentUsd": 0.09859704799999996
+  }
+}

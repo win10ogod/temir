@@ -1,0 +1,12 @@
+{
+  "runId": "v1__memory-v1__temir__local__local",
+  "endedAt": "2026-10-28T08:04:04.054Z",
+  "histories": 11,
+  "historyFrom": null,
+  "probes": 33,
+  "probeSessions": 33,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "deepseekSpentUsd": null
+}

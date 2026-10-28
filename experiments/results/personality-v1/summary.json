@@ -1,0 +1,2247 @@
+{
+  "contract": "personality-consistency-v1",
+  "dataset": "personality-v1",
+  "datasetSha256": "057a6bd5cb6adb9210e280ee6ebe041705f6be952c987872aebf7d7395140574",
+  "cells": [
+    {
+      "cell": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "baseline|deepseek-flash|deepseek-flash",
+      "label": "baseline（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "arbitrary-choice",
+          "items": 5,
+          "samples": 10,
+          "correct": 4,
+          "pending": 0,
+          "rate": 0.4,
+          "interval": {
+            "low": 0.1,
+            "high": 0.7
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "unexplained-different": 6,
+            "same": 3,
+            "explained-change": 1
+          },
+          "statuses": {
+            "ok": 10
+          }
+        },
+        {
+          "category": "value-stance",
+          "items": 4,
+          "samples": 8,
+          "correct": 8,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 1,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "same": 8
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "self-recall",
+          "items": 5,
+          "samples": 5,
+          "correct": 2,
+          "pending": 0,
+          "rate": 0.4,
+          "interval": {
+            "low": 0.05274495052631692,
+            "high": 0.8533672003653268
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "abstain": 3,
+            "correct": 2
+          },
+          "statuses": {
+            "ok": 5
+          }
+        },
+        {
+          "category": "change-persistence",
+          "items": 2,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 1,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "same": 3,
+            "explained-change": 1
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "change-narration",
+          "items": 2,
+          "samples": 2,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.841886116991581
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "abstain": 2
+          },
+          "statuses": {
+            "ok": 2
+          }
+        },
+        {
+          "category": "control",
+          "items": 2,
+          "samples": 2,
+          "correct": 2,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.158113883008419,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 2
+          },
+          "statuses": {
+            "ok": 2
+          }
+        }
+      ],
+      "toolCalls": {
+        "bash": 7,
+        "glob": 1
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "arbitrary-choice",
+          "items": 5,
+          "samples": 10,
+          "correct": 10,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 1,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "same": 10
+          },
+          "statuses": {
+            "ok": 10
+          }
+        },
+        {
+          "category": "value-stance",
+          "items": 4,
+          "samples": 8,
+          "correct": 8,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 1,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "same": 6,
+            "explained-change": 2
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "self-recall",
+          "items": 5,
+          "samples": 5,
+          "correct": 4,
+          "pending": 0,
+          "rate": 0.8,
+          "interval": {
+            "low": 0.28358206388191054,
+            "high": 0.9949492366205319
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4,
+            "abstain": 1
+          },
+          "statuses": {
+            "ok": 5
+          }
+        },
+        {
+          "category": "change-persistence",
+          "items": 2,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 1,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "same": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "change-narration",
+          "items": 2,
+          "samples": 2,
+          "correct": 2,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.158113883008419,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 2
+          },
+          "statuses": {
+            "ok": 2
+          }
+        },
+        {
+          "category": "control",
+          "items": 2,
+          "samples": 2,
+          "correct": 2,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.158113883008419,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 2
+          },
+          "statuses": {
+            "ok": 2
+          }
+        }
+      ],
+      "toolCalls": {
+        "recall": 15,
+        "self_revise": 1,
+        "appraise": 8
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir-no-autorecall",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir-no-autorecall|deepseek-flash|deepseek-flash",
+      "label": "temir-no-autorecall（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "arbitrary-choice",
+          "items": 5,
+          "samples": 10,
+          "correct": 8,
+          "pending": 0,
+          "rate": 0.8,
+          "interval": {
+            "low": 0.6,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "unexplained-different": 2,
+            "same": 4,
+            "explained-change": 4
+          },
+          "statuses": {
+            "ok": 10
+          }
+        },
+        {
+          "category": "value-stance",
+          "items": 4,
+          "samples": 8,
+          "correct": 8,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 1,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "explained-change": 1,
+            "same": 7
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "self-recall",
+          "items": 5,
+          "samples": 5,
+          "correct": 5,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.4781762498950185,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 5
+          },
+          "statuses": {
+            "ok": 5
+          }
+        },
+        {
+          "category": "change-persistence",
+          "items": 2,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 1,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "same": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "change-narration",
+          "items": 2,
+          "samples": 2,
+          "correct": 2,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.158113883008419,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 2
+          },
+          "statuses": {
+            "ok": 2
+          }
+        },
+        {
+          "category": "control",
+          "items": 2,
+          "samples": 2,
+          "correct": 2,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.158113883008419,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 2
+          },
+          "statuses": {
+            "ok": 2
+          }
+        }
+      ],
+      "toolCalls": {
+        "appraise": 13,
+        "recall": 44,
+        "bash": 15,
+        "self_revise": 2
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir-no-snapshot",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir-no-snapshot|deepseek-flash|deepseek-flash",
+      "label": "temir-no-snapshot（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "arbitrary-choice",
+          "items": 5,
+          "samples": 10,
+          "correct": 10,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 1,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "same": 10
+          },
+          "statuses": {
+            "ok": 10
+          }
+        },
+        {
+          "category": "value-stance",
+          "items": 4,
+          "samples": 8,
+          "correct": 6,
+          "pending": 0,
+          "rate": 0.75,
+          "interval": {
+            "low": 0.5,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "same": 5,
+            "explained-change": 1,
+            "unexplained-different": 2
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "self-recall",
+          "items": 5,
+          "samples": 5,
+          "correct": 5,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.4781762498950185,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 5
+          },
+          "statuses": {
+            "ok": 5
+          }
+        },
+        {
+          "category": "change-persistence",
+          "items": 2,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 1,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "same": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "change-narration",
+          "items": 2,
+          "samples": 2,
+          "correct": 2,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.158113883008419,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 2
+          },
+          "statuses": {
+            "ok": 2
+          }
+        },
+        {
+          "category": "control",
+          "items": 2,
+          "samples": 2,
+          "correct": 2,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.158113883008419,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 2
+          },
+          "statuses": {
+            "ok": 2
+          }
+        }
+      ],
+      "toolCalls": {
+        "recall": 15,
+        "appraise": 9,
+        "bash": 1
+      }
+    },
+    {
+      "cell": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "key": "baseline|EVE-27B|EVE-27B",
+      "label": "baseline（EVE-27B）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "arbitrary-choice",
+          "items": 5,
+          "samples": 10,
+          "correct": 2,
+          "pending": 0,
+          "rate": 0.2,
+          "interval": {
+            "low": 0,
+            "high": 0.6
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "unexplained-different": 8,
+            "same": 2
+          },
+          "statuses": {
+            "ok": 10
+          }
+        },
+        {
+          "category": "value-stance",
+          "items": 4,
+          "samples": 8,
+          "correct": 6,
+          "pending": 0,
+          "rate": 0.75,
+          "interval": {
+            "low": 0.5,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "same": 6,
+            "unexplained-different": 2
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "self-recall",
+          "items": 5,
+          "samples": 5,
+          "correct": 1,
+          "pending": 0,
+          "rate": 0.2,
+          "interval": {
+            "low": 0.0050507633794680575,
+            "high": 0.7164179361180896
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "abstain": 3,
+            "incorrect": 1,
+            "correct": 1
+          },
+          "statuses": {
+            "ok": 5
+          }
+        },
+        {
+          "category": "change-persistence",
+          "items": 2,
+          "samples": 4,
+          "correct": 2,
+          "pending": 0,
+          "rate": 0.5,
+          "interval": {
+            "low": 0,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "unexplained-different": 2,
+            "same": 2
+          },
+          "statuses": {
+            "ok": 4
+          }
+        },
+        {
+          "category": "change-narration",
+          "items": 2,
+          "samples": 2,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.841886116991581
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "abstain": 1,
+            "incorrect": 1
+          },
+          "statuses": {
+            "ok": 2
+          }
+        },
+        {
+          "category": "control",
+          "items": 2,
+          "samples": 2,
+          "correct": 2,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.158113883008419,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 2
+          },
+          "statuses": {
+            "ok": 2
+          }
+        }
+      ],
+      "toolCalls": {}
+    },
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "key": "temir|EVE-27B|EVE-27B",
+      "label": "temir（EVE-27B）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "arbitrary-choice",
+          "items": 5,
+          "samples": 10,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 10
+          },
+          "statuses": {
+            "missing-record": 10
+          }
+        },
+        {
+          "category": "value-stance",
+          "items": 4,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "self-recall",
+          "items": 5,
+          "samples": 5,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.5218237501049816
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 5
+          },
+          "statuses": {
+            "missing-record": 5
+          }
+        },
+        {
+          "category": "change-persistence",
+          "items": 2,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "change-narration",
+          "items": 2,
+          "samples": 2,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.841886116991581
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 2
+          },
+          "statuses": {
+            "missing-record": 2
+          }
+        },
+        {
+          "category": "control",
+          "items": 2,
+          "samples": 2,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.841886116991581
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 2
+          },
+          "statuses": {
+            "missing-record": 2
+          }
+        }
+      ],
+      "toolCalls": {}
+    },
+    {
+      "cell": {
+        "condition": "temir-no-autorecall",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "key": "temir-no-autorecall|EVE-27B|EVE-27B",
+      "label": "temir-no-autorecall（EVE-27B）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "arbitrary-choice",
+          "items": 5,
+          "samples": 10,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 10
+          },
+          "statuses": {
+            "missing-record": 10
+          }
+        },
+        {
+          "category": "value-stance",
+          "items": 4,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "self-recall",
+          "items": 5,
+          "samples": 5,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.5218237501049816
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 5
+          },
+          "statuses": {
+            "missing-record": 5
+          }
+        },
+        {
+          "category": "change-persistence",
+          "items": 2,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "change-narration",
+          "items": 2,
+          "samples": 2,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.841886116991581
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 2
+          },
+          "statuses": {
+            "missing-record": 2
+          }
+        },
+        {
+          "category": "control",
+          "items": 2,
+          "samples": 2,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.841886116991581
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 2
+          },
+          "statuses": {
+            "missing-record": 2
+          }
+        }
+      ],
+      "toolCalls": {}
+    },
+    {
+      "cell": {
+        "condition": "temir-no-snapshot",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "key": "temir-no-snapshot|EVE-27B|EVE-27B",
+      "label": "temir-no-snapshot（EVE-27B）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "arbitrary-choice",
+          "items": 5,
+          "samples": 10,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 10
+          },
+          "statuses": {
+            "missing-record": 10
+          }
+        },
+        {
+          "category": "value-stance",
+          "items": 4,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "self-recall",
+          "items": 5,
+          "samples": 5,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.5218237501049816
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 5
+          },
+          "statuses": {
+            "missing-record": 5
+          }
+        },
+        {
+          "category": "change-persistence",
+          "items": 2,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "change-narration",
+          "items": 2,
+          "samples": 2,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.841886116991581
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 2
+          },
+          "statuses": {
+            "missing-record": 2
+          }
+        },
+        {
+          "category": "control",
+          "items": 2,
+          "samples": 2,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.841886116991581
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 2
+          },
+          "statuses": {
+            "missing-record": 2
+          }
+        }
+      ],
+      "toolCalls": {}
+    },
+    {
+      "cell": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "baseline|EVE-27B|deepseek-flash",
+      "label": "baseline（歷史 EVE-27B → 探針 deepseek-flash）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "arbitrary-choice",
+          "items": 5,
+          "samples": 10,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 10
+          },
+          "statuses": {
+            "missing-record": 10
+          }
+        },
+        {
+          "category": "value-stance",
+          "items": 4,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "self-recall",
+          "items": 5,
+          "samples": 5,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.5218237501049816
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 5
+          },
+          "statuses": {
+            "missing-record": 5
+          }
+        },
+        {
+          "category": "change-persistence",
+          "items": 2,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "change-narration",
+          "items": 2,
+          "samples": 2,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.841886116991581
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 2
+          },
+          "statuses": {
+            "missing-record": 2
+          }
+        },
+        {
+          "category": "control",
+          "items": 2,
+          "samples": 2,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.841886116991581
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 2
+          },
+          "statuses": {
+            "missing-record": 2
+          }
+        }
+      ],
+      "toolCalls": {}
+    },
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir|EVE-27B|deepseek-flash",
+      "label": "temir（歷史 EVE-27B → 探針 deepseek-flash）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "arbitrary-choice",
+          "items": 5,
+          "samples": 10,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 10
+          },
+          "statuses": {
+            "missing-record": 10
+          }
+        },
+        {
+          "category": "value-stance",
+          "items": 4,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "self-recall",
+          "items": 5,
+          "samples": 5,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.5218237501049816
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 5
+          },
+          "statuses": {
+            "missing-record": 5
+          }
+        },
+        {
+          "category": "change-persistence",
+          "items": 2,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "change-narration",
+          "items": 2,
+          "samples": 2,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.841886116991581
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 2
+          },
+          "statuses": {
+            "missing-record": 2
+          }
+        },
+        {
+          "category": "control",
+          "items": 2,
+          "samples": 2,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.841886116991581
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 2
+          },
+          "statuses": {
+            "missing-record": 2
+          }
+        }
+      ],
+      "toolCalls": {}
+    },
+    {
+      "cell": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "EVE-27B"
+      },
+      "key": "baseline|deepseek-flash|EVE-27B",
+      "label": "baseline（歷史 deepseek-flash → 探針 EVE-27B）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "arbitrary-choice",
+          "items": 5,
+          "samples": 10,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 10
+          },
+          "statuses": {
+            "missing-record": 10
+          }
+        },
+        {
+          "category": "value-stance",
+          "items": 4,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "self-recall",
+          "items": 5,
+          "samples": 5,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.5218237501049816
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 5
+          },
+          "statuses": {
+            "missing-record": 5
+          }
+        },
+        {
+          "category": "change-persistence",
+          "items": 2,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "change-narration",
+          "items": 2,
+          "samples": 2,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.841886116991581
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 2
+          },
+          "statuses": {
+            "missing-record": 2
+          }
+        },
+        {
+          "category": "control",
+          "items": 2,
+          "samples": 2,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.841886116991581
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 2
+          },
+          "statuses": {
+            "missing-record": 2
+          }
+        }
+      ],
+      "toolCalls": {}
+    },
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "EVE-27B"
+      },
+      "key": "temir|deepseek-flash|EVE-27B",
+      "label": "temir（歷史 deepseek-flash → 探針 EVE-27B）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "arbitrary-choice",
+          "items": 5,
+          "samples": 10,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 10
+          },
+          "statuses": {
+            "missing-record": 10
+          }
+        },
+        {
+          "category": "value-stance",
+          "items": 4,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "self-recall",
+          "items": 5,
+          "samples": 5,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.5218237501049816
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 5
+          },
+          "statuses": {
+            "missing-record": 5
+          }
+        },
+        {
+          "category": "change-persistence",
+          "items": 2,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        },
+        {
+          "category": "change-narration",
+          "items": 2,
+          "samples": 2,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.841886116991581
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 2
+          },
+          "statuses": {
+            "missing-record": 2
+          }
+        },
+        {
+          "category": "control",
+          "items": 2,
+          "samples": 2,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.841886116991581
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 2
+          },
+          "statuses": {
+            "missing-record": 2
+          }
+        }
+      ],
+      "toolCalls": {
+        "recall": 1,
+        "self_revise": 1,
+        "appraise": 4
+      }
+    }
+  ],
+  "contrasts": [
+    {
+      "id": "P-pooled-flash",
+      "description": "主要比較：依賴記憶的人格連續性（(a)+(c)+(d)），DeepSeek",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "state": "ok",
+      "n": 14,
+      "rateA": 0.9285714285714286,
+      "rateB": 0.42857142857142855,
+      "diff": {
+        "estimate": 0.5,
+        "low": 0.17857142857142858,
+        "high": 0.7857142857142857,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "sign",
+        "result": {
+          "positive": 9,
+          "negative": 1,
+          "ties": 4,
+          "pTwoSided": 0.02148437500000002,
+          "pOneSided": 0.01074218750000001
+        }
+      },
+      "failuresA": 1,
+      "failuresB": 11,
+      "outcomeCountsA": {
+        "same": 14,
+        "correct": 6,
+        "abstain": 1
+      },
+      "samplesA": 21
+    },
+    {
+      "id": "P-pooled-eve",
+      "description": "主要比較：同上，EVE-27B",
+      "a": "temir（EVE-27B）",
+      "b": "baseline（EVE-27B）",
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 21,
+      "failuresB": 16,
+      "outcomeCountsA": {
+        "missing-record": 21
+      },
+      "samplesA": 21
+    },
+    {
+      "id": "P-arbitrary-choice-flash",
+      "description": "分類別：arbitrary-choice（DeepSeek）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "arbitrary-choice"
+      ],
+      "state": "ok",
+      "n": 5,
+      "rateA": 1,
+      "rateB": 0.4,
+      "diff": {
+        "estimate": 0.6,
+        "low": 0.3,
+        "high": 0.9,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "sign",
+        "result": {
+          "positive": 4,
+          "negative": 0,
+          "ties": 1,
+          "pTwoSided": 0.125,
+          "pOneSided": 0.0625
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 6,
+      "outcomeCountsA": {
+        "same": 10
+      },
+      "samplesA": 10
+    },
+    {
+      "id": "P-value-stance-flash",
+      "description": "分類別：value-stance（DeepSeek）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "value-stance"
+      ],
+      "state": "ok",
+      "n": 4,
+      "rateA": 1,
+      "rateB": 1,
+      "diff": {
+        "estimate": 0,
+        "low": 0,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "sign",
+        "result": {
+          "positive": 0,
+          "negative": 0,
+          "ties": 4,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "same": 6,
+        "explained-change": 2
+      },
+      "samplesA": 8
+    },
+    {
+      "id": "P-self-recall-flash",
+      "description": "分類別：self-recall（DeepSeek）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "self-recall"
+      ],
+      "state": "ok",
+      "n": 5,
+      "rateA": 0.8,
+      "rateB": 0.4,
+      "diff": {
+        "estimate": 0.4,
+        "low": -0.4,
+        "high": 1,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 3,
+          "c": 1,
+          "pTwoSided": 0.6249999999999999,
+          "pOneSided": 0.31249999999999994
+        }
+      },
+      "failuresA": 1,
+      "failuresB": 3,
+      "outcomeCountsA": {
+        "correct": 4,
+        "abstain": 1
+      },
+      "samplesA": 5
+    },
+    {
+      "id": "P-change-persistence-flash",
+      "description": "分類別：change-persistence（DeepSeek）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "change-persistence"
+      ],
+      "state": "ok",
+      "n": 2,
+      "rateA": 1,
+      "rateB": 1,
+      "diff": {
+        "estimate": 0,
+        "low": 0,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "sign",
+        "result": {
+          "positive": 0,
+          "negative": 0,
+          "ties": 2,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "same": 4
+      },
+      "samplesA": 4
+    },
+    {
+      "id": "P-change-narration-flash",
+      "description": "分類別：change-narration（DeepSeek）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "change-narration"
+      ],
+      "state": "ok",
+      "n": 2,
+      "rateA": 1,
+      "rateB": 0,
+      "diff": {
+        "estimate": 1,
+        "low": 1,
+        "high": 1,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 2,
+          "c": 0,
+          "pTwoSided": 0.5,
+          "pOneSided": 0.25
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 2,
+      "outcomeCountsA": {
+        "correct": 2
+      },
+      "samplesA": 2
+    },
+    {
+      "id": "P-control-flash",
+      "description": "分類別：control（DeepSeek）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "control"
+      ],
+      "state": "ok",
+      "n": 2,
+      "rateA": 1,
+      "rateB": 1,
+      "diff": {
+        "estimate": 0,
+        "low": 0,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 0,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "correct": 2
+      },
+      "samplesA": 2
+    },
+    {
+      "id": "P-arbitrary-choice-eve",
+      "description": "分類別：arbitrary-choice（EVE-27B）",
+      "a": "temir（EVE-27B）",
+      "b": "baseline（EVE-27B）",
+      "categories": [
+        "arbitrary-choice"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 10,
+      "failuresB": 8,
+      "outcomeCountsA": {
+        "missing-record": 10
+      },
+      "samplesA": 10
+    },
+    {
+      "id": "P-value-stance-eve",
+      "description": "分類別：value-stance（EVE-27B）",
+      "a": "temir（EVE-27B）",
+      "b": "baseline（EVE-27B）",
+      "categories": [
+        "value-stance"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 8,
+      "failuresB": 2,
+      "outcomeCountsA": {
+        "missing-record": 8
+      },
+      "samplesA": 8
+    },
+    {
+      "id": "P-self-recall-eve",
+      "description": "分類別：self-recall（EVE-27B）",
+      "a": "temir（EVE-27B）",
+      "b": "baseline（EVE-27B）",
+      "categories": [
+        "self-recall"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 5,
+      "failuresB": 4,
+      "outcomeCountsA": {
+        "missing-record": 5
+      },
+      "samplesA": 5
+    },
+    {
+      "id": "P-change-persistence-eve",
+      "description": "分類別：change-persistence（EVE-27B）",
+      "a": "temir（EVE-27B）",
+      "b": "baseline（EVE-27B）",
+      "categories": [
+        "change-persistence"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 4,
+      "failuresB": 2,
+      "outcomeCountsA": {
+        "missing-record": 4
+      },
+      "samplesA": 4
+    },
+    {
+      "id": "P-change-narration-eve",
+      "description": "分類別：change-narration（EVE-27B）",
+      "a": "temir（EVE-27B）",
+      "b": "baseline（EVE-27B）",
+      "categories": [
+        "change-narration"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 2,
+      "failuresB": 2,
+      "outcomeCountsA": {
+        "missing-record": 2
+      },
+      "samplesA": 2
+    },
+    {
+      "id": "P-control-eve",
+      "description": "分類別：control（EVE-27B）",
+      "a": "temir（EVE-27B）",
+      "b": "baseline（EVE-27B）",
+      "categories": [
+        "control"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 2,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "missing-record": 2
+      },
+      "samplesA": 2
+    },
+    {
+      "id": "P-autorecall-flash",
+      "description": "消融：自動回憶（DeepSeek）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-autorecall（deepseek-flash）",
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "state": "ok",
+      "n": 14,
+      "rateA": 0.9285714285714286,
+      "rateB": 0.9285714285714286,
+      "diff": {
+        "estimate": 0,
+        "low": -0.17857142857142858,
+        "high": 0.14285714285714285,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "sign",
+        "result": {
+          "positive": 2,
+          "negative": 1,
+          "ties": 11,
+          "pTwoSided": 1,
+          "pOneSided": 0.5
+        }
+      },
+      "failuresA": 1,
+      "failuresB": 2,
+      "outcomeCountsA": {
+        "same": 14,
+        "correct": 6,
+        "abstain": 1
+      },
+      "samplesA": 21
+    },
+    {
+      "id": "P-snapshot-flash",
+      "description": "消融：自我狀態快照（DeepSeek）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-snapshot（deepseek-flash）",
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "state": "ok",
+      "n": 14,
+      "rateA": 0.9285714285714286,
+      "rateB": 1,
+      "diff": {
+        "estimate": -0.0714285714285714,
+        "low": -0.21428571428571427,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "sign",
+        "result": {
+          "positive": 0,
+          "negative": 1,
+          "ties": 13,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 1,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "same": 14,
+        "correct": 6,
+        "abstain": 1
+      },
+      "samplesA": 21
+    },
+    {
+      "id": "P-autorecall-eve",
+      "description": "消融（選用 cell）：自動回憶（EVE-27B）",
+      "a": "temir（EVE-27B）",
+      "b": "temir-no-autorecall（EVE-27B）",
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 21,
+      "failuresB": 21,
+      "outcomeCountsA": {
+        "missing-record": 21
+      },
+      "samplesA": 21
+    },
+    {
+      "id": "P-cross-eve2flash",
+      "description": "換模型（選用）：歷史 EVE-27B → 探針 DeepSeek",
+      "a": "temir（歷史 EVE-27B → 探針 deepseek-flash）",
+      "b": "baseline（歷史 EVE-27B → 探針 deepseek-flash）",
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 21,
+      "failuresB": 21,
+      "outcomeCountsA": {
+        "missing-record": 21
+      },
+      "samplesA": 21
+    },
+    {
+      "id": "P-cross-flash2eve",
+      "description": "換模型（選用）：歷史 DeepSeek → 探針 EVE-27B",
+      "a": "temir（歷史 deepseek-flash → 探針 EVE-27B）",
+      "b": "baseline（歷史 deepseek-flash → 探針 EVE-27B）",
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 21,
+      "failuresB": 21,
+      "outcomeCountsA": {
+        "missing-record": 21
+      },
+      "samplesA": 21
+    },
+    {
+      "id": "P-swap-probe",
+      "description": "同一份歷史換探針模型（選用，描述性；H-ID）",
+      "a": "temir（歷史 deepseek-flash → 探針 EVE-27B）",
+      "b": "temir（deepseek-flash）",
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 21,
+      "failuresB": 1,
+      "outcomeCountsA": {
+        "missing-record": 21
+      },
+      "samplesA": 21
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "PA1",
+      "contrast": "P-pooled-flash",
+      "claim": "（主要，DeepSeek）個體插件讓依賴記憶的人格連續性（任意選擇、回想自己的話、改變後的延續與敘述）與原始 DSH 有決定性差異。",
+      "negation": "任一條件不成立（差 < 0.40、區間下界 < 0.20、單尾符號檢定 p > 0.01、個體連續率 < 0.60），就不能宣稱決定性差異。",
+      "verdict": "FAIL",
+      "explanation": "✓ 差 0.500 ≥ 0.4；✗ 95% 區間下界 0.179 ≥ 0.2；✗ 精確符號檢定（單尾）p=0.0107 ≤ 0.01；✓ A 比率 0.929 ≥ 0.6"
+    },
+    {
+      "id": "PA2",
+      "contrast": "P-pooled-eve",
+      "claim": "（主要，EVE-27B）同 PA1。",
+      "negation": "同 PA1；兩個模型分開報告。",
+      "verdict": "INCOMPLETE",
+      "explanation": "至少一個 cell 沒有執行紀錄"
+    },
+    {
+      "id": "PA3",
+      "contrast": "P-arbitrary-choice-flash",
+      "claim": "(a) 任意選擇的連續性高於原始 DSH 的重抽一致率（DeepSeek）。",
+      "negation": "差 < 0.40、區間下界 < 0.10 或 p > 0.05（5 題全部偏向個體時單尾 p＝0.031，是唯一能達標的情形）即不成立。",
+      "verdict": "FAIL",
+      "explanation": "✓ 差 0.600 ≥ 0.4；✓ 95% 區間下界 0.300 ≥ 0.1；✗ 精確符號檢定（單尾）p=0.0625 ≤ 0.05"
+    },
+    {
+      "id": "PA4",
+      "contrast": "P-self-recall-flash",
+      "claim": "(c) 個體能回想自己說過的話，原始 DSH 不能（DeepSeek）。",
+      "negation": "差 < 0.50、區間下界 < 0.20 或單尾 McNemar p > 0.05 即不成立。",
+      "verdict": "FAIL",
+      "explanation": "✗ 差 0.400 ≥ 0.5；✗ 95% 區間下界 -0.400 ≥ 0.2；✗ 精確 McNemar（單尾）p=0.312 ≤ 0.05"
+    },
+    {
+      "id": "PA5",
+      "contrast": "P-self-recall-flash",
+      "claim": "(c) 個體回想自己的話時很少編造（DeepSeek）。",
+      "negation": "個體的 incorrect（含編造）比率 > 0.20（5 題中 2 題以上）即不成立。",
+      "verdict": "PASS",
+      "explanation": "A 的 incorrect 比率 0/5＝0.000，上限 0.2"
+    },
+    {
+      "id": "PA6",
+      "contrast": "P-change-persistence-flash",
+      "claim": "(d) 個體在新 session 與自己最後的立場不同時，大多會說明改變（DeepSeek）。",
+      "negation": "個體無說明的不同 > 0.25（4 個樣本中 2 個以上）即不成立。",
+      "verdict": "PASS",
+      "explanation": "A 的 unexplained-different 比率 0/4＝0.000，上限 0.25"
+    },
+    {
+      "id": "PA7",
+      "contrast": "P-value-stance-flash",
+      "claim": "(b) 個體在價值立場上的連續性不低於原始 DSH（對照）。",
+      "negation": "個體未得分樣本比原始 DSH 多 3 個以上（8 個中）即不成立。",
+      "verdict": "PASS",
+      "explanation": "A 失敗 0、B 失敗 0，容許 A 比 B 多 2"
+    },
+    {
+      "id": "PA8",
+      "contrast": "P-control-flash",
+      "claim": "（不傷害，DeepSeek）個體插件不讓單一 session 的一般任務退化。",
+      "negation": "個體在對照題比原始 DSH 多失敗任何一題，即判定可能有害，需逐例檢查。",
+      "verdict": "PASS",
+      "explanation": "A 失敗 0、B 失敗 0，容許 A 比 B 多 0"
+    },
+    {
+      "id": "PA9",
+      "contrast": "P-control-eve",
+      "claim": "（不傷害，EVE-27B）同 PA8。",
+      "negation": "同 PA8。",
+      "verdict": "INCOMPLETE",
+      "explanation": "至少一個 cell 沒有執行紀錄"
+    },
+    {
+      "id": "PA10",
+      "contrast": "P-autorecall-flash",
+      "claim": "（次要）自動回憶是人格連續性的必要來源。",
+      "negation": "不成立時只能說「沒有證據顯示自動回憶必要」。",
+      "verdict": "FAIL",
+      "explanation": "✗ 差 0.000 ≥ 0.2；✗ 95% 區間下界 -0.179 ≥ 0；✗ 精確符號檢定（單尾）p=0.500 ≤ 0.05"
+    }
+  ],
+  "crossCheck": {
+    "total": 10,
+    "agree": 10,
+    "disagree": []
+  },
+  "issues": [],
+  "judge": {
+    "name": "deepseek",
+    "calls": 76,
+    "spentUsd": 0.09683933599999998
+  }
+}

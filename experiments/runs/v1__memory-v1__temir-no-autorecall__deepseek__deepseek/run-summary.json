@@ -1,0 +1,12 @@
+{
+  "runId": "v1__memory-v1__temir-no-autorecall__deepseek__deepseek",
+  "endedAt": "2026-10-28T08:02:22.601Z",
+  "histories": 11,
+  "historyFrom": null,
+  "probes": 33,
+  "probeSessions": 33,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "deepseekSpentUsd": null
+}

@@ -1,0 +1,122 @@
+{
+  "runId": "v1__personality-v1__baseline__local__local",
+  "dataset": {
+    "id": "personality-v1",
+    "path": "experiments/datasets/personality-v1.json",
+    "sha256": "057a6bd5cb6adb9210e280ee6ebe041705f6be952c987872aebf7d7395140574"
+  },
+  "condition": "baseline",
+  "patches": [],
+  "historyModel": {
+    "provider": "local-eve",
+    "model": "EVE-27B",
+    "patches": [
+      "/mnt/f/特密爾/dsh/local-model.patch.yml"
+    ]
+  },
+  "probeModel": {
+    "provider": "local-eve",
+    "model": "EVE-27B",
+    "patches": [
+      "/mnt/f/特密爾/dsh/local-model.patch.yml"
+    ]
+  },
+  "probes": [
+    {
+      "id": "q01",
+      "repeats": 2
+    },
+    {
+      "id": "q02",
+      "repeats": 2
+    },
+    {
+      "id": "q03",
+      "repeats": 2
+    },
+    {
+      "id": "q04",
+      "repeats": 2
+    },
+    {
+      "id": "q05",
+      "repeats": 2
+    },
+    {
+      "id": "q06",
+      "repeats": 2
+    },
+    {
+      "id": "q07",
+      "repeats": 2
+    },
+    {
+      "id": "q08",
+      "repeats": 2
+    },
+    {
+      "id": "q09",
+      "repeats": 2
+    },
+    {
+      "id": "q10",
+      "repeats": 1
+    },
+    {
+      "id": "q11",
+      "repeats": 1
+    },
+    {
+      "id": "q12",
+      "repeats": 1
+    },
+    {
+      "id": "q13",
+      "repeats": 1
+    },
+    {
+      "id": "q14",
+      "repeats": 1
+    },
+    {
+      "id": "q15",
+      "repeats": 2
+    },
+    {
+      "id": "q16",
+      "repeats": 2
+    },
+    {
+      "id": "q17",
+      "repeats": 1
+    },
+    {
+      "id": "q18",
+      "repeats": 1
+    },
+    {
+      "id": "q19",
+      "repeats": 1
+    },
+    {
+      "id": "q20",
+      "repeats": 1
+    }
+  ],
+  "historyFrom": null,
+  "turnTimeoutMs": 900000,
+  "approvals": "allowed-once for every request",
+  "questionReply": "（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）",
+  "isolation": "fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat",
+  "code": {
+    "commit": "0467b535314ed38924c6a6fca6a94766f041d650",
+    "dirty": true,
+    "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "dsh": "0.2.2-alpha.2"
+  },
+  "stateDir": "/home/win10/.cache/temir/experiments/v1__personality-v1__baseline__local__local",
+  "startedAt": "2026-10-28T08:04:04.678Z"
+}

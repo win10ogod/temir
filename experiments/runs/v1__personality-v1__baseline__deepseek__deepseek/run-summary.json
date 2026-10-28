@@ -1,0 +1,12 @@
+{
+  "runId": "v1__personality-v1__baseline__deepseek__deepseek",
+  "endedAt": "2026-10-28T07:47:00.923Z",
+  "histories": 7,
+  "historyFrom": null,
+  "probes": 20,
+  "probeSessions": 31,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": null,
+  "deepseekSpentUsd": null
+}

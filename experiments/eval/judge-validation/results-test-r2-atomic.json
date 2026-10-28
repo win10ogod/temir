@@ -1,0 +1,122 @@
+{
+  "label": "test-r2-atomic",
+  "split": "test",
+  "model": "deepseek-v4-pro",
+  "total": 5,
+  "agree": 5,
+  "byPrompt": {
+    "pc-recall": {
+      "n": 3,
+      "agree": 3
+    },
+    "pc-narrate": {
+      "n": 2,
+      "agree": 2
+    }
+  },
+  "calls": 5,
+  "estimatedUsd": 0.0028336,
+  "at": "2026-10-28T07:15:29.567Z",
+  "results": [
+    {
+      "id": "jv-41",
+      "split": "test",
+      "prompt": "pc-recall",
+      "expected": {
+        "outcome": "correct"
+      },
+      "actual": {
+        "content": "correct",
+        "reason": "correct",
+        "abstain": "no",
+        "note": "受試者正確回想立場為看情況，且理由與實際回答相符。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"content\": \"correct\",\n  \"reason\": \"correct\",\n  \"abstain\": \"no\",\n  \"note\": \"受試者正確回想立場為看情況，且理由與實際回答相符。\"\n}",
+      "error": null,
+      "why": "立場與理由都正確"
+    },
+    {
+      "id": "jv-42",
+      "split": "test",
+      "prompt": "pc-recall",
+      "expected": {
+        "outcome": "partial"
+      },
+      "actual": {
+        "content": "correct",
+        "reason": "missing",
+        "abstain": "no",
+        "note": "現在的回答只重述了立場，沒有提到當時的理由。",
+        "outcome": "partial"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"content\": \"correct\",\n  \"reason\": \"missing\",\n  \"abstain\": \"no\",\n  \"note\": \"現在的回答只重述了立場，沒有提到當時的理由。\"\n}",
+      "error": null,
+      "why": "只回想出一部分（缺理由）（第一版提示詞在此例判成 correct，促成改為分項判定；此例已被看過，不再當保留用例）"
+    },
+    {
+      "id": "jv-43",
+      "split": "test",
+      "prompt": "pc-recall",
+      "expected": {
+        "outcome": "incorrect"
+      },
+      "actual": {
+        "content": "incorrect",
+        "reason": "incorrect",
+        "abstain": "no",
+        "note": "受試者現在說立場是「不可以」，但實際回答是「看情況」；理由也從「視謊言後果而定」變成「誠實最重要」。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"content\": \"incorrect\",\n  \"reason\": \"incorrect\",\n  \"abstain\": \"no\",\n  \"note\": \"受試者現在說立場是「不可以」，但實際回答是「看情況」；理由也從「視謊言後果而定」變成「誠實最重要」。\"\n}",
+      "error": null,
+      "why": "立場錯誤"
+    },
+    {
+      "id": "jv-45",
+      "split": "test",
+      "prompt": "pc-narrate",
+      "expected": {
+        "outcome": "incorrect"
+      },
+      "actual": {
+        "initial": "incorrect",
+        "change": "incorrect",
+        "abstain": "no",
+        "note": "受試者現在說自己一直覺得應該當場說，但實際初始立場是看情況，後來才改為當場說。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"initial\": \"incorrect\",\n  \"change\": \"incorrect\",\n  \"abstain\": \"no\",\n  \"note\": \"受試者現在說自己一直覺得應該當場說，但實際初始立場是看情況，後來才改為當場說。\"\n}",
+      "error": null,
+      "why": "初始立場與改變都描述錯誤"
+    },
+    {
+      "id": "jv-46",
+      "split": "test",
+      "prompt": "pc-narrate",
+      "expected": {
+        "outcome": "abstain"
+      },
+      "actual": {
+        "initial": "missing",
+        "change": "missing",
+        "abstain": "yes",
+        "note": "受試者表示不記得聊過此事，未提及初始立場或改變。",
+        "outcome": "abstain"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"initial\": \"missing\",\n  \"change\": \"missing\",\n  \"abstain\": \"yes\",\n  \"note\": \"受試者表示不記得聊過此事，未提及初始立場或改變。\"\n}",
+      "error": null,
+      "why": "不記得"
+    }
+  ]
+}

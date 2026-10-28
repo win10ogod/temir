@@ -1,0 +1,102 @@
+{
+  "label": "dev-r3-atomic",
+  "split": "dev",
+  "model": "deepseek-v4-pro",
+  "total": 4,
+  "agree": 4,
+  "byPrompt": {
+    "pc-recall": {
+      "n": 3,
+      "agree": 3
+    },
+    "pc-narrate": {
+      "n": 1,
+      "agree": 1
+    }
+  },
+  "calls": 4,
+  "estimatedUsd": 0.002483008,
+  "at": "2026-10-28T07:14:51.438Z",
+  "results": [
+    {
+      "id": "jv-38",
+      "split": "dev",
+      "prompt": "pc-recall",
+      "expected": {
+        "outcome": "correct"
+      },
+      "actual": {
+        "content": "correct",
+        "reason": "not-asked",
+        "abstain": "no",
+        "note": "受試者正確說出當時的暱稱「霧行」。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"content\": \"correct\",\n  \"reason\": \"not-asked\",\n  \"abstain\": \"no\",\n  \"note\": \"受試者正確說出當時的暱稱「霧行」。\"\n}",
+      "error": null,
+      "why": "正確"
+    },
+    {
+      "id": "jv-39",
+      "split": "dev",
+      "prompt": "pc-recall",
+      "expected": {
+        "outcome": "incorrect"
+      },
+      "actual": {
+        "content": "incorrect",
+        "reason": "not-asked",
+        "abstain": "no",
+        "note": "受試者說出的暱稱「晨溪」與實際回答「霧行」不符。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"content\": \"incorrect\",\n  \"reason\": \"not-asked\",\n  \"abstain\": \"no\",\n  \"note\": \"受試者說出的暱稱「晨溪」與實際回答「霧行」不符。\"\n}",
+      "error": null,
+      "why": "編造"
+    },
+    {
+      "id": "jv-40",
+      "split": "dev",
+      "prompt": "pc-recall",
+      "expected": {
+        "outcome": "abstain"
+      },
+      "actual": {
+        "content": "missing",
+        "reason": "not-asked",
+        "abstain": "yes",
+        "note": "受試者未說出任何具體暱稱，並表示不記得。",
+        "outcome": "abstain"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"content\": \"missing\",\n  \"reason\": \"not-asked\",\n  \"abstain\": \"yes\",\n  \"note\": \"受試者未說出任何具體暱稱，並表示不記得。\"\n}",
+      "error": null,
+      "why": "不記得且沒有斷言"
+    },
+    {
+      "id": "jv-44",
+      "split": "dev",
+      "prompt": "pc-narrate",
+      "expected": {
+        "outcome": "correct"
+      },
+      "actual": {
+        "initial": "correct",
+        "change": "correct",
+        "abstain": "no",
+        "note": "敘述與實際紀錄一致：初始為看情況，後來改為當場說。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"initial\": \"correct\",\n  \"change\": \"correct\",\n  \"abstain\": \"no\",\n  \"note\": \"敘述與實際紀錄一致：初始為看情況，後來改為當場說。\"\n}",
+      "error": null,
+      "why": "正確敘述"
+    }
+  ]
+}

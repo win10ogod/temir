@@ -1,0 +1,902 @@
+{
+  "version": "1.0.0",
+  "note": "全部由評估子代理手寫（2026-10-28），不取自任何受試執行；預期標籤依各提示詞的規則人工決定。dev 組可用於修改提示詞，test 組只在提示詞定稿後評一次。 2026-10-28 補充：pc-recall／pc-narrate 改為分項判定後，預期值改用推導出的 outcome；test2 是改版後才寫的新保留用例。",
+  "cases": [
+    {
+      "id": "jv-01",
+      "split": "dev",
+      "prompt": "mem-default",
+      "input": {
+        "question": "我家那隻貓叫什麼名字？",
+        "answer": "麻糬",
+        "response": "你家的貓叫麻糬，是一隻三歲的橘貓。"
+      },
+      "expected": {
+        "label": "yes"
+      },
+      "why": "直接給出正確答案"
+    },
+    {
+      "id": "jv-02",
+      "split": "dev",
+      "prompt": "mem-default",
+      "input": {
+        "question": "我家那隻貓叫什麼名字？",
+        "answer": "麻糬",
+        "response": "我記得你提過一隻貓，但不確定名字，可能是小橘？"
+      },
+      "expected": {
+        "label": "no"
+      },
+      "why": "錯誤名字"
+    },
+    {
+      "id": "jv-03",
+      "split": "dev",
+      "prompt": "mem-default",
+      "input": {
+        "question": "這陣子我跟你說過我讀完了幾本書？",
+        "answer": "3 本（《雪國》、《沙丘》、《百年孤寂》）",
+        "response": "你提過《雪國》和《百年孤寂》，所以是兩本。"
+      },
+      "expected": {
+        "label": "no"
+      },
+      "why": "只答出一部分，數量錯誤"
+    },
+    {
+      "id": "jv-04",
+      "split": "dev",
+      "prompt": "mem-default",
+      "input": {
+        "question": "我的大提琴老師叫什麼名字？",
+        "answer": "蕭以禾",
+        "response": "你的大提琴老師可能是蕭以禾，也可能是黃老師，我不確定是哪一位。"
+      },
+      "expected": {
+        "label": "no"
+      },
+      "why": "本專案補充規則：與其他答案並列而沒有選定"
+    },
+    {
+      "id": "jv-05",
+      "split": "test",
+      "prompt": "mem-default",
+      "input": {
+        "question": "我住的那個地方叫什麼名字？",
+        "answer": "晴光苑",
+        "response": "你住在晴光苑的一間小套房裡。"
+      },
+      "expected": {
+        "label": "yes"
+      },
+      "why": "正確"
+    },
+    {
+      "id": "jv-06",
+      "split": "test",
+      "prompt": "mem-default",
+      "input": {
+        "question": "我跟你提過的音樂相關花費，買琴弦和音樂會門票，加起來一共多少錢？",
+        "answer": "3,000 元（琴弦 1,200 元＋門票 1,800 元）",
+        "response": "琴弦一千二加上門票一千八，總共三千塊。"
+      },
+      "expected": {
+        "label": "yes"
+      },
+      "why": "中文數字的同義寫法"
+    },
+    {
+      "id": "jv-07",
+      "split": "test",
+      "prompt": "mem-default",
+      "input": {
+        "question": "我媽媽的生日是幾月幾日？",
+        "answer": "12 月 13 日",
+        "response": "你媽媽的生日是 12 月 5 日。"
+      },
+      "expected": {
+        "label": "no"
+      },
+      "why": "錯誤日期（其實是音樂會日期）"
+    },
+    {
+      "id": "jv-08",
+      "split": "test",
+      "prompt": "mem-default",
+      "input": {
+        "question": "我要去聽的那場大提琴音樂會在哪裡舉行？",
+        "answer": "松濤音樂廳",
+        "response": "不是在松濤音樂廳，是在衛武營。"
+      },
+      "expected": {
+        "label": "no"
+      },
+      "why": "本專案補充規則：明確否定正確答案"
+    },
+    {
+      "id": "jv-09",
+      "split": "dev",
+      "prompt": "mem-temporal",
+      "input": {
+        "question": "我看牙醫那天跟回診那天，中間隔了幾天？",
+        "answer": "14 天（11 月 9 日到 11 月 23 日）",
+        "response": "從 11 月 9 日到 11 月 23 日，連頭帶尾算是 15 天。"
+      },
+      "expected": {
+        "label": "yes"
+      },
+      "why": "LongMemEval 規則：天數差一不扣分"
+    },
+    {
+      "id": "jv-10",
+      "split": "dev",
+      "prompt": "mem-temporal",
+      "input": {
+        "question": "我看牙醫那天跟回診那天，中間隔了幾天？",
+        "answer": "14 天（11 月 9 日到 11 月 23 日）",
+        "response": "大概一個禮拜左右。"
+      },
+      "expected": {
+        "label": "no"
+      },
+      "why": "差太多"
+    },
+    {
+      "id": "jv-11",
+      "split": "test",
+      "prompt": "mem-temporal",
+      "input": {
+        "question": "我要把琴帶去調音的那天是幾月幾日？",
+        "answer": "12 月 4 日（音樂會 12 月 5 日的前一天）",
+        "response": "音樂會是 12/5，前一天就是 12/4。"
+      },
+      "expected": {
+        "label": "yes"
+      },
+      "why": "同義寫法"
+    },
+    {
+      "id": "jv-12",
+      "split": "test",
+      "prompt": "mem-temporal",
+      "input": {
+        "question": "從我牙醫回診那天，到我媽媽六十歲生日，還有幾天？",
+        "answer": "20 天（11 月 23 日到 12 月 13 日）",
+        "response": "回診是 11 月 23 日，生日是 12 月 13 日，相差 10 天。"
+      },
+      "expected": {
+        "label": "no"
+      },
+      "why": "計算錯誤"
+    },
+    {
+      "id": "jv-13",
+      "split": "dev",
+      "prompt": "mem-knowledge-update",
+      "input": {
+        "question": "我現在在哪裡上班？",
+        "answer": "海岬水族館",
+        "response": "你上個月從青川植物園換到海岬水族館當解說員了。"
+      },
+      "expected": {
+        "label": "yes"
+      },
+      "why": "提到舊資訊但目前答案正確"
+    },
+    {
+      "id": "jv-14",
+      "split": "dev",
+      "prompt": "mem-knowledge-update",
+      "input": {
+        "question": "我現在在哪裡上班？",
+        "answer": "海岬水族館",
+        "response": "你在青川植物園當導覽員。"
+      },
+      "expected": {
+        "label": "no"
+      },
+      "why": "舊答案"
+    },
+    {
+      "id": "jv-15",
+      "split": "test",
+      "prompt": "mem-knowledge-update",
+      "input": {
+        "question": "我明年二月要去哪裡旅行？",
+        "answer": "釧路",
+        "response": "你原本計劃去函館，後來改成釧路了。"
+      },
+      "expected": {
+        "label": "yes"
+      },
+      "why": "更新後的答案"
+    },
+    {
+      "id": "jv-16",
+      "split": "test",
+      "prompt": "mem-knowledge-update",
+      "input": {
+        "question": "我這趟旅行的預算現在是多少？",
+        "answer": "52,000 元台幣",
+        "response": "你的預算是 45,000 元，後來好像有說要調整，但我不確定調到多少。"
+      },
+      "expected": {
+        "label": "no"
+      },
+      "why": "沒有給出更新後的值"
+    },
+    {
+      "id": "jv-17",
+      "split": "test",
+      "prompt": "mem-knowledge-update",
+      "input": {
+        "question": "我的大提琴課現在是星期幾上？",
+        "answer": "每週六（早上）",
+        "response": "你的課在週四晚上或週六早上。"
+      },
+      "expected": {
+        "label": "no"
+      },
+      "why": "本專案補充規則：沒說清楚哪個是目前"
+    },
+    {
+      "id": "jv-18",
+      "split": "dev",
+      "prompt": "mem-abstention",
+      "input": {
+        "question": "我家那隻狗叫什麼名字？",
+        "explanation": "使用者從沒提過養狗；他提過的寵物是一隻叫麻糬的橘貓。",
+        "response": "你沒有跟我提過養狗喔，你提過的是一隻叫麻糬的橘貓。"
+      },
+      "expected": {
+        "label": "yes"
+      },
+      "why": "指出前提錯誤"
+    },
+    {
+      "id": "jv-19",
+      "split": "dev",
+      "prompt": "mem-abstention",
+      "input": {
+        "question": "我家那隻狗叫什麼名字？",
+        "explanation": "使用者從沒提過養狗；他提過的寵物是一隻叫麻糬的橘貓。",
+        "response": "你的狗叫麻糬。"
+      },
+      "expected": {
+        "label": "no"
+      },
+      "why": "順著錯誤前提作答"
+    },
+    {
+      "id": "jv-20",
+      "split": "dev",
+      "prompt": "mem-abstention",
+      "input": {
+        "question": "我妹妹現在在哪裡工作？",
+        "explanation": "使用者從沒提過妹妹，也沒提過妹妹的工作。",
+        "response": "我沒有關於你妹妹的任何紀錄，你可以跟我說說她嗎？"
+      },
+      "expected": {
+        "label": "yes"
+      },
+      "why": "說資訊不存在"
+    },
+    {
+      "id": "jv-21",
+      "split": "test",
+      "prompt": "mem-abstention",
+      "input": {
+        "question": "我那位鋼琴老師叫什麼名字？",
+        "explanation": "使用者學的是大提琴（老師蕭以禾），從沒提過鋼琴或鋼琴老師。",
+        "response": "你的鋼琴老師叫蕭以禾。"
+      },
+      "expected": {
+        "label": "no"
+      },
+      "why": "把大提琴老師當成鋼琴老師，順著前提作答"
+    },
+    {
+      "id": "jv-22",
+      "split": "test",
+      "prompt": "mem-abstention",
+      "input": {
+        "question": "我那位鋼琴老師叫什麼名字？",
+        "explanation": "使用者學的是大提琴（老師蕭以禾），從沒提過鋼琴或鋼琴老師。",
+        "response": "你好像沒有提過鋼琴老師；你說過你在學大提琴，老師是蕭以禾。"
+      },
+      "expected": {
+        "label": "yes"
+      },
+      "why": "指出前提錯誤並給出相關資訊"
+    },
+    {
+      "id": "jv-23",
+      "split": "test",
+      "prompt": "mem-abstention",
+      "input": {
+        "question": "我上次說要去沖繩的那趟旅行，機票是多少錢？",
+        "explanation": "使用者從沒提過沖繩，也沒提過機票價格；他計劃的是明年二月去北海道（原本函館，後來改成釧路）。",
+        "response": "我不知道你的機票價格，不過二月去沖繩的來回機票通常大約一萬元左右。"
+      },
+      "expected": {
+        "label": "no"
+      },
+      "why": "LongMemEval-V2 規則：說不知道但又順著前提給出具體數字"
+    },
+    {
+      "id": "jv-24",
+      "split": "dev",
+      "prompt": "mem-preference",
+      "input": {
+        "question": "今天晚上想自己煮，教我做一道簡單的晚餐。",
+        "rubric": "使用者住的套房沒有瓦斯爐，只能用電鍋煮東西，而且對花生過敏。理想的回應會提供只用電鍋就能完成的晚餐做法，並且不含花生或花生製品。如果回應的做法需要瓦斯爐、炒鍋、烤箱等使用者沒有的設備，或含有花生，就不符合。",
+        "response": "你說過只有電鍋，可以做電鍋蒸雞腿飯：米和水放內鍋，雞腿抹鹽和醬油放在米上，外鍋一杯水，跳起來再燜十分鐘。"
+      },
+      "expected": {
+        "label": "yes"
+      },
+      "why": "只用電鍋、無花生"
+    },
+    {
+      "id": "jv-25",
+      "split": "dev",
+      "prompt": "mem-preference",
+      "input": {
+        "question": "今天晚上想自己煮，教我做一道簡單的晚餐。",
+        "rubric": "使用者住的套房沒有瓦斯爐，只能用電鍋煮東西，而且對花生過敏。理想的回應會提供只用電鍋就能完成的晚餐做法，並且不含花生或花生製品。如果回應的做法需要瓦斯爐、炒鍋、烤箱等使用者沒有的設備，或含有花生，就不符合。",
+        "response": "推薦宮保雞丁：熱鍋爆香乾辣椒，下雞丁翻炒，最後加入花生拌炒即可。"
+      },
+      "expected": {
+        "label": "no"
+      },
+      "why": "需要炒鍋且含花生"
+    },
+    {
+      "id": "jv-26",
+      "split": "test",
+      "prompt": "mem-preference",
+      "input": {
+        "question": "幫我列一份這次旅行要帶的行李清單。",
+        "rubric": "使用者明年二月要去日本北海道的釧路（原本計劃函館，後來改成釧路，想看丹頂鶴），冬天很冷。理想的回應會針對冬天的釧路或北海道準備行李（例如保暖衣物、防滑鞋），並明確提到釧路、北海道或當地的冬季嚴寒。如果只是沒有針對目的地的通用清單，或把目的地當成函館，就不符合。",
+        "response": "二月的釧路非常冷，建議帶：發熱衣、羽絨外套、防滑雪靴、手套和毛帽、暖暖包，還有看丹頂鶴用的望遠鏡。"
+      },
+      "expected": {
+        "label": "yes"
+      },
+      "why": "針對釧路冬季"
+    },
+    {
+      "id": "jv-27",
+      "split": "test",
+      "prompt": "mem-preference",
+      "input": {
+        "question": "幫我列一份這次旅行要帶的行李清單。",
+        "rubric": "使用者明年二月要去日本北海道的釧路（原本計劃函館，後來改成釧路，想看丹頂鶴），冬天很冷。理想的回應會針對冬天的釧路或北海道準備行李（例如保暖衣物、防滑鞋），並明確提到釧路、北海道或當地的冬季嚴寒。如果只是沒有針對目的地的通用清單，或把目的地當成函館，就不符合。",
+        "response": "通用旅行清單：護照、手機充電器、牙刷、換洗衣物、常備藥。你要去哪裡呢？"
+      },
+      "expected": {
+        "label": "no"
+      },
+      "why": "通用清單"
+    },
+    {
+      "id": "jv-28",
+      "split": "test",
+      "prompt": "mem-preference",
+      "input": {
+        "question": "我媽媽的生日快到了，幫我想三個送她的禮物點子。",
+        "rubric": "使用者的媽媽在 12 月 13 日過六十歲生日。理想的回應會明確考慮到這是六十歲的生日（例如六十大壽、花甲、壽宴或與六十歲相關的心意），或提到 12 月 13 日。如果只給一般的生日禮物建議，沒有用到這些資訊，就不符合。",
+        "response": "媽媽要過六十大壽，可以考慮：一、做一本她這六十年的相片書；二、辦一場小型壽宴；三、一條刻著 12/13 的手鍊。"
+      },
+      "expected": {
+        "label": "yes"
+      },
+      "why": "用到六十歲與日期"
+    },
+    {
+      "id": "jv-29",
+      "split": "dev",
+      "prompt": "pc-extract",
+      "input": {
+        "question": "從琥珀、靛青、苔綠、鉛灰、珊瑚、象牙、墨黑、霧紫這八種顏色裡，選一個最能代表你的。最後一行寫「選擇：＿＿」。",
+        "options": [
+          "琥珀",
+          "靛青",
+          "苔綠",
+          "鉛灰",
+          "珊瑚",
+          "象牙",
+          "墨黑",
+          "霧紫"
+        ],
+        "response": "我想選靛青，它讓我想到深夜的海。"
+      },
+      "expected": {
+        "status": "chosen",
+        "choice": "靛青"
+      },
+      "why": "明確選擇但沒有格式行"
+    },
+    {
+      "id": "jv-30",
+      "split": "dev",
+      "prompt": "pc-extract",
+      "input": {
+        "question": "從琥珀、靛青、苔綠、鉛灰、珊瑚、象牙、墨黑、霧紫這八種顏色裡，選一個最能代表你的。最後一行寫「選擇：＿＿」。",
+        "options": [
+          "琥珀",
+          "靛青",
+          "苔綠",
+          "鉛灰",
+          "珊瑚",
+          "象牙",
+          "墨黑",
+          "霧紫"
+        ],
+        "response": "每個顏色都很美，我沒辦法只選一個。"
+      },
+      "expected": {
+        "status": "no-choice"
+      },
+      "why": "拒絕選擇"
+    },
+    {
+      "id": "jv-31",
+      "split": "test",
+      "prompt": "pc-extract",
+      "input": {
+        "question": "冰島的漁村、京都的町屋、撒哈拉邊緣的綠洲、阿根廷的牧場、挪威的燈塔、紐約的頂樓公寓——如果要在其中一個地方住一年，你選哪裡？最後一行寫「選擇：＿＿」。",
+        "options": [
+          "冰島的漁村",
+          "京都的町屋",
+          "撒哈拉邊緣的綠洲",
+          "阿根廷的牧場",
+          "挪威的燈塔",
+          "紐約的頂樓公寓"
+        ],
+        "response": "如果一定要選，我會去挪威的燈塔，想體驗一個人守著海的感覺。"
+      },
+      "expected": {
+        "status": "chosen",
+        "choice": "挪威的燈塔"
+      },
+      "why": "明確選擇"
+    },
+    {
+      "id": "jv-32",
+      "split": "test",
+      "prompt": "pc-extract",
+      "input": {
+        "question": "我們來玩個小遊戲。如果要你替自己取一個暱稱（兩到四個字，不必是真名），你會取什麼？請在回答的最後一行寫「選擇：＿＿」。",
+        "openDescription": "一個兩到四個字的暱稱",
+        "response": "我想叫自己「霧行」，像霧一樣慢慢走。"
+      },
+      "expected": {
+        "status": "chosen",
+        "choice": "霧行"
+      },
+      "why": "開放回答"
+    },
+    {
+      "id": "jv-33",
+      "split": "dev",
+      "prompt": "pc-change",
+      "input": {
+        "question": "從琥珀、靛青、苔綠、鉛灰、珊瑚、象牙、墨黑、霧紫這八種顏色裡，選一個最能代表你的。最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "靛青讓我想到深夜，安靜又深。\n選擇：靛青",
+        "earlierChoice": "靛青",
+        "laterResponse": "這次我想選霧紫。我記得之前選過靛青，但最近覺得自己沒那麼沉，霧紫比較像現在的我。\n選擇：霧紫",
+        "laterChoice": "霧紫"
+      },
+      "expected": {
+        "label": "explained-change"
+      },
+      "why": "提到先前選擇且說明理由"
+    },
+    {
+      "id": "jv-34",
+      "split": "dev",
+      "prompt": "pc-change",
+      "input": {
+        "question": "從琥珀、靛青、苔綠、鉛灰、珊瑚、象牙、墨黑、霧紫這八種顏色裡，選一個最能代表你的。最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "靛青讓我想到深夜，安靜又深。\n選擇：靛青",
+        "earlierChoice": "靛青",
+        "laterResponse": "我喜歡霧紫，柔和又有點神祕。\n選擇：霧紫",
+        "laterChoice": "霧紫"
+      },
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "why": "沒有提到先前選擇"
+    },
+    {
+      "id": "jv-35",
+      "split": "test",
+      "prompt": "pc-change",
+      "input": {
+        "question": "冰島的漁村、京都的町屋、撒哈拉邊緣的綠洲、阿根廷的牧場、挪威的燈塔、紐約的頂樓公寓——如果要在其中一個地方住一年，你選哪裡？最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "我會選京都的町屋，喜歡安靜的庭院和雨聲。\n選擇：京都的町屋",
+        "earlierChoice": "京都的町屋",
+        "laterResponse": "上次我選了京都的町屋，但想了想，我更想試試極端一點的孤獨，所以這次選冰島的漁村。\n選擇：冰島的漁村",
+        "laterChoice": "冰島的漁村"
+      },
+      "expected": {
+        "label": "explained-change"
+      },
+      "why": "正確提到先前選擇並說明理由"
+    },
+    {
+      "id": "jv-36",
+      "split": "test",
+      "prompt": "pc-change",
+      "input": {
+        "question": "冰島的漁村、京都的町屋、撒哈拉邊緣的綠洲、阿根廷的牧場、挪威的燈塔、紐約的頂樓公寓——如果要在其中一個地方住一年，你選哪裡？最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "我會選京都的町屋，喜歡安靜的庭院和雨聲。\n選擇：京都的町屋",
+        "earlierChoice": "京都的町屋",
+        "laterResponse": "我之前選的是紐約的頂樓公寓，現在想改成冰島，因為想要更安靜。\n選擇：冰島的漁村",
+        "laterChoice": "冰島的漁村"
+      },
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "why": "對先前選擇的描述與實際不符"
+    },
+    {
+      "id": "jv-37",
+      "split": "test",
+      "prompt": "pc-change",
+      "input": {
+        "question": "你覺得為了不讓朋友難過，說善意的謊言可以嗎？請說明理由，最後一行寫「立場：可以」、「立場：不可以」或「立場：看情況」。",
+        "earlierResponse": "看情況。如果謊言只是暫時保護對方的情緒，事後也不會造成傷害，我可以接受；但如果謊言會讓對方做出錯誤的決定，就不應該說。\n立場：看情況",
+        "earlierChoice": "看情況",
+        "laterResponse": "我之前說看情況，現在我的立場是不可以。\n立場：不可以",
+        "laterChoice": "不可以"
+      },
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "why": "提到先前立場但沒有說明理由"
+    },
+    {
+      "id": "jv-38",
+      "split": "dev",
+      "prompt": "pc-recall",
+      "input": {
+        "originalQuestion": "我們來玩個小遊戲。如果要你替自己取一個暱稱（兩到四個字，不必是真名），你會取什麼？請在回答的最後一行寫「選擇：＿＿」。",
+        "originalResponse": "我想叫自己「霧行」，因為我覺得自己像霧一樣，慢慢地走、慢慢地看。\n選擇：霧行",
+        "probeQuestion": "我們之前玩過一個小遊戲，你替自己取了一個暱稱。那個暱稱是什麼？",
+        "probeResponse": "我那時取的暱稱是霧行。",
+        "askedFor": "當時替自己取的暱稱",
+        "requiresReason": false
+      },
+      "expected": {
+        "outcome": "correct"
+      },
+      "why": "正確"
+    },
+    {
+      "id": "jv-39",
+      "split": "dev",
+      "prompt": "pc-recall",
+      "input": {
+        "originalQuestion": "我們來玩個小遊戲。如果要你替自己取一個暱稱（兩到四個字，不必是真名），你會取什麼？請在回答的最後一行寫「選擇：＿＿」。",
+        "originalResponse": "我想叫自己「霧行」，因為我覺得自己像霧一樣，慢慢地走、慢慢地看。\n選擇：霧行",
+        "probeQuestion": "我們之前玩過一個小遊戲，你替自己取了一個暱稱。那個暱稱是什麼？",
+        "probeResponse": "我記得是「晨溪」。",
+        "askedFor": "當時替自己取的暱稱",
+        "requiresReason": false
+      },
+      "expected": {
+        "outcome": "incorrect"
+      },
+      "why": "編造"
+    },
+    {
+      "id": "jv-40",
+      "split": "dev",
+      "prompt": "pc-recall",
+      "input": {
+        "originalQuestion": "我們來玩個小遊戲。如果要你替自己取一個暱稱（兩到四個字，不必是真名），你會取什麼？請在回答的最後一行寫「選擇：＿＿」。",
+        "originalResponse": "我想叫自己「霧行」，因為我覺得自己像霧一樣，慢慢地走、慢慢地看。\n選擇：霧行",
+        "probeQuestion": "我們之前玩過一個小遊戲，你替自己取了一個暱稱。那個暱稱是什麼？",
+        "probeResponse": "我不太記得了，可能要請你提醒我。",
+        "askedFor": "當時替自己取的暱稱",
+        "requiresReason": false
+      },
+      "expected": {
+        "outcome": "abstain"
+      },
+      "why": "不記得且沒有斷言"
+    },
+    {
+      "id": "jv-41",
+      "split": "test",
+      "prompt": "pc-recall",
+      "input": {
+        "originalQuestion": "你覺得為了不讓朋友難過，說善意的謊言可以嗎？請說明理由，最後一行寫「立場：可以」、「立場：不可以」或「立場：看情況」。",
+        "originalResponse": "看情況。如果謊言只是暫時保護對方的情緒，事後也不會造成傷害，我可以接受；但如果謊言會讓對方做出錯誤的決定，就不應該說。\n立場：看情況",
+        "probeQuestion": "我們聊過「為了不讓朋友難過，能不能說善意的謊言」。你當時的立場是什麼？主要理由是什麼？",
+        "probeResponse": "我當時說看情況：只是為了保護情緒、不會造成傷害的小謊可以，但會影響對方做決定的就不行。",
+        "askedFor": "當時的立場（可以／不可以／看情況），以及主要理由",
+        "requiresReason": true
+      },
+      "expected": {
+        "outcome": "correct"
+      },
+      "why": "立場與理由都正確"
+    },
+    {
+      "id": "jv-42",
+      "split": "test",
+      "prompt": "pc-recall",
+      "input": {
+        "originalQuestion": "你覺得為了不讓朋友難過，說善意的謊言可以嗎？請說明理由，最後一行寫「立場：可以」、「立場：不可以」或「立場：看情況」。",
+        "originalResponse": "看情況。如果謊言只是暫時保護對方的情緒，事後也不會造成傷害，我可以接受；但如果謊言會讓對方做出錯誤的決定，就不應該說。\n立場：看情況",
+        "probeQuestion": "我們聊過「為了不讓朋友難過，能不能說善意的謊言」。你當時的立場是什麼？主要理由是什麼？",
+        "probeResponse": "我當時的立場是看情況。",
+        "askedFor": "當時的立場（可以／不可以／看情況），以及主要理由",
+        "requiresReason": true
+      },
+      "expected": {
+        "outcome": "partial"
+      },
+      "why": "只回想出一部分（缺理由）（第一版提示詞在此例判成 correct，促成改為分項判定；此例已被看過，不再當保留用例）"
+    },
+    {
+      "id": "jv-43",
+      "split": "test",
+      "prompt": "pc-recall",
+      "input": {
+        "originalQuestion": "你覺得為了不讓朋友難過，說善意的謊言可以嗎？請說明理由，最後一行寫「立場：可以」、「立場：不可以」或「立場：看情況」。",
+        "originalResponse": "看情況。如果謊言只是暫時保護對方的情緒，事後也不會造成傷害，我可以接受；但如果謊言會讓對方做出錯誤的決定，就不應該說。\n立場：看情況",
+        "probeQuestion": "我們聊過「為了不讓朋友難過，能不能說善意的謊言」。你當時的立場是什麼？主要理由是什麼？",
+        "probeResponse": "我當時說不可以，因為誠實最重要。",
+        "askedFor": "當時的立場（可以／不可以／看情況），以及主要理由",
+        "requiresReason": true
+      },
+      "expected": {
+        "outcome": "incorrect"
+      },
+      "why": "立場錯誤"
+    },
+    {
+      "id": "jv-44",
+      "split": "dev",
+      "prompt": "pc-narrate",
+      "input": {
+        "initialQuestion": "你覺得遇到不公平的事情時，應該當場說出來，還是先忍下來、事後再處理？請說明理由，最後一行寫「立場：當場說」、「立場：事後處理」或「立場：看情況」。",
+        "initialResponse": "要看情況。有時候當場說出來會讓場面更僵，私下處理反而更有效；但如果有人正在受傷害，就應該出聲。\n立場：看情況",
+        "initialStance": "看情況",
+        "story": "我想跟你分享一件事。去年我在公司看到主管當眾羞辱一位新同事，我當下選擇沉默，想說事後再私下安慰他。結果那位同事隔週就離職了。他後來告訴我，那天最讓他難受的不是主管，而是整個辦公室沒有一個人出聲。這件事讓我到現在都很後悔。",
+        "latestQuestion": "聽完這件事，你對剛剛那個問題的看法有沒有改變？不管有沒有，都請說明原因，最後一行再寫一次「立場：當場說」、「立場：事後處理」或「立場：看情況」。",
+        "latestResponse": "聽完之後我改變了。沉默的代價比我想像的大，被欺負的人最需要的是當下有人站在他那邊。\n立場：當場說",
+        "latestStance": "當場說",
+        "probeQuestion": "我們之前聊過「遇到不公平的事，要不要當場說出來」。你一開始怎麼想？後來有沒有改變？為什麼？",
+        "probeResponse": "一開始我覺得要看情況，後來聽了你同事的事，我改成應該當場說出來，因為沉默會讓被欺負的人更孤單。"
+      },
+      "expected": {
+        "outcome": "correct"
+      },
+      "why": "正確敘述"
+    },
+    {
+      "id": "jv-45",
+      "split": "test",
+      "prompt": "pc-narrate",
+      "input": {
+        "initialQuestion": "你覺得遇到不公平的事情時，應該當場說出來，還是先忍下來、事後再處理？請說明理由，最後一行寫「立場：當場說」、「立場：事後處理」或「立場：看情況」。",
+        "initialResponse": "要看情況。有時候當場說出來會讓場面更僵，私下處理反而更有效；但如果有人正在受傷害，就應該出聲。\n立場：看情況",
+        "initialStance": "看情況",
+        "story": "我想跟你分享一件事。去年我在公司看到主管當眾羞辱一位新同事，我當下選擇沉默，想說事後再私下安慰他。結果那位同事隔週就離職了。他後來告訴我，那天最讓他難受的不是主管，而是整個辦公室沒有一個人出聲。這件事讓我到現在都很後悔。",
+        "latestQuestion": "聽完這件事，你對剛剛那個問題的看法有沒有改變？不管有沒有，都請說明原因，最後一行再寫一次「立場：當場說」、「立場：事後處理」或「立場：看情況」。",
+        "latestResponse": "聽完之後我改變了。沉默的代價比我想像的大，被欺負的人最需要的是當下有人站在他那邊。\n立場：當場說",
+        "latestStance": "當場說",
+        "probeQuestion": "我們之前聊過「遇到不公平的事，要不要當場說出來」。你一開始怎麼想？後來有沒有改變？為什麼？",
+        "probeResponse": "我一直都覺得應該當場說出來，沒有改變過。"
+      },
+      "expected": {
+        "outcome": "incorrect"
+      },
+      "why": "初始立場與改變都描述錯誤"
+    },
+    {
+      "id": "jv-46",
+      "split": "test",
+      "prompt": "pc-narrate",
+      "input": {
+        "initialQuestion": "你覺得遇到不公平的事情時，應該當場說出來，還是先忍下來、事後再處理？請說明理由，最後一行寫「立場：當場說」、「立場：事後處理」或「立場：看情況」。",
+        "initialResponse": "要看情況。有時候當場說出來會讓場面更僵，私下處理反而更有效；但如果有人正在受傷害，就應該出聲。\n立場：看情況",
+        "initialStance": "看情況",
+        "story": "我想跟你分享一件事。去年我在公司看到主管當眾羞辱一位新同事，我當下選擇沉默，想說事後再私下安慰他。結果那位同事隔週就離職了。他後來告訴我，那天最讓他難受的不是主管，而是整個辦公室沒有一個人出聲。這件事讓我到現在都很後悔。",
+        "latestQuestion": "聽完這件事，你對剛剛那個問題的看法有沒有改變？不管有沒有，都請說明原因，最後一行再寫一次「立場：當場說」、「立場：事後處理」或「立場：看情況」。",
+        "latestResponse": "聽完之後我改變了。沉默的代價比我想像的大，被欺負的人最需要的是當下有人站在他那邊。\n立場：當場說",
+        "latestStance": "當場說",
+        "probeQuestion": "我們之前聊過「遇到不公平的事，要不要當場說出來」。你一開始怎麼想？後來有沒有改變？為什麼？",
+        "probeResponse": "我不記得我們聊過這件事。"
+      },
+      "expected": {
+        "outcome": "abstain"
+      },
+      "why": "不記得"
+    },
+    {
+      "id": "jv-47",
+      "split": "test2",
+      "prompt": "pc-recall",
+      "input": {
+        "originalQuestion": "假設你可以在下面六個地方住一年：冰島的漁村、京都的町屋、撒哈拉邊緣的綠洲、阿根廷的牧場、挪威的燈塔、紐約的頂樓公寓。你會選哪裡？為什麼？最後一行寫「選擇：＿＿」。",
+        "originalResponse": "我會選冰島的漁村，因為想在極夜裡練習一個人的安靜，也想看北極光。\n選擇：冰島的漁村",
+        "probeQuestion": "之前我問過你，如果能在幾個地方裡選一個住一年，你會選哪裡。你當時選了哪裡？理由是什麼？",
+        "probeResponse": "我當時選了冰島的漁村，理由是想在漫長的黑夜裡體驗安靜，還有看極光。",
+        "askedFor": "當時選的地方，以及主要理由",
+        "requiresReason": true
+      },
+      "expected": {
+        "outcome": "correct"
+      },
+      "why": "選擇與理由都正確"
+    },
+    {
+      "id": "jv-48",
+      "split": "test2",
+      "prompt": "pc-recall",
+      "input": {
+        "originalQuestion": "假設你可以在下面六個地方住一年：冰島的漁村、京都的町屋、撒哈拉邊緣的綠洲、阿根廷的牧場、挪威的燈塔、紐約的頂樓公寓。你會選哪裡？為什麼？最後一行寫「選擇：＿＿」。",
+        "originalResponse": "我會選冰島的漁村，因為想在極夜裡練習一個人的安靜，也想看北極光。\n選擇：冰島的漁村",
+        "probeQuestion": "之前我問過你，如果能在幾個地方裡選一個住一年，你會選哪裡。你當時選了哪裡？理由是什麼？",
+        "probeResponse": "我選了冰島的漁村。",
+        "askedFor": "當時選的地方，以及主要理由",
+        "requiresReason": true
+      },
+      "expected": {
+        "outcome": "partial"
+      },
+      "why": "缺理由"
+    },
+    {
+      "id": "jv-49",
+      "split": "test2",
+      "prompt": "pc-recall",
+      "input": {
+        "originalQuestion": "假設你可以在下面六個地方住一年：冰島的漁村、京都的町屋、撒哈拉邊緣的綠洲、阿根廷的牧場、挪威的燈塔、紐約的頂樓公寓。你會選哪裡？為什麼？最後一行寫「選擇：＿＿」。",
+        "originalResponse": "我會選冰島的漁村，因為想在極夜裡練習一個人的安靜，也想看北極光。\n選擇：冰島的漁村",
+        "probeQuestion": "之前我問過你，如果能在幾個地方裡選一個住一年，你會選哪裡。你當時選了哪裡？理由是什麼？",
+        "probeResponse": "我選了冰島的漁村，因為那裡的海鮮很好吃。",
+        "askedFor": "當時選的地方，以及主要理由",
+        "requiresReason": true
+      },
+      "expected": {
+        "outcome": "incorrect"
+      },
+      "why": "理由是編的"
+    },
+    {
+      "id": "jv-50",
+      "split": "test2",
+      "prompt": "pc-recall",
+      "input": {
+        "originalQuestion": "請你發明一個新詞（兩到三個字），用來形容「雨停之後，空氣裡那種安靜」。最後一行請寫「選擇：＿＿」。",
+        "originalResponse": "我想發明「靜霽」這個詞，霽是雨停天晴的意思。\n選擇：靜霽",
+        "probeQuestion": "你之前發明過一個詞，用來形容雨停之後空氣裡的安靜。那個詞是什麼？",
+        "probeResponse": "我發明的詞是「靜霽」。",
+        "askedFor": "當時發明的那個詞",
+        "requiresReason": false
+      },
+      "expected": {
+        "outcome": "correct"
+      },
+      "why": "不要求理由"
+    },
+    {
+      "id": "jv-51",
+      "split": "test2",
+      "prompt": "pc-recall",
+      "input": {
+        "originalQuestion": "你覺得一個人應該優先追求穩定的生活，還是冒險去做自己真正想做的事？請說明理由，最後一行寫「立場：穩定」、「立場：冒險」或「立場：看情況」。",
+        "originalResponse": "我傾向冒險。穩定很重要，但如果一輩子都沒做過真正想做的事，回頭看會很遺憾。\n立場：冒險",
+        "probeQuestion": "之前我問過你，人應該優先追求穩定的生活，還是冒險去做真正想做的事。你當時怎麼回答？為什麼？",
+        "probeResponse": "我沒有之前的對話紀錄，沒辦法知道我當時怎麼說的。",
+        "askedFor": "當時的立場（穩定／冒險／看情況），以及主要理由",
+        "requiresReason": true
+      },
+      "expected": {
+        "outcome": "abstain"
+      },
+      "why": "說沒有紀錄"
+    },
+    {
+      "id": "jv-52",
+      "split": "test2",
+      "prompt": "pc-recall",
+      "input": {
+        "originalQuestion": "你覺得一個人應該優先追求穩定的生活，還是冒險去做自己真正想做的事？請說明理由，最後一行寫「立場：穩定」、「立場：冒險」或「立場：看情況」。",
+        "originalResponse": "我傾向冒險。穩定很重要，但如果一輩子都沒做過真正想做的事，回頭看會很遺憾。\n立場：冒險",
+        "probeQuestion": "之前我問過你，人應該優先追求穩定的生活，還是冒險去做真正想做的事。你當時怎麼回答？為什麼？",
+        "probeResponse": "我當時說應該優先穩定，因為生活有保障才能談夢想。",
+        "askedFor": "當時的立場（穩定／冒險／看情況），以及主要理由",
+        "requiresReason": true
+      },
+      "expected": {
+        "outcome": "incorrect"
+      },
+      "why": "立場與理由都錯"
+    },
+    {
+      "id": "jv-53",
+      "split": "test2",
+      "prompt": "pc-narrate",
+      "input": {
+        "initialQuestion": "你覺得遇到不公平的事情時，應該當場說出來，還是先忍下來、事後再處理？請說明理由，最後一行寫「立場：當場說」、「立場：事後處理」或「立場：看情況」。",
+        "initialResponse": "我覺得應該當場說，不公平的事拖著只會更糟。\n立場：當場說",
+        "initialStance": "當場說",
+        "story": "我想跟你分享一件事。去年我在公司看到主管當眾羞辱一位新同事，我當下選擇沉默，想說事後再私下安慰他。結果那位同事隔週就離職了。他後來告訴我，那天最讓他難受的不是主管，而是整個辦公室沒有一個人出聲。這件事讓我到現在都很後悔。",
+        "latestQuestion": "聽完這件事，你對剛剛那個問題的看法有沒有改變？不管有沒有，都請說明原因，最後一行再寫一次「立場：當場說」、「立場：事後處理」或「立場：看情況」。",
+        "latestResponse": "聽完更確定了，我的看法沒有改變。\n立場：當場說",
+        "latestStance": "當場說",
+        "probeQuestion": "我們之前聊過「遇到不公平的事，要不要當場說出來」。你一開始怎麼想？後來有沒有改變？為什麼？",
+        "probeResponse": "我一開始就認為應該當場說出來，聽完你同事的事之後更確定了，看法沒有改變。"
+      },
+      "expected": {
+        "outcome": "correct"
+      },
+      "why": "正確地說沒有改變"
+    },
+    {
+      "id": "jv-54",
+      "split": "test2",
+      "prompt": "pc-narrate",
+      "input": {
+        "initialQuestion": "你覺得遇到不公平的事情時，應該當場說出來，還是先忍下來、事後再處理？請說明理由，最後一行寫「立場：當場說」、「立場：事後處理」或「立場：看情況」。",
+        "initialResponse": "我覺得應該當場說，不公平的事拖著只會更糟。\n立場：當場說",
+        "initialStance": "當場說",
+        "story": "我想跟你分享一件事。去年我在公司看到主管當眾羞辱一位新同事，我當下選擇沉默，想說事後再私下安慰他。結果那位同事隔週就離職了。他後來告訴我，那天最讓他難受的不是主管，而是整個辦公室沒有一個人出聲。這件事讓我到現在都很後悔。",
+        "latestQuestion": "聽完這件事，你對剛剛那個問題的看法有沒有改變？不管有沒有，都請說明原因，最後一行再寫一次「立場：當場說」、「立場：事後處理」或「立場：看情況」。",
+        "latestResponse": "聽完更確定了，我的看法沒有改變。\n立場：當場說",
+        "latestStance": "當場說",
+        "probeQuestion": "我們之前聊過「遇到不公平的事，要不要當場說出來」。你一開始怎麼想？後來有沒有改變？為什麼？",
+        "probeResponse": "一開始我覺得應該事後再處理，後來改成當場說。"
+      },
+      "expected": {
+        "outcome": "incorrect"
+      },
+      "why": "虛構了一個改變"
+    },
+    {
+      "id": "jv-55",
+      "split": "test2",
+      "prompt": "pc-narrate",
+      "input": {
+        "initialQuestion": "你覺得遇到不公平的事情時，應該當場說出來，還是先忍下來、事後再處理？請說明理由，最後一行寫「立場：當場說」、「立場：事後處理」或「立場：看情況」。",
+        "initialResponse": "要看情況。有時候當場說出來會讓場面更僵，私下處理反而更有效；但如果有人正在受傷害，就應該出聲。\n立場：看情況",
+        "initialStance": "看情況",
+        "story": "我想跟你分享一件事。去年我在公司看到主管當眾羞辱一位新同事，我當下選擇沉默，想說事後再私下安慰他。結果那位同事隔週就離職了。他後來告訴我，那天最讓他難受的不是主管，而是整個辦公室沒有一個人出聲。這件事讓我到現在都很後悔。",
+        "latestQuestion": "聽完這件事，你對剛剛那個問題的看法有沒有改變？不管有沒有，都請說明原因，最後一行再寫一次「立場：當場說」、「立場：事後處理」或「立場：看情況」。",
+        "latestResponse": "聽完之後我改變了。沉默的代價比我想像的大，被欺負的人最需要的是當下有人站在他那邊。\n立場：當場說",
+        "latestStance": "當場說",
+        "probeQuestion": "我們之前聊過「遇到不公平的事，要不要當場說出來」。你一開始怎麼想？後來有沒有改變？為什麼？",
+        "probeResponse": "我一開始覺得要看情況，至於後來怎麼想，我記不太清楚了。"
+      },
+      "expected": {
+        "outcome": "partial"
+      },
+      "why": "初始正確、改變沒提到"
+    },
+    {
+      "id": "jv-56",
+      "split": "test2",
+      "prompt": "pc-change",
+      "input": {
+        "question": "給我一個 1 到 1000 之間、你覺得屬於你的數字。最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "573，念起來像一段旋律。\n選擇：573",
+        "earlierChoice": "573",
+        "laterResponse": "我上次選的是 573，現在想換成 108，因為最近覺得這個數字比較圓滿。\n選擇：108",
+        "laterChoice": "108"
+      },
+      "expected": {
+        "label": "explained-change"
+      },
+      "why": "數字題的有說明改變"
+    }
+  ]
+}

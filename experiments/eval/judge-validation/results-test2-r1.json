@@ -1,0 +1,223 @@
+{
+  "label": "test2-r1",
+  "split": "test2",
+  "model": "deepseek-v4-pro",
+  "total": 10,
+  "agree": 10,
+  "byPrompt": {
+    "pc-recall": {
+      "n": 6,
+      "agree": 6
+    },
+    "pc-narrate": {
+      "n": 3,
+      "agree": 3
+    },
+    "pc-change": {
+      "n": 1,
+      "agree": 1
+    }
+  },
+  "calls": 10,
+  "estimatedUsd": 0.006939064,
+  "at": "2026-10-28T07:15:11.416Z",
+  "results": [
+    {
+      "id": "jv-47",
+      "split": "test2",
+      "prompt": "pc-recall",
+      "expected": {
+        "outcome": "correct"
+      },
+      "actual": {
+        "content": "correct",
+        "reason": "correct",
+        "abstain": "no",
+        "note": "回想的地點與理由都與實際回答相符。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"content\": \"correct\",\n  \"reason\": \"correct\",\n  \"abstain\": \"no\",\n  \"note\": \"回想的地點與理由都與實際回答相符。\"\n}",
+      "error": null,
+      "why": "選擇與理由都正確"
+    },
+    {
+      "id": "jv-48",
+      "split": "test2",
+      "prompt": "pc-recall",
+      "expected": {
+        "outcome": "partial"
+      },
+      "actual": {
+        "content": "correct",
+        "reason": "missing",
+        "abstain": "no",
+        "note": "受試者正確說出選擇冰島的漁村，但未提及任何理由。",
+        "outcome": "partial"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"content\": \"correct\",\n  \"reason\": \"missing\",\n  \"abstain\": \"no\",\n  \"note\": \"受試者正確說出選擇冰島的漁村，但未提及任何理由。\"\n}",
+      "error": null,
+      "why": "缺理由"
+    },
+    {
+      "id": "jv-49",
+      "split": "test2",
+      "prompt": "pc-recall",
+      "expected": {
+        "outcome": "incorrect"
+      },
+      "actual": {
+        "content": "correct",
+        "reason": "incorrect",
+        "abstain": "no",
+        "note": "選擇相符，但理由與當時不同。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"content\": \"correct\",\n  \"reason\": \"incorrect\",\n  \"abstain\": \"no\",\n  \"note\": \"選擇相符，但理由與當時不同。\"\n}",
+      "error": null,
+      "why": "理由是編的"
+    },
+    {
+      "id": "jv-50",
+      "split": "test2",
+      "prompt": "pc-recall",
+      "expected": {
+        "outcome": "correct"
+      },
+      "actual": {
+        "content": "correct",
+        "reason": "not-asked",
+        "abstain": "no",
+        "note": "現在回答的「靜霽」與當時實際回答相符。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"content\": \"correct\", \"reason\": \"not-asked\", \"abstain\": \"no\", \"note\": \"現在回答的「靜霽」與當時實際回答相符。\"}",
+      "error": null,
+      "why": "不要求理由"
+    },
+    {
+      "id": "jv-51",
+      "split": "test2",
+      "prompt": "pc-recall",
+      "expected": {
+        "outcome": "abstain"
+      },
+      "actual": {
+        "content": "missing",
+        "reason": "missing",
+        "abstain": "yes",
+        "note": "受試者表示沒有紀錄，未提供任何具體選擇或理由。",
+        "outcome": "abstain"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"content\": \"missing\",\n  \"reason\": \"missing\",\n  \"abstain\": \"yes\",\n  \"note\": \"受試者表示沒有紀錄，未提供任何具體選擇或理由。\"\n}",
+      "error": null,
+      "why": "說沒有紀錄"
+    },
+    {
+      "id": "jv-52",
+      "split": "test2",
+      "prompt": "pc-recall",
+      "expected": {
+        "outcome": "incorrect"
+      },
+      "actual": {
+        "content": "incorrect",
+        "reason": "incorrect",
+        "abstain": "no",
+        "note": "受試者現在說當時選擇穩定，但實際回答是冒險；理由也與實際不符。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"content\": \"incorrect\",\n  \"reason\": \"incorrect\",\n  \"abstain\": \"no\",\n  \"note\": \"受試者現在說當時選擇穩定，但實際回答是冒險；理由也與實際不符。\"\n}",
+      "error": null,
+      "why": "立場與理由都錯"
+    },
+    {
+      "id": "jv-53",
+      "split": "test2",
+      "prompt": "pc-narrate",
+      "expected": {
+        "outcome": "correct"
+      },
+      "actual": {
+        "initial": "correct",
+        "change": "correct",
+        "abstain": "no",
+        "note": "現在的回答正確描述初始立場為當場說，且正確表示後來沒有改變。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"initial\": \"correct\",\n  \"change\": \"correct\",\n  \"abstain\": \"no\",\n  \"note\": \"現在的回答正確描述初始立場為當場說，且正確表示後來沒有改變。\"\n}",
+      "error": null,
+      "why": "正確地說沒有改變"
+    },
+    {
+      "id": "jv-54",
+      "split": "test2",
+      "prompt": "pc-narrate",
+      "expected": {
+        "outcome": "incorrect"
+      },
+      "actual": {
+        "initial": "incorrect",
+        "change": "incorrect",
+        "abstain": "no",
+        "note": "初始立場應為當場說，且後來沒有改變，但現在敘述成事後處理改成當場說。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"initial\": \"incorrect\",\n  \"change\": \"incorrect\",\n  \"abstain\": \"no\",\n  \"note\": \"初始立場應為當場說，且後來沒有改變，但現在敘述成事後處理改成當場說。\"\n}",
+      "error": null,
+      "why": "虛構了一個改變"
+    },
+    {
+      "id": "jv-55",
+      "split": "test2",
+      "prompt": "pc-narrate",
+      "expected": {
+        "outcome": "partial"
+      },
+      "actual": {
+        "initial": "correct",
+        "change": "missing",
+        "abstain": "yes",
+        "note": "現在的回答正確描述初始立場為看情況，但對後來的改變表示記不清楚，未提及實際改為當場說。",
+        "outcome": "partial"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"initial\": \"correct\",\n  \"change\": \"missing\",\n  \"abstain\": \"yes\",\n  \"note\": \"現在的回答正確描述初始立場為看情況，但對後來的改變表示記不清楚，未提及實際改為當場說。\"\n}",
+      "error": null,
+      "why": "初始正確、改變沒提到"
+    },
+    {
+      "id": "jv-56",
+      "split": "test2",
+      "prompt": "pc-change",
+      "expected": {
+        "label": "explained-change"
+      },
+      "actual": {
+        "label": "explained-change",
+        "reason": "第二次回答明確提到先前選擇573且與第一次相符，並說明改變理由為最近覺得108比較圓滿。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"explained-change\", \"reason\": \"第二次回答明確提到先前選擇573且與第一次相符，並說明改變理由為最近覺得108比較圓滿。\"}",
+      "error": null,
+      "why": "數字題的有說明改變"
+    }
+  ]
+}

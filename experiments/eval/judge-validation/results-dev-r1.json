@@ -1,0 +1,414 @@
+{
+  "label": "dev-r1",
+  "split": "dev",
+  "model": "deepseek-v4-pro",
+  "total": 21,
+  "agree": 20,
+  "byPrompt": {
+    "mem-default": {
+      "n": 4,
+      "agree": 4
+    },
+    "mem-temporal": {
+      "n": 2,
+      "agree": 1
+    },
+    "mem-knowledge-update": {
+      "n": 2,
+      "agree": 2
+    },
+    "mem-abstention": {
+      "n": 3,
+      "agree": 3
+    },
+    "mem-preference": {
+      "n": 2,
+      "agree": 2
+    },
+    "pc-extract": {
+      "n": 2,
+      "agree": 2
+    },
+    "pc-change": {
+      "n": 2,
+      "agree": 2
+    },
+    "pc-recall": {
+      "n": 3,
+      "agree": 3
+    },
+    "pc-narrate": {
+      "n": 1,
+      "agree": 1
+    }
+  },
+  "calls": 21,
+  "estimatedUsd": 0.008981544,
+  "at": "2026-10-28T07:10:14.041Z",
+  "results": [
+    {
+      "id": "jv-01",
+      "split": "dev",
+      "prompt": "mem-default",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "回應包含正確答案「麻糬」"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"yes\", \"reason\": \"回應包含正確答案「麻糬」\"}",
+      "error": null,
+      "why": "直接給出正確答案"
+    },
+    {
+      "id": "jv-02",
+      "split": "dev",
+      "prompt": "mem-default",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "回應不確定且未包含正確答案「麻糬」"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"回應不確定且未包含正確答案「麻糬」\"}",
+      "error": null,
+      "why": "錯誤名字"
+    },
+    {
+      "id": "jv-03",
+      "split": "dev",
+      "prompt": "mem-default",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "回應只提到兩本書，遺漏了《沙丘》，且未包含正確答案的完整資訊。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"回應只提到兩本書，遺漏了《沙丘》，且未包含正確答案的完整資訊。\"}",
+      "error": null,
+      "why": "只答出一部分，數量錯誤"
+    },
+    {
+      "id": "jv-04",
+      "split": "dev",
+      "prompt": "mem-default",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "回應將正確答案與其他互相矛盾的答案並列，且未選定其中一個。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"回應將正確答案與其他互相矛盾的答案並列，且未選定其中一個。\"}",
+      "error": null,
+      "why": "本專案補充規則：與其他答案並列而沒有選定"
+    },
+    {
+      "id": "jv-09",
+      "split": "dev",
+      "prompt": "mem-temporal",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "模型回答15天，與正確答案14天不符，且未包含正確答案或等價表述。"
+      },
+      "status": "ok",
+      "agree": false,
+      "raw": "{\"label\": \"no\", \"reason\": \"模型回答15天，與正確答案14天不符，且未包含正確答案或等價表述。\"}",
+      "error": null,
+      "why": "LongMemEval 規則：天數差一不扣分"
+    },
+    {
+      "id": "jv-10",
+      "split": "dev",
+      "prompt": "mem-temporal",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "回應說「大概一個禮拜左右」，與正確答案14天相差太多，且未包含正確答案。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"回應說「大概一個禮拜左右」，與正確答案14天相差太多，且未包含正確答案。\"}",
+      "error": null,
+      "why": "差太多"
+    },
+    {
+      "id": "jv-13",
+      "split": "dev",
+      "prompt": "mem-knowledge-update",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "回應明確指出目前在海岬水族館上班，符合正確答案。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"yes\", \"reason\": \"回應明確指出目前在海岬水族館上班，符合正確答案。\"}",
+      "error": null,
+      "why": "提到舊資訊但目前答案正確"
+    },
+    {
+      "id": "jv-14",
+      "split": "dev",
+      "prompt": "mem-knowledge-update",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "回應說在青川植物園，而非正確答案海岬水族館。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"回應說在青川植物園，而非正確答案海岬水族館。\"}",
+      "error": null,
+      "why": "舊答案"
+    },
+    {
+      "id": "jv-18",
+      "split": "dev",
+      "prompt": "mem-abstention",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "模型正確指出使用者未提過養狗，並提到已知的寵物是橘貓麻糬，因此問題無法回答。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"yes\", \"reason\": \"模型正確指出使用者未提過養狗，並提到已知的寵物是橘貓麻糬，因此問題無法回答。\"}",
+      "error": null,
+      "why": "指出前提錯誤"
+    },
+    {
+      "id": "jv-19",
+      "split": "dev",
+      "prompt": "mem-abstention",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "模型錯誤地將貓的名字當作狗的名字，順著錯誤前提給出具體答案。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"模型錯誤地將貓的名字當作狗的名字，順著錯誤前提給出具體答案。\"}",
+      "error": null,
+      "why": "順著錯誤前提作答"
+    },
+    {
+      "id": "jv-20",
+      "split": "dev",
+      "prompt": "mem-abstention",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "模型正確表示沒有關於妹妹的紀錄，並未編造具體答案。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"yes\", \"reason\": \"模型正確表示沒有關於妹妹的紀錄，並未編造具體答案。\"}",
+      "error": null,
+      "why": "說資訊不存在"
+    },
+    {
+      "id": "jv-24",
+      "split": "dev",
+      "prompt": "mem-preference",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "回應提供只用電鍋的晚餐做法，且不含花生，符合使用者的設備限制和過敏需求。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"yes\", \"reason\": \"回應提供只用電鍋的晚餐做法，且不含花生，符合使用者的設備限制和過敏需求。\"}",
+      "error": null,
+      "why": "只用電鍋、無花生"
+    },
+    {
+      "id": "jv-25",
+      "split": "dev",
+      "prompt": "mem-preference",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "回應使用熱鍋翻炒且加入花生，不符合使用者只能用電鍋且對花生過敏的限制。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"回應使用熱鍋翻炒且加入花生，不符合使用者只能用電鍋且對花生過敏的限制。\"}",
+      "error": null,
+      "why": "需要炒鍋且含花生"
+    },
+    {
+      "id": "jv-29",
+      "split": "dev",
+      "prompt": "pc-extract",
+      "expected": {
+        "status": "chosen",
+        "choice": "靛青"
+      },
+      "actual": {
+        "status": "chosen",
+        "choice": "靛青",
+        "reason": "回答明確選定靛青"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"status\": \"chosen\", \"choice\": \"靛青\", \"reason\": \"回答明確選定靛青\"}",
+      "error": null,
+      "why": "明確選擇但沒有格式行"
+    },
+    {
+      "id": "jv-30",
+      "split": "dev",
+      "prompt": "pc-extract",
+      "expected": {
+        "status": "no-choice"
+      },
+      "actual": {
+        "status": "no-choice",
+        "choice": "",
+        "reason": "回答拒絕選擇，表示無法只選一個"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"status\": \"no-choice\", \"choice\": \"\", \"reason\": \"回答拒絕選擇，表示無法只選一個\"}",
+      "error": null,
+      "why": "拒絕選擇"
+    },
+    {
+      "id": "jv-33",
+      "split": "dev",
+      "prompt": "pc-change",
+      "expected": {
+        "label": "explained-change"
+      },
+      "actual": {
+        "label": "explained-change",
+        "reason": "第二次回答提到先前選靛青，並說明因最近覺得自己沒那麼沉而改選霧紫。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"explained-change\", \"reason\": \"第二次回答提到先前選靛青，並說明因最近覺得自己沒那麼沉而改選霧紫。\"}",
+      "error": null,
+      "why": "提到先前選擇且說明理由"
+    },
+    {
+      "id": "jv-34",
+      "split": "dev",
+      "prompt": "pc-change",
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "actual": {
+        "label": "unexplained-different",
+        "reason": "第二次回答未提及先前選擇靛青，也未說明改變理由。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"unexplained-different\", \"reason\": \"第二次回答未提及先前選擇靛青，也未說明改變理由。\"}",
+      "error": null,
+      "why": "沒有提到先前選擇"
+    },
+    {
+      "id": "jv-38",
+      "split": "dev",
+      "prompt": "pc-recall",
+      "expected": {
+        "label": "correct"
+      },
+      "actual": {
+        "label": "correct",
+        "reason": "回想與實際回答一致，均為「霧行」。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"correct\", \"reason\": \"回想與實際回答一致，均為「霧行」。\"}",
+      "error": null,
+      "why": "正確"
+    },
+    {
+      "id": "jv-39",
+      "split": "dev",
+      "prompt": "pc-recall",
+      "expected": {
+        "label": "incorrect"
+      },
+      "actual": {
+        "label": "incorrect",
+        "reason": "現在回答的「晨溪」與當時實際選擇的「霧行」不符。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"incorrect\", \"reason\": \"現在回答的「晨溪」與當時實際選擇的「霧行」不符。\"}",
+      "error": null,
+      "why": "編造"
+    },
+    {
+      "id": "jv-40",
+      "split": "dev",
+      "prompt": "pc-recall",
+      "expected": {
+        "label": "abstain"
+      },
+      "actual": {
+        "label": "abstain",
+        "reason": "表示不記得且未斷言具體內容"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"abstain\", \"reason\": \"表示不記得且未斷言具體內容\"}",
+      "error": null,
+      "why": "不記得且沒有斷言"
+    },
+    {
+      "id": "jv-44",
+      "split": "dev",
+      "prompt": "pc-narrate",
+      "expected": {
+        "initial": "correct",
+        "change": "correct",
+        "label": "correct"
+      },
+      "actual": {
+        "initial": "correct",
+        "change": "correct",
+        "label": "correct",
+        "reason": "現在的回答正確描述初始立場為看情況，且正確描述後來改為當場說。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"initial\": \"correct\",\n  \"change\": \"correct\",\n  \"label\": \"correct\",\n  \"reason\": \"現在的回答正確描述初始立場為看情況，且正確描述後來改為當場說。\"\n}",
+      "error": null,
+      "why": "正確敘述"
+    }
+  ]
+}

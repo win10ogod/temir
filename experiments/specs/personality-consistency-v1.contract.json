@@ -1,0 +1,626 @@
+{
+  "id": "personality-consistency-v1",
+  "version": "1.0.0",
+  "dataset": "personality-v1",
+  "kind": "personality",
+  "categories": [
+    {
+      "id": "arbitrary-choice",
+      "label": "(a) 任意偏好／選擇的連續性",
+      "source": "本專案設計；比較單位依 Kovač 等 ipsative stability（papers/2402.14846 §3.2）與 Abdulhai 等 Q&A consistency（papers/2511.00222 §3.2）",
+      "min": 5,
+      "scoring": "continuity",
+      "group": "a"
+    },
+    {
+      "id": "value-stance",
+      "label": "(b) 價值立場的連續性（對照：基礎模型本身可能就一致）",
+      "source": "Moore 等 paraphrase consistency（papers/2407.02996 §3）",
+      "min": 4,
+      "scoring": "continuity",
+      "group": "b"
+    },
+    {
+      "id": "self-recall",
+      "label": "(c) 回想自己說過什麼",
+      "source": "LongMemEval §3.2 single-session-assistant；Dialogue NLI §2（papers/1811.00671）",
+      "min": 5,
+      "scoring": "self-recall",
+      "group": "c"
+    },
+    {
+      "id": "change-persistence",
+      "label": "(d1) 改變後的新立場是否延續；不同時是否有說明",
+      "source": "PC 理論性質 7；DECODE §3.1（papers/2012.13391）；Wang 等 delayed measurement（papers/2608.06485 附錄 Validation Suite）",
+      "min": 2,
+      "scoring": "continuity",
+      "group": "d"
+    },
+    {
+      "id": "change-narration",
+      "label": "(d2) 敘述自己立場的演變",
+      "source": "hypotheses.md H5 候選量 s2（敘事連續）；本專案設計",
+      "min": 2,
+      "scoring": "narration",
+      "group": "d"
+    },
+    {
+      "id": "control",
+      "label": "不傷害對照（單一 session 一般任務）",
+      "source": "本專案設計（規格 §2.3）",
+      "min": 2,
+      "scoring": "det-then-judge",
+      "judgePrompt": "mem-default",
+      "group": "control"
+    }
+  ],
+  "requiredCells": [
+    {
+      "condition": "baseline",
+      "historyModel": "deepseek-flash",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "temir",
+      "historyModel": "deepseek-flash",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "temir-no-autorecall",
+      "historyModel": "deepseek-flash",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "temir-no-snapshot",
+      "historyModel": "deepseek-flash",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "baseline",
+      "historyModel": "EVE-27B",
+      "probeModel": "EVE-27B"
+    },
+    {
+      "condition": "temir",
+      "historyModel": "EVE-27B",
+      "probeModel": "EVE-27B"
+    }
+  ],
+  "optionalCells": [
+    {
+      "condition": "temir-no-autorecall",
+      "historyModel": "EVE-27B",
+      "probeModel": "EVE-27B"
+    },
+    {
+      "condition": "temir-no-snapshot",
+      "historyModel": "EVE-27B",
+      "probeModel": "EVE-27B"
+    },
+    {
+      "condition": "baseline",
+      "historyModel": "EVE-27B",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "temir",
+      "historyModel": "EVE-27B",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "baseline",
+      "historyModel": "deepseek-flash",
+      "probeModel": "EVE-27B"
+    },
+    {
+      "condition": "temir",
+      "historyModel": "deepseek-flash",
+      "probeModel": "EVE-27B"
+    }
+  ],
+  "contrasts": [
+    {
+      "id": "P-pooled-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "description": "主要比較：依賴記憶的人格連續性（(a)+(c)+(d)），DeepSeek"
+    },
+    {
+      "id": "P-pooled-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "description": "主要比較：同上，EVE-27B"
+    },
+    {
+      "id": "P-arbitrary-choice-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "arbitrary-choice"
+      ],
+      "description": "分類別：arbitrary-choice（DeepSeek）"
+    },
+    {
+      "id": "P-value-stance-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "value-stance"
+      ],
+      "description": "分類別：value-stance（DeepSeek）"
+    },
+    {
+      "id": "P-self-recall-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "self-recall"
+      ],
+      "description": "分類別：self-recall（DeepSeek）"
+    },
+    {
+      "id": "P-change-persistence-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "change-persistence"
+      ],
+      "description": "分類別：change-persistence（DeepSeek）"
+    },
+    {
+      "id": "P-change-narration-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "change-narration"
+      ],
+      "description": "分類別：change-narration（DeepSeek）"
+    },
+    {
+      "id": "P-control-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "control"
+      ],
+      "description": "分類別：control（DeepSeek）"
+    },
+    {
+      "id": "P-arbitrary-choice-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "arbitrary-choice"
+      ],
+      "description": "分類別：arbitrary-choice（EVE-27B）"
+    },
+    {
+      "id": "P-value-stance-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "value-stance"
+      ],
+      "description": "分類別：value-stance（EVE-27B）"
+    },
+    {
+      "id": "P-self-recall-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "self-recall"
+      ],
+      "description": "分類別：self-recall（EVE-27B）"
+    },
+    {
+      "id": "P-change-persistence-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "change-persistence"
+      ],
+      "description": "分類別：change-persistence（EVE-27B）"
+    },
+    {
+      "id": "P-change-narration-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "change-narration"
+      ],
+      "description": "分類別：change-narration（EVE-27B）"
+    },
+    {
+      "id": "P-control-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "control"
+      ],
+      "description": "分類別：control（EVE-27B）"
+    },
+    {
+      "id": "P-autorecall-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "temir-no-autorecall",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "description": "消融：自動回憶（DeepSeek）"
+    },
+    {
+      "id": "P-snapshot-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "temir-no-snapshot",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "description": "消融：自我狀態快照（DeepSeek）"
+    },
+    {
+      "id": "P-autorecall-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "temir-no-autorecall",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "description": "消融（選用 cell）：自動回憶（EVE-27B）"
+    },
+    {
+      "id": "P-cross-eve2flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "description": "換模型（選用）：歷史 EVE-27B → 探針 DeepSeek"
+    },
+    {
+      "id": "P-cross-flash2eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "description": "換模型（選用）：歷史 DeepSeek → 探針 EVE-27B"
+    },
+    {
+      "id": "P-swap-probe",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "description": "同一份歷史換探針模型（選用，描述性；H-ID）"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "PA1",
+      "contrast": "P-pooled-flash",
+      "rule": {
+        "kind": "superiority",
+        "minDiff": 0.4,
+        "minCiLow": 0.2,
+        "maxP": 0.01,
+        "sided": "one",
+        "minRateA": 0.6
+      },
+      "claim": "（主要，DeepSeek）個體插件讓依賴記憶的人格連續性（任意選擇、回想自己的話、改變後的延續與敘述）與原始 DSH 有決定性差異。",
+      "negation": "任一條件不成立（差 < 0.40、區間下界 < 0.20、單尾符號檢定 p > 0.01、個體連續率 < 0.60），就不能宣稱決定性差異。"
+    },
+    {
+      "id": "PA2",
+      "contrast": "P-pooled-eve",
+      "rule": {
+        "kind": "superiority",
+        "minDiff": 0.4,
+        "minCiLow": 0.2,
+        "maxP": 0.01,
+        "sided": "one",
+        "minRateA": 0.6
+      },
+      "claim": "（主要，EVE-27B）同 PA1。",
+      "negation": "同 PA1；兩個模型分開報告。"
+    },
+    {
+      "id": "PA3",
+      "contrast": "P-arbitrary-choice-flash",
+      "rule": {
+        "kind": "superiority",
+        "minDiff": 0.4,
+        "minCiLow": 0.1,
+        "maxP": 0.05,
+        "sided": "one"
+      },
+      "claim": "(a) 任意選擇的連續性高於原始 DSH 的重抽一致率（DeepSeek）。",
+      "negation": "差 < 0.40、區間下界 < 0.10 或 p > 0.05（5 題全部偏向個體時單尾 p＝0.031，是唯一能達標的情形）即不成立。"
+    },
+    {
+      "id": "PA4",
+      "contrast": "P-self-recall-flash",
+      "rule": {
+        "kind": "superiority",
+        "minDiff": 0.5,
+        "minCiLow": 0.2,
+        "maxP": 0.05,
+        "sided": "one"
+      },
+      "claim": "(c) 個體能回想自己說過的話，原始 DSH 不能（DeepSeek）。",
+      "negation": "差 < 0.50、區間下界 < 0.20 或單尾 McNemar p > 0.05 即不成立。"
+    },
+    {
+      "id": "PA5",
+      "contrast": "P-self-recall-flash",
+      "rule": {
+        "kind": "max-rate",
+        "metric": "fabrication",
+        "max": 0.2
+      },
+      "claim": "(c) 個體回想自己的話時很少編造（DeepSeek）。",
+      "negation": "個體的 incorrect（含編造）比率 > 0.20（5 題中 2 題以上）即不成立。"
+    },
+    {
+      "id": "PA6",
+      "contrast": "P-change-persistence-flash",
+      "rule": {
+        "kind": "max-rate",
+        "metric": "unexplained-different",
+        "max": 0.25
+      },
+      "claim": "(d) 個體在新 session 與自己最後的立場不同時，大多會說明改變（DeepSeek）。",
+      "negation": "個體無說明的不同 > 0.25（4 個樣本中 2 個以上）即不成立。"
+    },
+    {
+      "id": "PA7",
+      "contrast": "P-value-stance-flash",
+      "rule": {
+        "kind": "no-harm",
+        "maxExtraFailures": 2
+      },
+      "claim": "(b) 個體在價值立場上的連續性不低於原始 DSH（對照）。",
+      "negation": "個體未得分樣本比原始 DSH 多 3 個以上（8 個中）即不成立。"
+    },
+    {
+      "id": "PA8",
+      "contrast": "P-control-flash",
+      "rule": {
+        "kind": "no-harm",
+        "maxExtraFailures": 0
+      },
+      "claim": "（不傷害，DeepSeek）個體插件不讓單一 session 的一般任務退化。",
+      "negation": "個體在對照題比原始 DSH 多失敗任何一題，即判定可能有害，需逐例檢查。"
+    },
+    {
+      "id": "PA9",
+      "contrast": "P-control-eve",
+      "rule": {
+        "kind": "no-harm",
+        "maxExtraFailures": 0
+      },
+      "claim": "（不傷害，EVE-27B）同 PA8。",
+      "negation": "同 PA8。"
+    },
+    {
+      "id": "PA10",
+      "contrast": "P-autorecall-flash",
+      "rule": {
+        "kind": "superiority",
+        "minDiff": 0.2,
+        "minCiLow": 0,
+        "maxP": 0.05,
+        "sided": "one"
+      },
+      "claim": "（次要）自動回憶是人格連續性的必要來源。",
+      "negation": "不成立時只能說「沒有證據顯示自動回憶必要」。"
+    }
+  ],
+  "judge": {
+    "model": "deepseek-v4-pro",
+    "endpoint": "https://api.deepseek.com/chat/completions",
+    "temperature": 0,
+    "maxTokens": 400,
+    "thinking": "disabled",
+    "maxAttempts": 3,
+    "pricesUsdPerMillion": {
+      "cacheHit": 0.044,
+      "cacheMiss": 1.32,
+      "output": 3.96
+    },
+    "maxUsdPerRun": 3
+  },
+  "bootstrap": {
+    "resamples": 10000,
+    "seed": 20261028
+  }
+}

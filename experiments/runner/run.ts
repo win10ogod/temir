@@ -4,12 +4,14 @@
  * 用法（先 `source scripts/env.sh`）：
  *   node experiments/runner/run.ts --dataset experiments/datasets/memory-v1.json \
  *     --condition temir --history-model deepseek --probe-model deepseek [--probes q01,q02] [--run-id ...]
+ *   換模型的 cell：加 `--from-run <歷史已跑完的 runId>`，沿用它的「歷史結束」快照，只跑探針。
  *
  * 條件：baseline＝原始 DSH sdk profile（不載入個體插件）；temir＝DSH＋個體；
  *       temir-no-autorecall、temir-no-snapshot＝消融（patches/ 下的設定）。
  *
  * 隔離：每個 run 有自己的生命日誌、DSH home 與工作目錄（放在 ~/.cache/temir/experiments/<runId>，ext4）。
- * 歷史全部跑完後拍快照；每題探針之前把三者還原成快照，題與題之間不互相污染。
+ * 歷史全部跑完後拍快照；每題探針（以及每一次重複，見資料集 `meta.repeats`）之前把三者還原成快照，
+ * 題與題之間不互相污染。DSH 的使用者層級指令檔（`$DSH_AGENTS_HOME/AGENTS.md`）指向空目錄。
  * 原始 DSH 也保有同樣的工具與工作目錄（它若自己寫筆記檔，也會留到探針階段），比較才公平。
  *
  * 輸出（repo 內）：experiments/runs/<runId>/config.json、records.jsonl、run-summary.json。
@@ -38,7 +40,7 @@ export type Condition = keyof typeof CONDITIONS
 interface Dataset {
   readonly id: string
   readonly histories: readonly { readonly id: string; readonly turns: readonly string[] }[]
-  readonly probes: readonly { readonly id: string; readonly turns: readonly string[] }[]
+  readonly probes: readonly { readonly id: string; readonly turns: readonly string[]; readonly meta?: { readonly repeats?: number } }[]
 }
 
 export interface TurnRecord {
@@ -52,6 +54,8 @@ export interface TurnRecord {
 }
 
 const sha256 = (data: string | Buffer) => createHash('sha256').update(data).digest('hex')
+
+const QUESTION_REPLY = '（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）'
 
 function git(...args: string[]): string {
   return execFileSync('git', ['-C', REPO, ...args], { encoding: 'utf8' }).trim()
@@ -96,7 +100,7 @@ export function pendingSelfStatements(lifeDb: string): number {
 function copyState(from: string, to: string): void {
   rmSync(to, { recursive: true, force: true })
   mkdirSync(to, { recursive: true })
-  for (const part of ['life', 'dsh-home', 'workspace']) {
+  for (const part of ['life', 'dsh-home', 'workspace', 'agents-home']) {
     if (existsSync(join(from, part))) cpSync(join(from, part), join(to, part), { recursive: true })
     else mkdirSync(join(to, part), { recursive: true })
   }
@@ -111,6 +115,7 @@ async function main(): Promise<void> {
       'probe-model': { type: 'string' },
       probes: { type: 'string' },
       'run-id': { type: 'string' },
+      'from-run': { type: 'string' },
       'turn-timeout-ms': { type: 'string', default: '900000' },
       // 多個 run 平行執行時，帳戶餘額差無法歸屬到單一 run；改由批次腳本量總花費。
       'no-balance': { type: 'boolean', default: false },
@@ -140,6 +145,19 @@ async function main(): Promise<void> {
   mkdirSync(join(stateDir, 'logs'), { recursive: true })
   const live = join(stateDir, 'live')
   copyState(join(stateDir, 'none'), live)
+  const experimentsRoot = join(process.env['TEMIR_CACHE'] ?? join(homedir(), '.cache', 'temir'), 'experiments')
+  const fromRun = values['from-run']
+  if (fromRun) {
+    const from = JSON.parse(readFileSync(join(REPO, 'experiments', 'runs', fromRun, 'config.json'), 'utf8')) as {
+      condition: string
+      historyModel: { model: string }
+      dataset: { sha256: string }
+    }
+    if (from.condition !== condition) throw new Error(`--from-run 的條件是 ${from.condition}，不是 ${condition}`)
+    if (from.historyModel.model !== MODELS[historyModel].model) throw new Error(`--from-run 的歷史模型是 ${from.historyModel.model}`)
+    if (from.dataset.sha256 !== sha256(datasetRaw)) throw new Error('--from-run 使用的資料集版本不同')
+    if (!existsSync(join(experimentsRoot, fromRun, 'snapshot'))) throw new Error(`找不到 ${fromRun} 的歷史快照`)
+  }
 
   const patches = CONDITIONS[condition]
   const config = {
@@ -149,8 +167,13 @@ async function main(): Promise<void> {
     patches: patches.map((p) => ({ path: relative(REPO, p), sha256: sha256(readFileSync(p)) })),
     historyModel: MODELS[historyModel],
     probeModel: MODELS[probeModel],
-    probes: probes.map((p) => p.id),
+    probes: probes.map((p) => ({ id: p.id, repeats: p.meta?.repeats ?? 1 })),
+    historyFrom: fromRun ?? null,
     turnTimeoutMs,
+    // 所有條件相同：工具審核一律允許一次（記在 logs/approvals.log），受試者提問一律回覆同一句話（logs/questions.log）。
+    approvals: 'allowed-once for every request',
+    questionReply: QUESTION_REPLY,
+    isolation: 'fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat',
     code: { commit: git('rev-parse', 'HEAD'), dirty: git('status', '--porcelain').length > 0, diffSha256: sha256(git('diff', 'HEAD')) },
     runtime: { node: process.version, dsh: execFileSync('dsh', ['--version'], { encoding: 'utf8' }).trim() },
     stateDir,
@@ -202,7 +225,15 @@ async function main(): Promise<void> {
     }
   }
 
-  function write(phase: 'history' | 'probe', itemId: string, model: ModelName, sessionId: string, records: TurnRecord[], startedAt: string): void {
+  function write(
+    phase: 'history' | 'probe',
+    itemId: string,
+    model: ModelName,
+    sessionId: string,
+    records: TurnRecord[],
+    startedAt: string,
+    repeat?: number,
+  ): void {
     errors += records.filter((r) => r.error !== null).length
     const line = {
       runId,
@@ -213,6 +244,7 @@ async function main(): Promise<void> {
       probeModel: MODELS[probeModel].model,
       phase,
       itemId,
+      ...(repeat === undefined ? {} : { repeat }),
       model: MODELS[model].model,
       sessionId,
       turns: records,
@@ -227,7 +259,7 @@ async function main(): Promise<void> {
       model,
       patches,
       cwd: join(state, 'workspace'),
-      env: { ...process.env, TEMIR_HOME: join(state, 'life'), DSH_HOME: join(state, 'dsh-home') },
+      env: { ...process.env, TEMIR_HOME: join(state, 'life'), DSH_HOME: join(state, 'dsh-home'), DSH_AGENTS_HOME: join(state, 'agents-home') },
       logPath: join(stateDir, 'logs', `${label}.log`),
       // 每個條件同樣允許工具執行；審核紀錄在 log 中。
       onApproval: async (request) => {
@@ -237,65 +269,76 @@ async function main(): Promise<void> {
       // 受試者若主動提問，一律回覆同一句話，並留下紀錄。
       onQuestions: async (sessionId, questions) => {
         appendFileSync(join(stateDir, 'logs', 'questions.log'), `${label}\t${sessionId}\t${JSON.stringify(questions)}\n`)
-        return questions.map((q) => ({ id: q.id, selected: [], custom: '（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）' }))
+        return questions.map((q) => ({ id: q.id, selected: [], custom: QUESTION_REPLY }))
       },
     })
   }
 
-  // 1. 歷史：同一個執行期依序跑完所有歷史 session。
-  let harness = await launch(historyModel, live, 'history')
-  for (const history of dataset.histories) {
-    const startedAt = new Date().toISOString()
-    try {
-      const { sessionId, records } = await runSession(harness, history.turns)
-      write('history', history.id, historyModel, sessionId, records, startedAt)
-    } catch (error) {
-      const failed = error as Error & { records?: TurnRecord[]; sessionId?: string }
-      const records = failed.records ?? []
-      for (const user of history.turns.slice(records.length)) {
-        records.push({ user, assistant: '', toolCalls: [], recallInjected: null, error: 'skipped: earlier turn failed', ms: 0, usage: [] })
+  /** 1. 歷史：同一個執行期依序跑完所有歷史 session，沉澱後拍成「歷史結束」快照。 */
+  async function runHistories(snapshot: string): Promise<{ exit: number | null; unsettled: number | null }> {
+    let harness = await launch(historyModel, live, 'history')
+    for (const history of dataset.histories) {
+      const startedAt = new Date().toISOString()
+      try {
+        const { sessionId, records } = await runSession(harness, history.turns)
+        write('history', history.id, historyModel, sessionId, records, startedAt)
+      } catch (error) {
+        const failed = error as Error & { records?: TurnRecord[]; sessionId?: string }
+        const records = failed.records ?? []
+        for (const user of history.turns.slice(records.length)) {
+          records.push({ user, assistant: '', toolCalls: [], recallInjected: null, error: 'skipped: earlier turn failed', ms: 0, usage: [] })
+        }
+        write('history', history.id, historyModel, failed.sessionId ?? '', records, startedAt)
+        await harness.kill()
+        harness = await launch(historyModel, live, `history-after-${history.id}`)
       }
-      write('history', history.id, historyModel, failed.sessionId ?? '', records, startedAt)
-      await harness.kill()
-      harness = await launch(historyModel, live, `history-after-${history.id}`)
     }
-  }
-  const historyExit = await harness.close()
+    const exit = await harness.close()
 
-  // 1b. 沉澱：DSH 關閉程序有 5 秒上限，背景的自我陳述擷取可能被截斷。重新啟動一次讓插件補做，
-  //     直到生命日誌中沒有待處理的回覆（或逾時），讓每題探針都從同一個完整的快照開始。
-  let settleRemaining: number | null = null
-  if (condition !== 'baseline') {
-    const lifeDb = join(live, 'life', 'life.db')
-    settleRemaining = pendingSelfStatements(lifeDb)
-    if (settleRemaining > 0) {
-      const settler = await launch(historyModel, live, 'settle')
-      const deadline = Date.now() + 15 * 60_000
-      while ((settleRemaining = pendingSelfStatements(lifeDb)) > 0 && Date.now() < deadline) await sleep(2000)
-      await settler.close()
+    // 沉澱：DSH 關閉程序有 5 秒上限，背景的自我陳述擷取可能被截斷。重新啟動一次讓插件補做，
+    // 直到生命日誌中沒有待處理的回覆（或逾時），讓每題探針都從同一個完整的快照開始。
+    let unsettled: number | null = null
+    if (condition !== 'baseline') {
+      const lifeDb = join(live, 'life', 'life.db')
+      unsettled = pendingSelfStatements(lifeDb)
+      if (unsettled > 0) {
+        const settler = await launch(historyModel, live, 'settle')
+        const deadline = Date.now() + 15 * 60_000
+        while ((unsettled = pendingSelfStatements(lifeDb)) > 0 && Date.now() < deadline) await sleep(2000)
+        await settler.close()
+      }
     }
+
+    // 快照：歷史結束時的生命日誌、DSH home、工作目錄。
+    copyState(live, snapshot)
+    return { exit, unsettled }
   }
 
-  // 2. 快照：歷史結束時的生命日誌、DSH home、工作目錄。
+  // 換模型的 cell 沿用另一個 run 的快照，不重跑歷史。
   const snapshot = join(stateDir, 'snapshot')
-  copyState(live, snapshot)
+  if (fromRun) copyState(join(experimentsRoot, fromRun, 'snapshot'), snapshot)
+  const histories = fromRun ? { exit: null, unsettled: null } : await runHistories(snapshot)
 
-  // 3. 探針：每題從快照還原，在新的執行期與新的 session 中提問。
+  // 3. 探針：每題（每次重複）都從快照還原，在新的執行期與新的 session 中提問。
   for (const probe of probes) {
-    const state = join(stateDir, 'probes', probe.id)
-    copyState(snapshot, state)
-    const startedAt = new Date().toISOString()
-    let probeHarness: HarnessProcess | undefined
-    try {
-      probeHarness = await launch(probeModel, state, `probe-${probe.id}`)
-      const { sessionId, records } = await runSession(probeHarness, probe.turns)
-      write('probe', probe.id, probeModel, sessionId, records, startedAt)
-      await probeHarness.close()
-    } catch (error) {
-      const failed = error as Error & { records?: TurnRecord[]; sessionId?: string }
-      const records = failed.records ?? [{ user: probe.turns[0] ?? '', assistant: '', toolCalls: [], recallInjected: null, error: String(error), ms: 0, usage: [] }]
-      write('probe', probe.id, probeModel, failed.sessionId ?? '', records, startedAt)
-      await probeHarness?.kill()
+    const repeats = Math.max(1, probe.meta?.repeats ?? 1)
+    for (let repeat = 0; repeat < repeats; repeat++) {
+      const state = join(stateDir, 'probes', probe.id, `r${repeat}`)
+      copyState(snapshot, state)
+      const startedAt = new Date().toISOString()
+      const label = `probe-${probe.id}-r${repeat}`
+      let probeHarness: HarnessProcess | undefined
+      try {
+        probeHarness = await launch(probeModel, state, label)
+        const { sessionId, records } = await runSession(probeHarness, probe.turns)
+        write('probe', probe.id, probeModel, sessionId, records, startedAt, repeat)
+        await probeHarness.close()
+      } catch (error) {
+        const failed = error as Error & { records?: TurnRecord[]; sessionId?: string }
+        const records = failed.records ?? [{ user: probe.turns[0] ?? '', assistant: '', toolCalls: [], recallInjected: null, error: String(error), ms: 0, usage: [] }]
+        write('probe', probe.id, probeModel, failed.sessionId ?? '', records, startedAt, repeat)
+        await probeHarness?.kill()
+      }
     }
   }
 
@@ -303,12 +346,14 @@ async function main(): Promise<void> {
   const summary = {
     runId,
     endedAt: new Date().toISOString(),
-    histories: dataset.histories.length,
+    histories: fromRun ? 0 : dataset.histories.length,
+    historyFrom: fromRun ?? null,
     probes: probes.length,
+    probeSessions: probes.reduce((n, p) => n + Math.max(1, p.meta?.repeats ?? 1), 0),
     turnErrors: errors,
-    historyRuntimeExitCode: historyExit,
+    historyRuntimeExitCode: histories.exit,
     // 快照時仍未完成自我陳述擷取的回覆數（應為 0；非 0 代表沉澱逾時）。
-    unsettledSelfStatements: settleRemaining,
+    unsettledSelfStatements: histories.unsettled,
     // 只記錄花費（帳戶餘額前後差，解析度 US$0.01），不記錄餘額本身。
     deepseekSpentUsd: balanceBefore !== null && balanceAfter !== null ? Number((balanceBefore - balanceAfter).toFixed(2)) : null,
   }

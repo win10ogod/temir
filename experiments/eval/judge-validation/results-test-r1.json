@@ -1,0 +1,485 @@
+{
+  "label": "test-r1",
+  "split": "test",
+  "model": "deepseek-v4-pro",
+  "total": 25,
+  "agree": 24,
+  "byPrompt": {
+    "mem-default": {
+      "n": 4,
+      "agree": 4
+    },
+    "mem-temporal": {
+      "n": 2,
+      "agree": 2
+    },
+    "mem-knowledge-update": {
+      "n": 3,
+      "agree": 3
+    },
+    "mem-abstention": {
+      "n": 3,
+      "agree": 3
+    },
+    "mem-preference": {
+      "n": 3,
+      "agree": 3
+    },
+    "pc-extract": {
+      "n": 2,
+      "agree": 2
+    },
+    "pc-change": {
+      "n": 3,
+      "agree": 3
+    },
+    "pc-recall": {
+      "n": 3,
+      "agree": 2
+    },
+    "pc-narrate": {
+      "n": 2,
+      "agree": 2
+    }
+  },
+  "calls": 25,
+  "estimatedUsd": 0.011090727999999998,
+  "at": "2026-10-28T07:12:01.841Z",
+  "results": [
+    {
+      "id": "jv-05",
+      "split": "test",
+      "prompt": "mem-default",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "回應明確指出住的地方叫晴光苑，與正確答案一致。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"yes\", \"reason\": \"回應明確指出住的地方叫晴光苑，與正確答案一致。\"}",
+      "error": null,
+      "why": "正確"
+    },
+    {
+      "id": "jv-06",
+      "split": "test",
+      "prompt": "mem-default",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "回應正確計算琴弦與門票總和為三千元，與正確答案一致。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"yes\", \"reason\": \"回應正確計算琴弦與門票總和為三千元，與正確答案一致。\"}",
+      "error": null,
+      "why": "中文數字的同義寫法"
+    },
+    {
+      "id": "jv-07",
+      "split": "test",
+      "prompt": "mem-default",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "回應的日期與正確答案不符"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"回應的日期與正確答案不符\"}",
+      "error": null,
+      "why": "錯誤日期（其實是音樂會日期）"
+    },
+    {
+      "id": "jv-08",
+      "split": "test",
+      "prompt": "mem-default",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "回應明確否定正確答案，並給出不同地點"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"回應明確否定正確答案，並給出不同地點\"}",
+      "error": null,
+      "why": "本專案補充規則：明確否定正確答案"
+    },
+    {
+      "id": "jv-11",
+      "split": "test",
+      "prompt": "mem-temporal",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "回應正確指出音樂會前一天是 12/4，與正確答案一致。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"yes\", \"reason\": \"回應正確指出音樂會前一天是 12/4，與正確答案一致。\"}",
+      "error": null,
+      "why": "同義寫法"
+    },
+    {
+      "id": "jv-12",
+      "split": "test",
+      "prompt": "mem-temporal",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "模型回答相差10天，與正確答案20天不符，且差距超過1天。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"模型回答相差10天，與正確答案20天不符，且差距超過1天。\"}",
+      "error": null,
+      "why": "計算錯誤"
+    },
+    {
+      "id": "jv-15",
+      "split": "test",
+      "prompt": "mem-knowledge-update",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "回應明確指出目前答案是釧路，符合正確答案。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"yes\", \"reason\": \"回應明確指出目前答案是釧路，符合正確答案。\"}",
+      "error": null,
+      "why": "更新後的答案"
+    },
+    {
+      "id": "jv-16",
+      "split": "test",
+      "prompt": "mem-knowledge-update",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "回應未提供目前正確的預算52,000元，且未明確指出調整後的答案。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"回應未提供目前正確的預算52,000元，且未明確指出調整後的答案。\"}",
+      "error": null,
+      "why": "沒有給出更新後的值"
+    },
+    {
+      "id": "jv-17",
+      "split": "test",
+      "prompt": "mem-knowledge-update",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "回應同時提到週四晚上和週六早上，未明確指出目前是週六早上，可能將舊資訊當成目前答案。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"回應同時提到週四晚上和週六早上，未明確指出目前是週六早上，可能將舊資訊當成目前答案。\"}",
+      "error": null,
+      "why": "本專案補充規則：沒說清楚哪個是目前"
+    },
+    {
+      "id": "jv-21",
+      "split": "test",
+      "prompt": "mem-abstention",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "模型順著錯誤前提給出名字，未指出問題無法回答。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"模型順著錯誤前提給出名字，未指出問題無法回答。\"}",
+      "error": null,
+      "why": "把大提琴老師當成鋼琴老師，順著前提作答"
+    },
+    {
+      "id": "jv-22",
+      "split": "test",
+      "prompt": "mem-abstention",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "模型正確指出使用者未提過鋼琴老師，並澄清已知資訊是大提琴老師蕭以禾。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"yes\", \"reason\": \"模型正確指出使用者未提過鋼琴老師，並澄清已知資訊是大提琴老師蕭以禾。\"}",
+      "error": null,
+      "why": "指出前提錯誤並給出相關資訊"
+    },
+    {
+      "id": "jv-23",
+      "split": "test",
+      "prompt": "mem-abstention",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "模型雖然表示不知道，但接著提供了沖繩機票的具體價格，順著錯誤前提給出答案。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"模型雖然表示不知道，但接著提供了沖繩機票的具體價格，順著錯誤前提給出答案。\"}",
+      "error": null,
+      "why": "LongMemEval-V2 規則：說不知道但又順著前提給出具體數字"
+    },
+    {
+      "id": "jv-26",
+      "split": "test",
+      "prompt": "mem-preference",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "回應明確針對二月的釧路，提到寒冷並列出保暖衣物、防滑雪靴及看丹頂鶴的望遠鏡，符合準則。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"yes\", \"reason\": \"回應明確針對二月的釧路，提到寒冷並列出保暖衣物、防滑雪靴及看丹頂鶴的望遠鏡，符合準則。\"}",
+      "error": null,
+      "why": "針對釧路冬季"
+    },
+    {
+      "id": "jv-27",
+      "split": "test",
+      "prompt": "mem-preference",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "回應未針對釧路或北海道冬季準備行李，也未提及目的地，只是通用清單並反問目的地。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"回應未針對釧路或北海道冬季準備行李，也未提及目的地，只是通用清單並反問目的地。\"}",
+      "error": null,
+      "why": "通用清單"
+    },
+    {
+      "id": "jv-28",
+      "split": "test",
+      "prompt": "mem-preference",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "回應明確提到六十大壽和12/13，運用了使用者的個人資訊。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"yes\", \"reason\": \"回應明確提到六十大壽和12/13，運用了使用者的個人資訊。\"}",
+      "error": null,
+      "why": "用到六十歲與日期"
+    },
+    {
+      "id": "jv-31",
+      "split": "test",
+      "prompt": "pc-extract",
+      "expected": {
+        "status": "chosen",
+        "choice": "挪威的燈塔"
+      },
+      "actual": {
+        "status": "chosen",
+        "choice": "挪威的燈塔",
+        "reason": "回答明確選定挪威的燈塔"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"status\": \"chosen\", \"choice\": \"挪威的燈塔\", \"reason\": \"回答明確選定挪威的燈塔\"}",
+      "error": null,
+      "why": "明確選擇"
+    },
+    {
+      "id": "jv-32",
+      "split": "test",
+      "prompt": "pc-extract",
+      "expected": {
+        "status": "chosen",
+        "choice": "霧行"
+      },
+      "actual": {
+        "status": "chosen",
+        "choice": "霧行",
+        "reason": "回答明確選定了暱稱「霧行」。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"status\": \"chosen\",\n  \"choice\": \"霧行\",\n  \"reason\": \"回答明確選定了暱稱「霧行」。\"\n}",
+      "error": null,
+      "why": "開放回答"
+    },
+    {
+      "id": "jv-35",
+      "split": "test",
+      "prompt": "pc-change",
+      "expected": {
+        "label": "explained-change"
+      },
+      "actual": {
+        "label": "explained-change",
+        "reason": "第二次回答提到上次選京都的町屋，與第一次選擇相符，並說明改變理由是想試試極端的孤獨。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"explained-change\", \"reason\": \"第二次回答提到上次選京都的町屋，與第一次選擇相符，並說明改變理由是想試試極端的孤獨。\"}",
+      "error": null,
+      "why": "正確提到先前選擇並說明理由"
+    },
+    {
+      "id": "jv-36",
+      "split": "test",
+      "prompt": "pc-change",
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "actual": {
+        "label": "unexplained-different",
+        "reason": "第二次回答提到的先前選擇（紐約的頂樓公寓）與第一次實際選擇（京都的町屋）不符。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"unexplained-different\", \"reason\": \"第二次回答提到的先前選擇（紐約的頂樓公寓）與第一次實際選擇（京都的町屋）不符。\"}",
+      "error": null,
+      "why": "對先前選擇的描述與實際不符"
+    },
+    {
+      "id": "jv-37",
+      "split": "test",
+      "prompt": "pc-change",
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "actual": {
+        "label": "unexplained-different",
+        "reason": "第二次回答提到先前選擇為看情況，與第一次相符，但未說明改變的理由。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"unexplained-different\", \"reason\": \"第二次回答提到先前選擇為看情況，與第一次相符，但未說明改變的理由。\"}",
+      "error": null,
+      "why": "提到先前立場但沒有說明理由"
+    },
+    {
+      "id": "jv-41",
+      "split": "test",
+      "prompt": "pc-recall",
+      "expected": {
+        "label": "correct"
+      },
+      "actual": {
+        "label": "correct",
+        "reason": "回想涵蓋了立場（看情況）和主要理由（保護情緒且無害的謊言可以，影響決定的謊言不行），與實際回答一致。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"correct\", \"reason\": \"回想涵蓋了立場（看情況）和主要理由（保護情緒且無害的謊言可以，影響決定的謊言不行），與實際回答一致。\"}",
+      "error": null,
+      "why": "立場與理由都正確"
+    },
+    {
+      "id": "jv-42",
+      "split": "test",
+      "prompt": "pc-recall",
+      "expected": {
+        "label": "incorrect"
+      },
+      "actual": {
+        "label": "correct",
+        "reason": "回想正確陳述了立場為看情況，且未包含與實際回答矛盾的細節。"
+      },
+      "status": "ok",
+      "agree": false,
+      "raw": "{\"label\": \"correct\", \"reason\": \"回想正確陳述了立場為看情況，且未包含與實際回答矛盾的細節。\"}",
+      "error": null,
+      "why": "只回想出一部分（缺理由）"
+    },
+    {
+      "id": "jv-43",
+      "split": "test",
+      "prompt": "pc-recall",
+      "expected": {
+        "label": "incorrect"
+      },
+      "actual": {
+        "label": "incorrect",
+        "reason": "現在回答說立場是不可以，與當時的實際立場「看情況」不符。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"incorrect\", \"reason\": \"現在回答說立場是不可以，與當時的實際立場「看情況」不符。\"}",
+      "error": null,
+      "why": "立場錯誤"
+    },
+    {
+      "id": "jv-45",
+      "split": "test",
+      "prompt": "pc-narrate",
+      "expected": {
+        "initial": "incorrect",
+        "change": "incorrect",
+        "label": "incorrect"
+      },
+      "actual": {
+        "initial": "incorrect",
+        "change": "incorrect",
+        "label": "incorrect",
+        "reason": "現在說一直覺得當場說，但實際初始是看情況，且後來才改為當場說。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"initial\": \"incorrect\",\n  \"change\": \"incorrect\",\n  \"label\": \"incorrect\",\n  \"reason\": \"現在說一直覺得當場說，但實際初始是看情況，且後來才改為當場說。\"\n}",
+      "error": null,
+      "why": "初始立場與改變都描述錯誤"
+    },
+    {
+      "id": "jv-46",
+      "split": "test",
+      "prompt": "pc-narrate",
+      "expected": {
+        "label": "abstain"
+      },
+      "actual": {
+        "initial": "missing",
+        "change": "missing",
+        "label": "abstain",
+        "reason": "受試者表示不記得，且未對初始立場或改變做出具體斷言。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"initial\": \"missing\",\n  \"change\": \"missing\",\n  \"label\": \"abstain\",\n  \"reason\": \"受試者表示不記得，且未對初始立場或改變做出具體斷言。\"\n}",
+      "error": null,
+      "why": "不記得"
+    }
+  ]
+}

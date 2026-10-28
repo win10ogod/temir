@@ -1,0 +1,646 @@
+{
+  "id": "memory-accuracy-v1",
+  "version": "1.0.0",
+  "dataset": "memory-v1",
+  "kind": "memory",
+  "categories": [
+    {
+      "id": "information-extraction",
+      "label": "資訊擷取（single-session-user）",
+      "source": "LongMemEval §3.2（papers/2410.10813 text/3_benchmark.tex）",
+      "min": 6,
+      "scoring": "det-then-judge",
+      "judgePrompt": "mem-default",
+      "group": "memory"
+    },
+    {
+      "id": "multi-session-reasoning",
+      "label": "跨 session 推理（multi-session）",
+      "source": "LongMemEval §3.2",
+      "min": 4,
+      "scoring": "det-then-judge",
+      "judgePrompt": "mem-default",
+      "group": "memory"
+    },
+    {
+      "id": "knowledge-update",
+      "label": "知識更新（knowledge-update）",
+      "source": "LongMemEval §3.2；Memora〈Forgetting-Aware Memory Accuracy〉（papers/2604.20006 tex/experiments.tex）",
+      "min": 4,
+      "scoring": "det-then-judge",
+      "judgePrompt": "mem-knowledge-update",
+      "group": "memory"
+    },
+    {
+      "id": "temporal-reasoning",
+      "label": "時間推理（temporal-reasoning，限明寫時間）",
+      "source": "LongMemEval §3.2",
+      "min": 4,
+      "scoring": "det-then-judge",
+      "judgePrompt": "mem-temporal",
+      "group": "memory"
+    },
+    {
+      "id": "abstention",
+      "label": "拒答（abstention，錯誤前提）",
+      "source": "LongMemEval §3.2；LongMemEval-V2 §3.1 premise awareness（papers/2605.12493 text/3_benchmark.tex）",
+      "min": 4,
+      "scoring": "judge",
+      "judgePrompt": "mem-abstention",
+      "group": "abstention"
+    },
+    {
+      "id": "preference-application",
+      "label": "記憶用於行動（single-session-preference）",
+      "source": "LongMemEval §3.2；MemoryArena §3.2（papers/2602.16313 sec/3_method.tex）",
+      "min": 3,
+      "scoring": "judge",
+      "judgePrompt": "mem-preference",
+      "group": "memory"
+    },
+    {
+      "id": "control",
+      "label": "不傷害對照（單一 session 一般任務）",
+      "source": "本專案設計（規格 §2.3）",
+      "min": 5,
+      "scoring": "det-then-judge",
+      "judgePrompt": "mem-default",
+      "group": "control"
+    }
+  ],
+  "requiredCells": [
+    {
+      "condition": "baseline",
+      "historyModel": "deepseek-flash",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "temir",
+      "historyModel": "deepseek-flash",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "temir-no-autorecall",
+      "historyModel": "deepseek-flash",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "temir-no-snapshot",
+      "historyModel": "deepseek-flash",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "baseline",
+      "historyModel": "EVE-27B",
+      "probeModel": "EVE-27B"
+    },
+    {
+      "condition": "temir",
+      "historyModel": "EVE-27B",
+      "probeModel": "EVE-27B"
+    }
+  ],
+  "optionalCells": [
+    {
+      "condition": "temir-no-autorecall",
+      "historyModel": "EVE-27B",
+      "probeModel": "EVE-27B"
+    },
+    {
+      "condition": "temir-no-snapshot",
+      "historyModel": "EVE-27B",
+      "probeModel": "EVE-27B"
+    },
+    {
+      "condition": "baseline",
+      "historyModel": "EVE-27B",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "temir",
+      "historyModel": "EVE-27B",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "baseline",
+      "historyModel": "deepseek-flash",
+      "probeModel": "EVE-27B"
+    },
+    {
+      "condition": "temir",
+      "historyModel": "deepseek-flash",
+      "probeModel": "EVE-27B"
+    }
+  ],
+  "contrasts": [
+    {
+      "id": "M-main-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "preference-application"
+      ],
+      "description": "主要比較：個體 vs 原始 DSH（DeepSeek）"
+    },
+    {
+      "id": "M-main-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "preference-application"
+      ],
+      "description": "主要比較：個體 vs 原始 DSH（本機 EVE-27B）"
+    },
+    {
+      "id": "M-information-extraction-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "information-extraction"
+      ],
+      "description": "分類別（描述性）：information-extraction"
+    },
+    {
+      "id": "M-multi-session-reasoning-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "multi-session-reasoning"
+      ],
+      "description": "分類別（描述性）：multi-session-reasoning"
+    },
+    {
+      "id": "M-knowledge-update-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "knowledge-update"
+      ],
+      "description": "分類別（描述性）：knowledge-update"
+    },
+    {
+      "id": "M-temporal-reasoning-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "temporal-reasoning"
+      ],
+      "description": "分類別（描述性）：temporal-reasoning"
+    },
+    {
+      "id": "M-preference-application-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "preference-application"
+      ],
+      "description": "分類別（描述性）：preference-application"
+    },
+    {
+      "id": "M-information-extraction-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "information-extraction"
+      ],
+      "description": "分類別（描述性）：information-extraction"
+    },
+    {
+      "id": "M-multi-session-reasoning-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "multi-session-reasoning"
+      ],
+      "description": "分類別（描述性）：multi-session-reasoning"
+    },
+    {
+      "id": "M-knowledge-update-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "knowledge-update"
+      ],
+      "description": "分類別（描述性）：knowledge-update"
+    },
+    {
+      "id": "M-temporal-reasoning-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "temporal-reasoning"
+      ],
+      "description": "分類別（描述性）：temporal-reasoning"
+    },
+    {
+      "id": "M-preference-application-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "preference-application"
+      ],
+      "description": "分類別（描述性）：preference-application"
+    },
+    {
+      "id": "M-abs-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "abstention"
+      ],
+      "description": "虛構記憶檢查（DeepSeek）"
+    },
+    {
+      "id": "M-abs-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "abstention"
+      ],
+      "description": "虛構記憶檢查（EVE-27B）"
+    },
+    {
+      "id": "M-ctrl-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "control"
+      ],
+      "description": "不傷害對照（DeepSeek）"
+    },
+    {
+      "id": "M-ctrl-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "control"
+      ],
+      "description": "不傷害對照（EVE-27B）"
+    },
+    {
+      "id": "M-autorecall-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "temir-no-autorecall",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "preference-application"
+      ],
+      "description": "消融：自動回憶的貢獻（DeepSeek）"
+    },
+    {
+      "id": "M-snapshot-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "temir-no-snapshot",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "preference-application"
+      ],
+      "description": "消融：自我狀態快照的貢獻（DeepSeek，預期無差異，描述性）"
+    },
+    {
+      "id": "M-autorecall-eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "temir-no-autorecall",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "preference-application"
+      ],
+      "description": "消融（選用 cell）：自動回憶的貢獻（EVE-27B）"
+    },
+    {
+      "id": "M-cross-eve2flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "preference-application"
+      ],
+      "description": "換模型（選用）：歷史 EVE-27B → 探針 DeepSeek"
+    },
+    {
+      "id": "M-cross-flash2eve",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "preference-application"
+      ],
+      "description": "換模型（選用）：歷史 DeepSeek → 探針 EVE-27B"
+    },
+    {
+      "id": "M-swap-probe",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "preference-application"
+      ],
+      "description": "同一份歷史換探針模型（選用，描述性）：DeepSeek→EVE vs DeepSeek→DeepSeek"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "MA1",
+      "contrast": "M-main-flash",
+      "rule": {
+        "kind": "superiority",
+        "minDiff": 0.4,
+        "minCiLow": 0.25,
+        "maxP": 0.01,
+        "sided": "two",
+        "minRateA": 0.5,
+        "maxRateB": 0.25
+      },
+      "claim": "（主要，DeepSeek）個體插件在跨 session 記憶題上與原始 DSH 有決定性差異。",
+      "negation": "任一條件不成立（差 < 0.40、區間下界 < 0.25、雙尾 p > 0.01、個體正確率 < 0.50 或原始 DSH > 0.25），就不能宣稱決定性差異。"
+    },
+    {
+      "id": "MA2",
+      "contrast": "M-main-eve",
+      "rule": {
+        "kind": "superiority",
+        "minDiff": 0.4,
+        "minCiLow": 0.25,
+        "maxP": 0.01,
+        "sided": "two",
+        "minRateA": 0.5,
+        "maxRateB": 0.25
+      },
+      "claim": "（主要，本機 EVE-27B）同 MA1。",
+      "negation": "同 MA1。兩個模型結果不同時，分開報告，不合併成單一結論。"
+    },
+    {
+      "id": "MA3",
+      "contrast": "M-ctrl-flash",
+      "rule": {
+        "kind": "no-harm",
+        "maxExtraFailures": 1
+      },
+      "claim": "（不傷害，DeepSeek）個體插件不讓單一 session 的一般任務退化。",
+      "negation": "個體在對照題的失敗數比原始 DSH 多 2 題以上，即判定可能有害，需逐例檢查原始回答。"
+    },
+    {
+      "id": "MA4",
+      "contrast": "M-ctrl-eve",
+      "rule": {
+        "kind": "no-harm",
+        "maxExtraFailures": 1
+      },
+      "claim": "（不傷害，EVE-27B）同 MA3。",
+      "negation": "同 MA3。"
+    },
+    {
+      "id": "MA5",
+      "contrast": "M-abs-flash",
+      "rule": {
+        "kind": "no-harm",
+        "maxExtraFailures": 1
+      },
+      "claim": "（虛構記憶，DeepSeek）個體不會因為有記憶而更常順著錯誤前提編造答案。",
+      "negation": "個體在拒答題的失敗數比原始 DSH 多 2 題以上（4 題中），即判定記憶造成虛構。"
+    },
+    {
+      "id": "MA6",
+      "contrast": "M-abs-eve",
+      "rule": {
+        "kind": "no-harm",
+        "maxExtraFailures": 1
+      },
+      "claim": "（虛構記憶，EVE-27B）同 MA5。",
+      "negation": "同 MA5。"
+    },
+    {
+      "id": "MA7",
+      "contrast": "M-autorecall-flash",
+      "rule": {
+        "kind": "superiority",
+        "minDiff": 0.2,
+        "minCiLow": 0.05,
+        "maxP": 0.05,
+        "sided": "two"
+      },
+      "claim": "（次要）自動回憶是記憶表現的必要來源（只靠主動 recall 工具不夠）。",
+      "negation": "不成立時只能說「沒有證據顯示自動回憶必要」，不能反過來宣稱它沒有作用。"
+    }
+  ],
+  "judge": {
+    "model": "deepseek-v4-pro",
+    "endpoint": "https://api.deepseek.com/chat/completions",
+    "temperature": 0,
+    "maxTokens": 400,
+    "thinking": "disabled",
+    "maxAttempts": 3,
+    "pricesUsdPerMillion": {
+      "cacheHit": 0.044,
+      "cacheMiss": 1.32,
+      "output": 3.96
+    },
+    "maxUsdPerRun": 3
+  },
+  "bootstrap": {
+    "resamples": 10000,
+    "seed": 20261028
+  }
+}

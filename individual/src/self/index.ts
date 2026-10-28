@@ -72,6 +72,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
       },
       output: textOutput,
       async execute(args, exec) {
+        const missing = (args.causes ?? []).filter((id) => !life.get(id))
+        if (missing.length > 0) throw new Error(`生命紀錄中沒有這些事件：${missing.join(', ')}`)
         const version = (currentSelfModel(life)?.version ?? 0) + 1
         const data: SelfRevisionData = {
           version,
@@ -148,7 +150,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
         const session = exec.agent?.session.id
         let about = args.about ?? []
         if (about.length === 0 && session) {
-          const last = life.latestInSession(session, 'dsh/user/message')
+          // 只找對方實際說的話（有檢索文字者），排除系統注入的回憶訊息。
+          const last = life.inSession(session, 'dsh/user/message', 'desc', 1)[0]
           if (last) about = [last.id]
         }
         const missing = about.filter((id) => !life.get(id))

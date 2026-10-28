@@ -102,3 +102,12 @@ test('a failed append leaves no partial event, index or link behind', () => {
     assert.equal(store.search('不應被寫入').length, 0)
   })
 })
+
+test('inSession skips injected recall messages, which carry no searchable text', () => {
+  withStore((store) => {
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 's', data: {}, text: '對方說：今天好累' })
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 's', data: { injected: true } })
+    const last = store.inSession('s', 'dsh/user/message', 'desc', 1)[0]
+    assert.equal(last?.text, '對方說：今天好累')
+  })
+})

@@ -112,6 +112,8 @@ async function main(): Promise<void> {
       probes: { type: 'string' },
       'run-id': { type: 'string' },
       'turn-timeout-ms': { type: 'string', default: '900000' },
+      // 多個 run 平行執行時，帳戶餘額差無法歸屬到單一 run；改由批次腳本量總花費。
+      'no-balance': { type: 'boolean', default: false },
     },
   })
   if (!values.dataset || !values.condition) throw new Error('需要 --dataset 與 --condition')
@@ -155,7 +157,7 @@ async function main(): Promise<void> {
     startedAt: new Date().toISOString(),
   }
   writeFileSync(join(outDir, 'config.json'), `${JSON.stringify(config, null, 2)}\n`)
-  const usesDeepseek = historyModel === 'deepseek' || probeModel === 'deepseek'
+  const usesDeepseek = !values['no-balance'] && (historyModel === 'deepseek' || probeModel === 'deepseek')
   const balanceBefore = usesDeepseek ? await deepseekBalance() : null
 
   const recordsPath = join(outDir, 'records.jsonl')

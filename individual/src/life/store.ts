@@ -315,14 +315,6 @@ export class LifeStore {
     return row ? toEvent(row) : undefined
   }
 
-  /** 某 session 中最新一筆指定 kind 的事件。 */
-  latestInSession(session: string, kind: string): LifeEvent | undefined {
-    const row = this.#db
-      .prepare(`SELECT * FROM events WHERE session = ? AND kind = ? ORDER BY seq DESC LIMIT 1`)
-      .get(session, kind) as Row | undefined
-    return row ? toEvent(row) : undefined
-  }
-
   /**
    * 某 session 中指定 kind 的事件（只取有檢索文字者，排除注入的內容）。
    * order：'asc' 由舊到新、'desc' 由新到舊。

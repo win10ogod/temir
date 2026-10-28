@@ -1,0 +1,11 @@
+# 參考 repo 與論文原始檔只放本機，不納入版本控制（LOCK.md 與 INDEX.md 例外）
+/references/*
+!/references/LOCK.md
+/papers/*/raw/
+*.mp4
+# 建置產物（實際位置由 scripts/env.sh 指到 ext4）
+/target/
+node_modules/
+# 機密
+*.env
+.env*

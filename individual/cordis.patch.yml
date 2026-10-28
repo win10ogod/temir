@@ -1,0 +1,15 @@
+# 個體的插件層。可作為 bundle 的 patch，也可用 `dsh --patch` 疊加；相對路徑以本檔所在目錄解析。
+#
+# 1. 取消 DSH 預設 profile 指定的角色（headless 是「You are a coding agent ...」）。
+#    個體沒有預設角色；處境描述由 temir-self 以事實陳述提供（見 src/self/situation.ts）。
+- id: system-prompt
+  config:
+    personaPrefix: ''
+# 2. 個體本身。
+- insert:
+    - id: temir-life
+      name: ./src/life/index.ts
+    - id: temir-self
+      name: ./src/self/index.ts
+    - id: temir-recall
+      name: ./src/recall/index.ts

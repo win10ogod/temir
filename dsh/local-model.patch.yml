@@ -1,0 +1,16 @@
+# 本機 OpenAI 相容端點（sglang EVE-27B）。用途：確保個體不綁定特定模型。
+# llm-pi-ai 的自訂 route 需要 api、baseURL 與非空 models（docs/user/guide/providers.md）。
+- id: llm-pi-ai
+  config:
+    providers:
+      local-eve:
+        api: openai-completions
+        baseURL: http://localhost:8000/v1
+        apiKeyEnv: LOCAL_LLM_API_KEY
+        models:
+          - id: EVE-27B
+            contextWindow: 262144
+- id: agent-default-model
+  config:
+    provider: local-eve
+    model: EVE-27B

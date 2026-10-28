@@ -1,0 +1,25 @@
+{
+  "name": "temir-individual",
+  "version": "0.1.0",
+  "private": true,
+  "description": "特密爾：在 DeepSeek Harness 上持續存在的人工個體（生命日誌、自我模型、回憶）",
+  "type": "module",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=24.9.0",
+    "dsh": ">=0.2.2-alpha.2 <0.3.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "4.0.6-alpha.1",
+    "@deepseek-ai/dsh-agent": "0.2.2-alpha.2",
+    "@deepseek-ai/dsh-llm": "0.2.2-alpha.2",
+    "@deepseek-ai/dsh-session": "0.2.2-alpha.2",
+    "@deepseek-ai/dsh-system-prompt": "0.2.2-alpha.2",
+    "@deepseek-ai/dsh-tools": "0.2.2-alpha.2"
+  }
+}

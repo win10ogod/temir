@@ -1,0 +1,9 @@
+{
+  "name": "temir",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test \"individual/test/**/*.test.ts\""
+  }
+}

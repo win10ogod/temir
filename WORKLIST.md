@@ -17,8 +17,12 @@
 
 ## 實驗 v1（預先登記：experiments/specs/）
 - [x] 記憶準確率與人格一致性：規格、資料集、評估器（65 測試）、執行器；DeepSeek 必要 cell 全部完成（報告 experiments/results/v1-report.md）
-- [ ] 本機模型恢復後補跑：人格 × 個體 × EVE-27B（必要）、消融 × EVE-27B、雙向換模型（選用）
-- [ ] v2（若要更大樣本或不同目錄配置）：重新預先登記
+- [ ] 本機模型恢復後補跑 v1：人格 × 個體 × EVE-27B（必要）、消融 × EVE-27B、雙向換模型（選用）
+- [x] v2 預先登記（9512de4）：記憶 47 題主要比較（隱性運用 15 題）、人格 32 題；目錄配置 home；每輪全部可見文字
+- [x] v2 DeepSeek 必要 cell 8 個（錯誤 0）＋計分：PA1 PASS、MA1／MB1 FAIL、MB3 PASS（報告 experiments/results/v2-report.md）
+- [x] v2 Nemotron 第一天：記憶 × 個體、人格 × 原始 DSH（錯誤 0）
+- [ ] v2 Nemotron 第二天（OpenRouter 每日額度重置後）：人格 × 個體、記憶 × 原始 DSH；之後全部重新計分
+- [ ] 發布：改寫歷史（移除舊餘額、本機模型檔名、references/、papers/）→ 公開 repo（Apache-2.0）
 
 ## M1 記憶與 PC 紀錄
 - [ ] 價值／看法紀錄（連到證據事件）

@@ -3,7 +3,7 @@
 預先登記：[`memory-accuracy-v2.md`](../specs/memory-accuracy-v2.md)、[`personality-consistency-v2.md`](../specs/personality-consistency-v2.md)（commit 9512de4，任何 v2 受試執行之前）。
 受試系統：個體插件程式碼與 v1 相同（74a036e 起未變）；執行器 `--layout home --assistant-text all`。評估器輸出：[`memory-v2/`](memory-v2)、[`personality-v2/`](personality-v2)。
 
-**狀態**：DeepSeek 的 8 個必要 cell 已完成並計分。Nemotron（`nvidia/nemotron-3.5-super-vl:free`）的 4 個必要 cell 依規格 §8.3 分兩天執行（每日 1000 次請求上限）；第一天的兩個 cell 進行中，第二天的兩個 cell 尚未執行。涉及 Nemotron 的驗收線（MA2-NEMO、MB2-NEMO、PA2-NEMO 等）目前為 INCOMPLETE。
+**狀態**：DeepSeek 的 8 個必要 cell 已完成並計分。Nemotron（`nvidia/nemotron-3.5-super-vl:free`）的 4 個必要 cell 依規格 §8.3 分兩天執行（每日 1000 次請求上限）：第一天的記憶 × 個體、人格 × 原始 DSH 已完成（回合錯誤 0、輔助呼叫 146 次失敗 0）；第二天的人格 × 個體、記憶 × 原始 DSH 待 OpenRouter 每日額度重置後執行。涉及 Nemotron 的驗收線（MA2-NEMO、MB2-NEMO、PA2-NEMO 等）目前為 INCOMPLETE。
 
 ## 1. 預先登記驗收線的判定（DeepSeek）
 
@@ -65,7 +65,7 @@ v1（DSH home 與工作目錄相鄰）時原始 DSH 只在被明問時才去翻�
 
 - 個體的輔助呼叫：6 個個體類 cell（個體與兩個消融）共 823 次，失敗 0 次（`run-summary.json` 的 `auxiliaryCalls`）。
 - 確定性比對與 judge 的交叉檢查：記憶 95 筆確定性命中中 94 筆 judge 一致（不一致的 1 筆是原始 DSH 的 q25：回答「下學期才轉到海星幼兒園」，確定性比對命中、judge 判否）。
-- 花費：DeepSeek 受試 8 個 cell US$3.85（整批餘額差）；judge 約 US$0.36（usage 估計）；Nemotron 免費版 US$0。
+- 花費：DeepSeek 受試 8 個 cell US$3.85（整批餘額差）；judge 約 US$0.36（usage 估計）；Nemotron 免費版 US$0（OpenRouter 帳戶用量 0）。`runs/batch-v2-nemotron-day1.json` 記錄的 `deepseekSpentUsd` 4.07 是同一時段 DeepSeek 批次與 judge 計分造成的餘額變化，不屬於 Nemotron 的 cell。
 
 ## 4. 偏離預先登記的地方
 

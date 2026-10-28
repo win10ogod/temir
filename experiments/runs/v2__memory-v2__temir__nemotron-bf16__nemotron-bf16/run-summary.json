@@ -1,0 +1,22 @@
+{
+  "runId": "v2__memory-v2__temir__nemotron-bf16__nemotron-bf16",
+  "endedAt": "2026-10-28T11:56:15.195Z",
+  "histories": 17,
+  "historyFrom": null,
+  "probes": 63,
+  "probeSessions": 63,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 68,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 80,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

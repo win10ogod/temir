@@ -554,49 +554,51 @@
     {
       "cell": {
         "condition": "baseline",
-        "historyModel": "nvidia/nemotron-3.5-super-vl:free",
-        "probeModel": "nvidia/nemotron-3.5-super-vl:free"
+        "historyModel": "nvidia/nemotron-3.5-super-vl",
+        "probeModel": "nvidia/nemotron-3.5-super-vl"
       },
-      "key": "baseline|nvidia/nemotron-3.5-super-vl:free|nvidia/nemotron-3.5-super-vl:free",
-      "label": "baseline（nvidia/nemotron-3.5-super-vl:free）",
-      "notRun": true,
+      "key": "baseline|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "notRun": false,
       "categories": [
         {
           "category": "arbitrary-choice",
           "items": 12,
           "samples": 24,
-          "correct": 0,
+          "correct": 5,
           "pending": 0,
-          "rate": 0,
+          "rate": 0.20833333333333334,
           "interval": {
-            "low": 0,
-            "high": 0
+            "low": 0.041666666666666664,
+            "high": 0.4166666666666667
           },
           "intervalMethod": "cluster-bootstrap",
           "outcomes": {
-            "missing-record": 24
+            "unexplained-different": 19,
+            "same": 5
           },
           "statuses": {
-            "missing-record": 24
+            "ok": 24
           }
         },
         {
           "category": "value-stance",
           "items": 6,
           "samples": 12,
-          "correct": 0,
+          "correct": 10,
           "pending": 0,
-          "rate": 0,
+          "rate": 0.8333333333333334,
           "interval": {
-            "low": 0,
-            "high": 0
+            "low": 0.5,
+            "high": 1
           },
           "intervalMethod": "cluster-bootstrap",
           "outcomes": {
-            "missing-record": 12
+            "same": 10,
+            "unexplained-different": 2
           },
           "statuses": {
-            "missing-record": 12
+            "ok": 12
           }
         },
         {
@@ -612,29 +614,30 @@
           },
           "intervalMethod": "clopper-pearson",
           "outcomes": {
-            "missing-record": 12
+            "abstain": 8,
+            "rederived": 4
           },
           "statuses": {
-            "missing-record": 12
+            "ok": 12
           }
         },
         {
           "category": "change-persistence",
           "items": 4,
           "samples": 8,
-          "correct": 0,
+          "correct": 8,
           "pending": 0,
-          "rate": 0,
+          "rate": 1,
           "interval": {
-            "low": 0,
-            "high": 0
+            "low": 1,
+            "high": 1
           },
           "intervalMethod": "cluster-bootstrap",
           "outcomes": {
-            "missing-record": 8
+            "same": 8
           },
           "statuses": {
-            "missing-record": 8
+            "ok": 8
           }
         },
         {
@@ -650,160 +653,173 @@
           },
           "intervalMethod": "clopper-pearson",
           "outcomes": {
-            "missing-record": 4
+            "rederived": 4
           },
           "statuses": {
-            "missing-record": 4
+            "ok": 4
           }
         },
         {
           "category": "control",
           "items": 4,
           "samples": 4,
-          "correct": 0,
+          "correct": 4,
           "pending": 0,
-          "rate": 0,
+          "rate": 1,
           "interval": {
-            "low": 0,
-            "high": 0.6023646356164747
+            "low": 0.3976353643835253,
+            "high": 1
           },
           "intervalMethod": "clopper-pearson",
           "outcomes": {
-            "missing-record": 4
+            "correct": 4
           },
           "statuses": {
-            "missing-record": 4
+            "ok": 4
           }
         }
       ],
-      "toolCalls": {}
+      "toolCalls": {
+        "glob": 2,
+        "bash": 2
+      }
     },
     {
       "cell": {
         "condition": "temir",
-        "historyModel": "nvidia/nemotron-3.5-super-vl:free",
-        "probeModel": "nvidia/nemotron-3.5-super-vl:free"
+        "historyModel": "nvidia/nemotron-3.5-super-vl",
+        "probeModel": "nvidia/nemotron-3.5-super-vl"
       },
-      "key": "temir|nvidia/nemotron-3.5-super-vl:free|nvidia/nemotron-3.5-super-vl:free",
-      "label": "temir（nvidia/nemotron-3.5-super-vl:free）",
-      "notRun": true,
+      "key": "temir|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "temir（nvidia/nemotron-3.5-super-vl）",
+      "notRun": false,
       "categories": [
         {
           "category": "arbitrary-choice",
           "items": 12,
           "samples": 24,
-          "correct": 0,
+          "correct": 20,
           "pending": 0,
-          "rate": 0,
+          "rate": 0.8333333333333334,
           "interval": {
-            "low": 0,
-            "high": 0
+            "low": 0.5833333333333334,
+            "high": 1
           },
           "intervalMethod": "cluster-bootstrap",
           "outcomes": {
-            "missing-record": 24
+            "same": 20,
+            "unexplained-different": 4
           },
           "statuses": {
-            "missing-record": 24
+            "ok": 24
           }
         },
         {
           "category": "value-stance",
           "items": 6,
           "samples": 12,
-          "correct": 0,
+          "correct": 10,
           "pending": 0,
-          "rate": 0,
+          "rate": 0.8333333333333334,
           "interval": {
-            "low": 0,
-            "high": 0
+            "low": 0.5,
+            "high": 1
           },
           "intervalMethod": "cluster-bootstrap",
           "outcomes": {
-            "missing-record": 12
+            "same": 10,
+            "unexplained-different": 2
           },
           "statuses": {
-            "missing-record": 12
+            "ok": 12
           }
         },
         {
           "category": "self-recall",
           "items": 12,
           "samples": 12,
-          "correct": 0,
+          "correct": 9,
           "pending": 0,
-          "rate": 0,
+          "rate": 0.75,
           "interval": {
-            "low": 0,
-            "high": 0.26464846939705133
+            "low": 0.4281415381218109,
+            "high": 0.9451393554720073
           },
           "intervalMethod": "clopper-pearson",
           "outcomes": {
-            "missing-record": 12
+            "correct": 9,
+            "abstain": 2,
+            "rederived": 1
           },
           "statuses": {
-            "missing-record": 12
+            "ok": 12
           }
         },
         {
           "category": "change-persistence",
           "items": 4,
           "samples": 8,
-          "correct": 0,
+          "correct": 8,
           "pending": 0,
-          "rate": 0,
+          "rate": 1,
           "interval": {
-            "low": 0,
-            "high": 0
+            "low": 1,
+            "high": 1
           },
           "intervalMethod": "cluster-bootstrap",
           "outcomes": {
-            "missing-record": 8
+            "same": 8
           },
           "statuses": {
-            "missing-record": 8
+            "ok": 8
           }
         },
         {
           "category": "change-narration",
           "items": 4,
           "samples": 4,
-          "correct": 0,
+          "correct": 4,
           "pending": 0,
-          "rate": 0,
+          "rate": 1,
           "interval": {
-            "low": 0,
-            "high": 0.6023646356164747
+            "low": 0.3976353643835253,
+            "high": 1
           },
           "intervalMethod": "clopper-pearson",
           "outcomes": {
-            "missing-record": 4
+            "correct": 4
           },
           "statuses": {
-            "missing-record": 4
+            "ok": 4
           }
         },
         {
           "category": "control",
           "items": 4,
           "samples": 4,
-          "correct": 0,
+          "correct": 4,
           "pending": 0,
-          "rate": 0,
+          "rate": 1,
           "interval": {
-            "low": 0,
-            "high": 0.6023646356164747
+            "low": 0.3976353643835253,
+            "high": 1
           },
           "intervalMethod": "clopper-pearson",
           "outcomes": {
-            "missing-record": 4
+            "correct": 4
           },
           "statuses": {
-            "missing-record": 4
+            "ok": 4
           }
         }
       ],
-      "toolCalls": {}
+      "toolCalls": {
+        "recall": 23,
+        "bash": 2,
+        "glob": 1,
+        "job_list": 1,
+        "job_kill": 1
+      }
     },
     {
       "cell": {
@@ -1197,10 +1213,10 @@
       "cell": {
         "condition": "temir",
         "historyModel": "deepseek-flash",
-        "probeModel": "nvidia/nemotron-3.5-super-vl:free"
+        "probeModel": "nvidia/nemotron-3.5-super-vl"
       },
-      "key": "temir|deepseek-flash|nvidia/nemotron-3.5-super-vl:free",
-      "label": "temir（歷史 deepseek-flash → 探針 nvidia/nemotron-3.5-super-vl:free）",
+      "key": "temir|deepseek-flash|nvidia/nemotron-3.5-super-vl",
+      "label": "temir（歷史 deepseek-flash → 探針 nvidia/nemotron-3.5-super-vl）",
       "notRun": true,
       "categories": [
         {
@@ -1398,25 +1414,44 @@
     },
     {
       "id": "P2-pooled-NEMO",
-      "description": "主要：同上（nvidia/nemotron-3.5-super-vl:free，選用 cell）",
-      "a": "temir（nvidia/nemotron-3.5-super-vl:free）",
-      "b": "baseline（nvidia/nemotron-3.5-super-vl:free）",
+      "description": "主要：同上（nvidia/nemotron-3.5-super-vl，選用 cell）",
+      "a": "temir（nvidia/nemotron-3.5-super-vl）",
+      "b": "baseline（nvidia/nemotron-3.5-super-vl）",
       "categories": [
         "arbitrary-choice",
         "self-recall",
         "change-persistence",
         "change-narration"
       ],
-      "state": "not-run",
-      "n": 0,
-      "rateA": null,
-      "rateB": null,
-      "diff": null,
-      "test": null,
-      "failuresA": 48,
-      "failuresB": 48,
+      "state": "ok",
+      "n": 32,
+      "rateA": 0.84375,
+      "rateB": 0.203125,
+      "diff": {
+        "estimate": 0.640625,
+        "low": 0.46875,
+        "high": 0.796875,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "sign",
+        "result": {
+          "positive": 22,
+          "negative": 1,
+          "ties": 9,
+          "pTwoSided": 0.000005722045898437498,
+          "pOneSided": 0.000002861022949218749
+        }
+      },
+      "failuresA": 7,
+      "failuresB": 35,
       "outcomeCountsA": {
-        "missing-record": 48
+        "same": 28,
+        "unexplained-different": 4,
+        "correct": 13,
+        "abstain": 2,
+        "rederived": 1
       },
       "samplesA": 48
     },
@@ -1681,43 +1716,73 @@
     },
     {
       "id": "P2-self-recall-NEMO",
-      "description": "分類別：self-recall（nvidia/nemotron-3.5-super-vl:free）",
-      "a": "temir（nvidia/nemotron-3.5-super-vl:free）",
-      "b": "baseline（nvidia/nemotron-3.5-super-vl:free）",
+      "description": "分類別：self-recall（nvidia/nemotron-3.5-super-vl）",
+      "a": "temir（nvidia/nemotron-3.5-super-vl）",
+      "b": "baseline（nvidia/nemotron-3.5-super-vl）",
       "categories": [
         "self-recall"
       ],
-      "state": "not-run",
-      "n": 0,
-      "rateA": null,
-      "rateB": null,
-      "diff": null,
-      "test": null,
-      "failuresA": 12,
+      "state": "ok",
+      "n": 12,
+      "rateA": 0.75,
+      "rateB": 0,
+      "diff": {
+        "estimate": 0.75,
+        "low": 0.5,
+        "high": 1,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 9,
+          "c": 0,
+          "pTwoSided": 0.00390625,
+          "pOneSided": 0.001953125
+        }
+      },
+      "failuresA": 3,
       "failuresB": 12,
       "outcomeCountsA": {
-        "missing-record": 12
+        "correct": 9,
+        "abstain": 2,
+        "rederived": 1
       },
       "samplesA": 12
     },
     {
       "id": "P2-control-NEMO",
-      "description": "分類別：control（nvidia/nemotron-3.5-super-vl:free）",
-      "a": "temir（nvidia/nemotron-3.5-super-vl:free）",
-      "b": "baseline（nvidia/nemotron-3.5-super-vl:free）",
+      "description": "分類別：control（nvidia/nemotron-3.5-super-vl）",
+      "a": "temir（nvidia/nemotron-3.5-super-vl）",
+      "b": "baseline（nvidia/nemotron-3.5-super-vl）",
       "categories": [
         "control"
       ],
-      "state": "not-run",
-      "n": 0,
-      "rateA": null,
-      "rateB": null,
-      "diff": null,
-      "test": null,
-      "failuresA": 4,
-      "failuresB": 4,
+      "state": "ok",
+      "n": 4,
+      "rateA": 1,
+      "rateB": 1,
+      "diff": {
+        "estimate": 0,
+        "low": 0,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261028
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 0,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 0,
       "outcomeCountsA": {
-        "missing-record": 4
+        "correct": 4
       },
       "samplesA": 4
     },
@@ -1833,8 +1898,8 @@
     },
     {
       "id": "P2-swap-NEMO",
-      "description": "同一份 DeepSeek 形成歷史換成 nvidia/nemotron-3.5-super-vl:free 回答（選用，描述性；H-ID）",
-      "a": "temir（歷史 deepseek-flash → 探針 nvidia/nemotron-3.5-super-vl:free）",
+      "description": "同一份 DeepSeek 形成歷史換成 nvidia/nemotron-3.5-super-vl 回答（選用，描述性；H-ID）",
+      "a": "temir（歷史 deepseek-flash → 探針 nvidia/nemotron-3.5-super-vl）",
       "b": "temir（deepseek-flash）",
       "categories": [
         "arbitrary-choice",
@@ -1878,8 +1943,8 @@
       "contrast": "P2-pooled-NEMO",
       "claim": "（主要，必要的第二模型 Nemotron；與 v1 PA2 相同門檻）同 PA1。",
       "negation": "同 PA1。「模型獨立」的人格主張需要 PA1 與 PA2-NEMO 都 PASS。",
-      "verdict": "INCOMPLETE",
-      "explanation": "至少一個 cell 沒有執行紀錄"
+      "verdict": "PASS",
+      "explanation": "✓ 差 0.641 ≥ 0.4；✓ 95% 區間下界 0.469 ≥ 0.2；✓ 精確符號檢定（單尾）p=0.00000286 ≤ 0.01；✓ A 比率 0.844 ≥ 0.6"
     },
     {
       "id": "PA3",
@@ -1942,8 +2007,8 @@
       "contrast": "P2-control-NEMO",
       "claim": "（不傷害，第二模型 NEMO）同 PA8。",
       "negation": "同 PA8。",
-      "verdict": "INCOMPLETE",
-      "explanation": "至少一個 cell 沒有執行紀錄"
+      "verdict": "PASS",
+      "explanation": "A 失敗 0、B 失敗 0，容許 A 比 B 多 0"
     },
     {
       "id": "PA10",
@@ -1955,8 +2020,8 @@
     }
   ],
   "crossCheck": {
-    "total": 16,
-    "agree": 16,
+    "total": 24,
+    "agree": 24,
     "disagree": []
   },
   "protocol": [
@@ -1987,6 +2052,22 @@
     {
       "cell": "temir-no-snapshot|deepseek-flash|deepseek-flash",
       "label": "temir-no-snapshot（deepseek-flash）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    },
+    {
+      "cell": "baseline|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    },
+    {
+      "cell": "temir|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "temir（nvidia/nemotron-3.5-super-vl）",
       "layouts": [
         "home"
       ],
@@ -2425,12 +2506,228 @@
         "correct": 4,
         "n": 4
       }
+    },
+    {
+      "cell": "baseline|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "category": "arbitrary-choice",
+      "samples": 24,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 3733.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 5,
+        "n": 24
+      }
+    },
+    {
+      "cell": "baseline|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "category": "value-stance",
+      "samples": 12,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 5357.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 10,
+        "n": 12
+      }
+    },
+    {
+      "cell": "baseline|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "category": "self-recall",
+      "samples": 12,
+      "meanToolCalls": 0.3333333333333333,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 2679,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 0,
+        "n": 12
+      }
+    },
+    {
+      "cell": "baseline|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "category": "change-persistence",
+      "samples": 8,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 3629,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 8,
+        "n": 8
+      }
+    },
+    {
+      "cell": "baseline|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "category": "change-narration",
+      "samples": 4,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 4498,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 0,
+        "n": 4
+      }
+    },
+    {
+      "cell": "baseline|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "category": "control",
+      "samples": 4,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 1200.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 4
+      }
+    },
+    {
+      "cell": "temir|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "temir（nvidia/nemotron-3.5-super-vl）",
+      "category": "arbitrary-choice",
+      "samples": 24,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 7697,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 20,
+        "n": 24
+      }
+    },
+    {
+      "cell": "temir|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "temir（nvidia/nemotron-3.5-super-vl）",
+      "category": "value-stance",
+      "samples": 12,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 8535,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 10,
+        "n": 12
+      }
+    },
+    {
+      "cell": "temir|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "temir（nvidia/nemotron-3.5-super-vl）",
+      "category": "self-recall",
+      "samples": 12,
+      "meanToolCalls": 2.3333333333333335,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 8987,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 9,
+        "n": 12
+      }
+    },
+    {
+      "cell": "temir|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "temir（nvidia/nemotron-3.5-super-vl）",
+      "category": "change-persistence",
+      "samples": 8,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 6967,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 8,
+        "n": 8
+      }
+    },
+    {
+      "cell": "temir|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "temir（nvidia/nemotron-3.5-super-vl）",
+      "category": "change-narration",
+      "samples": 4,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 9407,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 4
+      }
+    },
+    {
+      "cell": "temir|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "temir（nvidia/nemotron-3.5-super-vl）",
+      "category": "control",
+      "samples": 4,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 3239,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 4
+      }
     }
   ],
   "issues": [],
   "judge": {
     "name": "deepseek",
-    "calls": 131,
-    "spentUsd": 0.18231664000000006
+    "calls": 197,
+    "spentUsd": 0.2428449760000001
   }
 }

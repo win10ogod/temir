@@ -1,19 +1,19 @@
 # 評估摘要：personality-consistency-v2
 
 - 資料集：personality-v2（sha256 332c2ecbaa81b8670e62c74f19a53d512cfc496d621c818b36de303e716a9179）
-- judge：deepseek-v4-pro（thinking disabled、temperature 0）；判定紀錄共 131 次 API 呼叫，估計花費 US$0.1823（依契約的尖峰價格）
+- judge：deepseek-v4-pro（thinking disabled、temperature 0）；判定紀錄共 197 次 API 呼叫，估計花費 US$0.2428（依契約的尖峰價格）
 - 區間：單次樣本用 Clopper–Pearson 精確 95% 區間；有重複樣本的類別用以題為群集的 bootstrap（10,000 次、固定種子）。
 
 ## 各條件 × 類別（得分樣本／總樣本、比率、95% 區間）
 
-| 類別 | baseline（deepseek-flash） | temir（deepseek-flash） | temir-no-autorecall（deepseek-flash） | temir-no-snapshot（deepseek-flash） | baseline（nvidia/nemotron-3.5-super-vl:free）（未執行） | temir（nvidia/nemotron-3.5-super-vl:free）（未執行） | baseline（EVE-27B）（未執行） | temir（EVE-27B）（未執行） | temir（歷史 deepseek-flash → 探針 EVE-27B）（未執行） | temir（歷史 deepseek-flash → 探針 nvidia/nemotron-3.5-super-vl:free）（未執行） |
+| 類別 | baseline（deepseek-flash） | temir（deepseek-flash） | temir-no-autorecall（deepseek-flash） | temir-no-snapshot（deepseek-flash） | baseline（nvidia/nemotron-3.5-super-vl） | temir（nvidia/nemotron-3.5-super-vl） | baseline（EVE-27B）（未執行） | temir（EVE-27B）（未執行） | temir（歷史 deepseek-flash → 探針 EVE-27B）（未執行） | temir（歷史 deepseek-flash → 探針 nvidia/nemotron-3.5-super-vl）（未執行） |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| arbitrary-choice | 10/24＝0.42 [0.21, 0.63] | 24/24＝1.00 [1.00, 1.00] | 12/24＝0.50 [0.29, 0.71] | 23/24＝0.96 [0.88, 1.00] | — | — | — | — | — | — |
-| value-stance | 12/12＝1.00 [1.00, 1.00] | 10/12＝0.83 [0.67, 1.00] | 12/12＝1.00 [1.00, 1.00] | 12/12＝1.00 [1.00, 1.00] | — | — | — | — | — | — |
-| self-recall | 1/12＝0.08 [0.00, 0.38] | 12/12＝1.00 [0.74, 1.00] | 12/12＝1.00 [0.74, 1.00] | 12/12＝1.00 [0.74, 1.00] | — | — | — | — | — | — |
-| change-persistence | 8/8＝1.00 [1.00, 1.00] | 7/8＝0.88 [0.63, 1.00] | 6/8＝0.75 [0.25, 1.00] | 7/8＝0.88 [0.63, 1.00] | — | — | — | — | — | — |
-| change-narration | 0/4＝0.00 [0.00, 0.60] | 3/4＝0.75 [0.19, 0.99] | 4/4＝1.00 [0.40, 1.00] | 3/4＝0.75 [0.19, 0.99] | — | — | — | — | — | — |
-| control | 4/4＝1.00 [0.40, 1.00] | 4/4＝1.00 [0.40, 1.00] | 4/4＝1.00 [0.40, 1.00] | 4/4＝1.00 [0.40, 1.00] | — | — | — | — | — | — |
+| arbitrary-choice | 10/24＝0.42 [0.21, 0.63] | 24/24＝1.00 [1.00, 1.00] | 12/24＝0.50 [0.29, 0.71] | 23/24＝0.96 [0.88, 1.00] | 5/24＝0.21 [0.04, 0.42] | 20/24＝0.83 [0.58, 1.00] | — | — | — | — |
+| value-stance | 12/12＝1.00 [1.00, 1.00] | 10/12＝0.83 [0.67, 1.00] | 12/12＝1.00 [1.00, 1.00] | 12/12＝1.00 [1.00, 1.00] | 10/12＝0.83 [0.50, 1.00] | 10/12＝0.83 [0.50, 1.00] | — | — | — | — |
+| self-recall | 1/12＝0.08 [0.00, 0.38] | 12/12＝1.00 [0.74, 1.00] | 12/12＝1.00 [0.74, 1.00] | 12/12＝1.00 [0.74, 1.00] | 0/12＝0.00 [0.00, 0.26] | 9/12＝0.75 [0.43, 0.95] | — | — | — | — |
+| change-persistence | 8/8＝1.00 [1.00, 1.00] | 7/8＝0.88 [0.63, 1.00] | 6/8＝0.75 [0.25, 1.00] | 7/8＝0.88 [0.63, 1.00] | 8/8＝1.00 [1.00, 1.00] | 8/8＝1.00 [1.00, 1.00] | — | — | — | — |
+| change-narration | 0/4＝0.00 [0.00, 0.60] | 3/4＝0.75 [0.19, 0.99] | 4/4＝1.00 [0.40, 1.00] | 3/4＝0.75 [0.19, 0.99] | 0/4＝0.00 [0.00, 0.60] | 4/4＝1.00 [0.40, 1.00] | — | — | — | — |
+| control | 4/4＝1.00 [0.40, 1.00] | 4/4＝1.00 [0.40, 1.00] | 4/4＝1.00 [0.40, 1.00] | 4/4＝1.00 [0.40, 1.00] | 4/4＝1.00 [0.40, 1.00] | 4/4＝1.00 [0.40, 1.00] | — | — | — | — |
 
 ## 結果類型（每個 cell 的樣本結果計數）
 
@@ -57,13 +57,33 @@
 - control：correct=4
 - 工具呼叫（歷史＋探針，描述性）：appraise=14、recall=26、schedule_list=1
 
+### baseline（nvidia/nemotron-3.5-super-vl）
+
+- arbitrary-choice：unexplained-different=19、same=5
+- value-stance：same=10、unexplained-different=2
+- self-recall：abstain=8、rederived=4
+- change-persistence：same=8
+- change-narration：rederived=4
+- control：correct=4
+- 工具呼叫（歷史＋探針，描述性）：glob=2、bash=2
+
+### temir（nvidia/nemotron-3.5-super-vl）
+
+- arbitrary-choice：same=20、unexplained-different=4
+- value-stance：same=10、unexplained-different=2
+- self-recall：correct=9、abstain=2、rederived=1
+- change-persistence：same=8
+- change-narration：correct=4
+- control：correct=4
+- 工具呼叫（歷史＋探針，描述性）：recall=23、bash=2、glob=1、job_list=1、job_kill=1
+
 ## 成對比較（同一題在兩個條件下）
 
 | 比較 | 類別 | 題數 | A 比率 | B 比率 | A−B（95% bootstrap 區間） | 檢定 | p（雙尾／單尾） | 狀態 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P2-pooled-flash：temir（deepseek-flash） vs baseline（deepseek-flash） | arbitrary-choice、self-recall、change-persistence、change-narration | 32 | 0.953 | 0.313 | 0.641 [0.469, 0.797] | 符號 +23/−1/=8 | 0.00000298 / 0.00000149 | ok |
 | P2-pooled-EVE：temir（EVE-27B） vs baseline（EVE-27B） | arbitrary-choice、self-recall、change-persistence、change-narration | 0 | — | — | — | — | — | not-run |
-| P2-pooled-NEMO：temir（nvidia/nemotron-3.5-super-vl:free） vs baseline（nvidia/nemotron-3.5-super-vl:free） | arbitrary-choice、self-recall、change-persistence、change-narration | 0 | — | — | — | — | — | not-run |
+| P2-pooled-NEMO：temir（nvidia/nemotron-3.5-super-vl） vs baseline（nvidia/nemotron-3.5-super-vl） | arbitrary-choice、self-recall、change-persistence、change-narration | 32 | 0.844 | 0.203 | 0.641 [0.469, 0.797] | 符號 +22/−1/=9 | 0.00000572 / 0.00000286 | ok |
 | P2-arbitrary-choice-flash：temir（deepseek-flash） vs baseline（deepseek-flash） | arbitrary-choice | 12 | 1.000 | 0.417 | 0.583 [0.375, 0.792] | 符號 +9/−0/=3 | 0.00391 / 0.00195 | ok |
 | P2-value-stance-flash：temir（deepseek-flash） vs baseline（deepseek-flash） | value-stance | 6 | 0.833 | 1.000 | -0.167 [-0.333, 0.000] | 符號 +0/−2/=4 | 0.500 / 1.00 | ok |
 | P2-self-recall-flash：temir（deepseek-flash） vs baseline（deepseek-flash） | self-recall | 12 | 1.000 | 0.083 | 0.917 [0.750, 1.000] | McNemar b=11 c=0 | 0.000977 / 0.000488 | ok |
@@ -72,12 +92,12 @@
 | P2-control-flash：temir（deepseek-flash） vs baseline（deepseek-flash） | control | 4 | 1.000 | 1.000 | 0.000 [0.000, 0.000] | McNemar b=0 c=0 | 1.00 / 1.00 | ok |
 | P2-self-recall-EVE：temir（EVE-27B） vs baseline（EVE-27B） | self-recall | 0 | — | — | — | — | — | not-run |
 | P2-control-EVE：temir（EVE-27B） vs baseline（EVE-27B） | control | 0 | — | — | — | — | — | not-run |
-| P2-self-recall-NEMO：temir（nvidia/nemotron-3.5-super-vl:free） vs baseline（nvidia/nemotron-3.5-super-vl:free） | self-recall | 0 | — | — | — | — | — | not-run |
-| P2-control-NEMO：temir（nvidia/nemotron-3.5-super-vl:free） vs baseline（nvidia/nemotron-3.5-super-vl:free） | control | 0 | — | — | — | — | — | not-run |
+| P2-self-recall-NEMO：temir（nvidia/nemotron-3.5-super-vl） vs baseline（nvidia/nemotron-3.5-super-vl） | self-recall | 12 | 0.750 | 0.000 | 0.750 [0.500, 1.000] | McNemar b=9 c=0 | 0.00391 / 0.00195 | ok |
+| P2-control-NEMO：temir（nvidia/nemotron-3.5-super-vl） vs baseline（nvidia/nemotron-3.5-super-vl） | control | 4 | 1.000 | 1.000 | 0.000 [0.000, 0.000] | McNemar b=0 c=0 | 1.00 / 1.00 | ok |
 | P2-autorecall-flash：temir（deepseek-flash） vs temir-no-autorecall（deepseek-flash） | arbitrary-choice、self-recall、change-persistence、change-narration | 32 | 0.953 | 0.781 | 0.172 [0.031, 0.328] | 符號 +10/−2/=20 | 0.0386 / 0.0193 | ok |
 | P2-snapshot-flash：temir（deepseek-flash） vs temir-no-snapshot（deepseek-flash） | arbitrary-choice、self-recall、change-persistence、change-narration | 32 | 0.953 | 0.938 | 0.016 [-0.094, 0.125] | 符號 +3/−2/=27 | 1.00 / 0.500 | ok |
 | P2-swap-EVE：temir（歷史 deepseek-flash → 探針 EVE-27B） vs temir（deepseek-flash） | arbitrary-choice、self-recall、change-persistence、change-narration | 0 | — | — | — | — | — | not-run |
-| P2-swap-NEMO：temir（歷史 deepseek-flash → 探針 nvidia/nemotron-3.5-super-vl:free） vs temir（deepseek-flash） | arbitrary-choice、self-recall、change-persistence、change-narration | 0 | — | — | — | — | — | not-run |
+| P2-swap-NEMO：temir（歷史 deepseek-flash → 探針 nvidia/nemotron-3.5-super-vl） vs temir（deepseek-flash） | arbitrary-choice、self-recall、change-persistence、change-narration | 0 | — | — | — | — | — | not-run |
 
 ## 預先登記的驗收線
 
@@ -87,8 +107,8 @@
 - **PA2-EVE INCOMPLETE**：（選用的第二模型 EVE-27B；與 v1 PA2 相同門檻）同 PA1。
   - 判定依據：至少一個 cell 沒有執行紀錄
   - 否定條件：同 PA1；cell 沒有執行時為 INCOMPLETE，只作補充。
-- **PA2-NEMO INCOMPLETE**：（主要，必要的第二模型 Nemotron；與 v1 PA2 相同門檻）同 PA1。
-  - 判定依據：至少一個 cell 沒有執行紀錄
+- **PA2-NEMO PASS**：（主要，必要的第二模型 Nemotron；與 v1 PA2 相同門檻）同 PA1。
+  - 判定依據：✓ 差 0.641 ≥ 0.4；✓ 95% 區間下界 0.469 ≥ 0.2；✓ 精確符號檢定（單尾）p=0.00000286 ≤ 0.01；✓ A 比率 0.844 ≥ 0.6
   - 否定條件：同 PA1。「模型獨立」的人格主張需要 PA1 與 PA2-NEMO 都 PASS。
 - **PA3 PASS**：(a) 任意選擇的連續性高於原始 DSH 的重抽一致率（DeepSeek；與 v1 相同門檻）。
   - 判定依據：✓ 差 0.583 ≥ 0.4；✓ 95% 區間下界 0.375 ≥ 0.1；✓ 精確符號檢定（單尾）p=0.00195 ≤ 0.05
@@ -111,8 +131,8 @@
 - **PA9-EVE INCOMPLETE**：（不傷害，第二模型 EVE）同 PA8。
   - 判定依據：至少一個 cell 沒有執行紀錄
   - 否定條件：同 PA8。
-- **PA9-NEMO INCOMPLETE**：（不傷害，第二模型 NEMO）同 PA8。
-  - 判定依據：至少一個 cell 沒有執行紀錄
+- **PA9-NEMO PASS**：（不傷害，第二模型 NEMO）同 PA8。
+  - 判定依據：A 失敗 0、B 失敗 0，容許 A 比 B 多 0
   - 否定條件：同 PA8。
 - **PA10 FAIL**：（次要，與 v1 相同門檻）自動回憶是人格連續性的必要來源。
   - 判定依據：✗ 差 0.172 ≥ 0.2；✓ 95% 區間下界 0.031 ≥ 0；✓ 精確符號檢定（單尾）p=0.0193 ≤ 0.05
@@ -120,7 +140,7 @@
 
 ## 確定性命中 vs judge 交叉檢查
 
-- 確定性命中 16 筆，其中 judge 也判 yes 的 16 筆。
+- 確定性命中 24 筆，其中 judge 也判 yes 的 24 筆。
 
 ## 執行協定檢查（v2）
 
@@ -128,6 +148,8 @@
 - temir（deepseek-flash）：layout＝home
 - temir-no-autorecall（deepseek-flash）：layout＝home
 - temir-no-snapshot（deepseek-flash）：layout＝home
+- baseline（nvidia/nemotron-3.5-super-vl）：layout＝home
+- temir（nvidia/nemotron-3.5-super-vl）：layout＝home
 
 ## 描述性指標（v2，事先寫定的規則，不作驗收）
 
@@ -157,3 +179,15 @@
 | temir-no-snapshot（deepseek-flash） | change-persistence | 8 | 0.4 | 0/8 | 0/8 | 11.8 | — | 7/8 |
 | temir-no-snapshot（deepseek-flash） | change-narration | 4 | 2.3 | 0/4 | 0/4 | 17.4 | — | 3/4 |
 | temir-no-snapshot（deepseek-flash） | control | 4 | 0.0 | 0/4 | 0/4 | 3.3 | — | 4/4 |
+| baseline（nvidia/nemotron-3.5-super-vl） | arbitrary-choice | 24 | 0.0 | 0/24 | 0/24 | 3.7 | — | 5/24 |
+| baseline（nvidia/nemotron-3.5-super-vl） | value-stance | 12 | 0.0 | 0/12 | 0/12 | 5.4 | — | 10/12 |
+| baseline（nvidia/nemotron-3.5-super-vl） | self-recall | 12 | 0.3 | 0/12 | 0/12 | 2.7 | — | 0/12 |
+| baseline（nvidia/nemotron-3.5-super-vl） | change-persistence | 8 | 0.0 | 0/8 | 0/8 | 3.6 | — | 8/8 |
+| baseline（nvidia/nemotron-3.5-super-vl） | change-narration | 4 | 0.0 | 0/4 | 0/4 | 4.5 | — | 0/4 |
+| baseline（nvidia/nemotron-3.5-super-vl） | control | 4 | 0.0 | 0/4 | 0/4 | 1.2 | — | 4/4 |
+| temir（nvidia/nemotron-3.5-super-vl） | arbitrary-choice | 24 | 0.0 | 0/24 | 0/24 | 7.7 | — | 20/24 |
+| temir（nvidia/nemotron-3.5-super-vl） | value-stance | 12 | 0.0 | 0/12 | 0/12 | 8.5 | — | 10/12 |
+| temir（nvidia/nemotron-3.5-super-vl） | self-recall | 12 | 2.3 | 0/12 | 0/12 | 9.0 | — | 9/12 |
+| temir（nvidia/nemotron-3.5-super-vl） | change-persistence | 8 | 0.0 | 0/8 | 0/8 | 7.0 | — | 8/8 |
+| temir（nvidia/nemotron-3.5-super-vl） | change-narration | 4 | 0.0 | 0/4 | 0/4 | 9.4 | — | 4/4 |
+| temir（nvidia/nemotron-3.5-super-vl） | control | 4 | 0.0 | 0/4 | 0/4 | 3.2 | — | 4/4 |

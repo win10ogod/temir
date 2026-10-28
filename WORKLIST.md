@@ -20,8 +20,8 @@
 - [ ] 本機模型恢復後補跑 v1：人格 × 個體 × EVE-27B（必要）、消融 × EVE-27B、雙向換模型（選用）
 - [x] v2 預先登記（9512de4）：記憶 47 題主要比較（隱性運用 15 題）、人格 32 題；目錄配置 home；每輪全部可見文字
 - [x] v2 DeepSeek 必要 cell 8 個（錯誤 0）＋計分：PA1 PASS、MA1／MB1 FAIL、MB3 PASS（報告 experiments/results/v2-report.md）
-- [x] v2 Nemotron 第一天：記憶 × 個體、人格 × 原始 DSH（錯誤 0）
-- [ ] v2 Nemotron 第二天（OpenRouter 每日額度重置後）：人格 × 個體、記憶 × 原始 DSH；之後全部重新計分
+- [x] v2 Nemotron：協定修正 1（改付費端點、固定 bf16 供應商）；四個 cell 錯誤 0；PA2-NEMO、MA2-NEMO、MB2-NEMO PASS（免費端點兩個 cell 存檔不計分）
+- [x] v2 全部計分與報告（experiments/results/v2-report.md）
 - [ ] 發布：改寫歷史（移除舊餘額、本機模型檔名、references/、papers/）→ 公開 repo（Apache-2.0）
 
 ## M1 記憶與 PC 紀錄

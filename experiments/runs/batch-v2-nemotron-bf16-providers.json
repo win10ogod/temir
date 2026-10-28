@@ -1,0 +1,25 @@
+{
+  "batch": "v2-nemotron-bf16",
+  "routing": {
+    "order": [
+      "Crusoe",
+      "Nebius"
+    ],
+    "quantizations": [
+      "bf16"
+    ],
+    "allow_fallbacks": false,
+    "require_parameters": true
+  },
+  "requests": 775,
+  "chatCompletions": 774,
+  "servedBy": {
+    "Crusoe": 774
+  },
+  "statuses": {
+    "200": 774
+  },
+  "proxyErrors": 0,
+  "openrouterSpentUsd": 0.9995,
+  "note": "openrouterSpentUsd 為 OpenRouter /api/v1/key 的累計 usage（含先前約 US$0.0002 的測試請求）"
+}

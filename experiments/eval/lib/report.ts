@@ -76,6 +76,32 @@ export interface Summary {
   readonly contrasts: readonly ContrastSummary[]
   readonly acceptance: readonly AcceptanceResult[]
   readonly crossCheck: { readonly total: number; readonly agree: number; readonly disagree: readonly string[] } | null
+  /** v2 才有：每個 cell 的執行協定（目錄配置）與是否符合契約。 */
+  readonly protocol?: readonly ProtocolSummary[]
+  /** v2 才有：描述性指標（不作驗收）。 */
+  readonly descriptive?: readonly DescriptiveSummary[]
+}
+
+export interface ProtocolSummary {
+  readonly cell: string
+  readonly label: string
+  readonly layouts: readonly string[]
+  readonly mismatch: string | null
+}
+
+export interface DescriptiveSummary {
+  readonly cell: string
+  readonly label: string
+  readonly category: string
+  /** 有紀錄的樣本數（missing-record、malformed-record 不算）。 */
+  readonly samples: number
+  readonly meanToolCalls: number | null
+  readonly sessionStoreAccess: number
+  readonly lifeLogAccess: number
+  readonly medianLatencyMs: number | null
+  /** 有翻閱 session 存放區的樣本中，得分的樣本數／總數。 */
+  readonly scoredWhenAccessed: { readonly correct: number; readonly n: number }
+  readonly scoredWhenNotAccessed: { readonly correct: number; readonly n: number }
 }
 
 function count<T extends string>(xs: readonly T[]): Record<string, number> {
@@ -180,11 +206,12 @@ function fmt(x: number | null | undefined, digits = 3): string {
   return x === null || x === undefined || Number.isNaN(x) ? '—' : x.toFixed(digits)
 }
 
-export function evaluateAcceptance(spec: AcceptanceSpec, contrasts: readonly ContrastSummary[]): AcceptanceResult {
+export function evaluateAcceptance(spec: AcceptanceSpec, contrasts: readonly ContrastSummary[], protocolMismatch?: string): AcceptanceResult {
   const c = contrasts.find((x) => x.id === spec.contrast)
   const base = { id: spec.id, contrast: spec.contrast, claim: spec.claim, negation: spec.negation }
   if (!c) return { ...base, verdict: 'INCOMPLETE', explanation: '找不到比較' }
   if (c.state === 'not-run') return { ...base, verdict: 'INCOMPLETE', explanation: '至少一個 cell 沒有執行紀錄' }
+  if (protocolMismatch) return { ...base, verdict: 'INCOMPLETE', explanation: `執行協定與契約不符：${protocolMismatch}` }
   const rule = spec.rule
   if (rule.kind === 'no-harm') {
     if (c.state === 'incomplete') return { ...base, verdict: 'INCOMPLETE', explanation: '有樣本尚未評分（judge 未執行）' }
@@ -213,12 +240,48 @@ export function evaluateAcceptance(spec: AcceptanceSpec, contrasts: readonly Con
   return { ...base, verdict: pass ? 'PASS' : 'FAIL', explanation: checks.map(([ok, text]) => `${ok ? '✓' : '✗'} ${text}`).join('；') }
 }
 
+function median(xs: readonly number[]): number | null {
+  if (xs.length === 0) return null
+  const s = [...xs].sort((a, b) => a - b)
+  const mid = Math.floor(s.length / 2)
+  return s.length % 2 === 1 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2
+}
+
+export function summarizeDescriptive(result: ScoringResult, contract: Contract, cells: readonly CellSpec[]): DescriptiveSummary[] {
+  const out: DescriptiveSummary[] = []
+  for (const cell of cells) {
+    const items = itemsFor(result, cell)
+    if (isNotRun(items)) continue
+    for (const cat of contract.categories) {
+      const samples = items.filter((it) => it.category === cat.id).flatMap((it) => it.samples)
+      const withRecord = samples.filter((s) => s.descriptive && s.status !== 'missing-record' && s.status !== 'malformed-record')
+      const d = withRecord.map((s) => s.descriptive!)
+      const accessed = withRecord.filter((s) => s.descriptive!.sessionStoreAccess)
+      const notAccessed = withRecord.filter((s) => !s.descriptive!.sessionStoreAccess)
+      out.push({
+        cell: cellKey(cell),
+        label: cellLabel(cell),
+        category: cat.id,
+        samples: withRecord.length,
+        meanToolCalls: d.length === 0 ? null : d.reduce((a, x) => a + x.toolCalls, 0) / d.length,
+        sessionStoreAccess: d.filter((x) => x.sessionStoreAccess).length,
+        lifeLogAccess: d.filter((x) => x.lifeLogAccess).length,
+        medianLatencyMs: median(d.map((x) => x.latencyMs).filter((x): x is number => x !== null)),
+        scoredWhenAccessed: { correct: accessed.filter((s) => s.score === 1).length, n: accessed.length },
+        scoredWhenNotAccessed: { correct: notAccessed.filter((s) => s.score === 1).length, n: notAccessed.length },
+      })
+    }
+  }
+  return out
+}
+
 export function summarize(
   result: ScoringResult,
   contract: Contract,
   datasetSha256: string,
   cells: readonly CellSpec[],
   toolCallsByCell: ReadonlyMap<string, Readonly<Record<string, number>>> = new Map(),
+  layoutsByCell: ReadonlyMap<string, readonly string[]> = new Map(),
 ): Summary {
   const cellSummaries: CellSummary[] = cells.map((cell) => {
     const items = itemsFor(result, cell)
@@ -232,7 +295,20 @@ export function summarize(
     }
   })
   const contrasts = contract.contrasts.map((c) => summarizeContrast(c, result, contract))
-  const acceptance = contract.acceptance.map((a) => evaluateAcceptance(a, contrasts))
+  // v2：目錄配置與契約不符的 cell 照常計分與顯示，但涉及它的驗收線記為 INCOMPLETE。
+  const required = contract.reportVersion === 2 ? contract.protocol?.layout : undefined
+  const mismatchOf = (cell: CellSpec): string | null => {
+    if (!required) return null
+    const layouts = layoutsByCell.get(cellKey(cell)) ?? []
+    if (layouts.length === 0) return null // 沒有紀錄的 cell 由「未執行」處理
+    const bad = layouts.filter((l) => l !== required)
+    return bad.length > 0 ? `${cellLabel(cell)} 的 layout＝${layouts.join('、')}（契約要求 ${required}）` : null
+  }
+  const acceptance = contract.acceptance.map((a) => {
+    const spec = contract.contrasts.find((c) => c.id === a.contrast)
+    const reasons = spec ? [spec.a, spec.b].map(mismatchOf).filter((r): r is string => r !== null) : []
+    return evaluateAcceptance(a, contrasts, reasons.length > 0 ? reasons.join('；') : undefined)
+  })
   const crossCheck =
     result.crossChecks.length === 0
       ? null
@@ -241,7 +317,12 @@ export function summarize(
           agree: result.crossChecks.filter((x) => x.judge === 'yes').length,
           disagree: result.crossChecks.filter((x) => x.judge !== 'yes').map((x) => `${cellKey(x.cell)}|${x.itemId}|r${x.repeat}→${x.judge}`),
         }
-  return { contract: contract.id, dataset: contract.dataset, datasetSha256, cells: cellSummaries, contrasts, acceptance, crossCheck }
+  const summary: Summary = { contract: contract.id, dataset: contract.dataset, datasetSha256, cells: cellSummaries, contrasts, acceptance, crossCheck }
+  if (contract.reportVersion !== 2) return summary
+  const protocol: ProtocolSummary[] = cells
+    .filter((cell) => (layoutsByCell.get(cellKey(cell)) ?? []).length > 0)
+    .map((cell) => ({ cell: cellKey(cell), label: cellLabel(cell), layouts: layoutsByCell.get(cellKey(cell)) ?? [], mismatch: mismatchOf(cell) }))
+  return { ...summary, protocol, descriptive: summarizeDescriptive(result, contract, cells) }
 }
 
 function pct(k: number, n: number): string {
@@ -301,6 +382,22 @@ export function renderMarkdown(summary: Summary, contract: Contract, extra: { re
     lines.push('', '## 確定性命中 vs judge 交叉檢查', '')
     lines.push(`- 確定性命中 ${summary.crossCheck.total} 筆，其中 judge 也判 yes 的 ${summary.crossCheck.agree} 筆。`)
     for (const d of summary.crossCheck.disagree.slice(0, 50)) lines.push(`  - 不一致：${d}`)
+  }
+  if (summary.protocol) {
+    lines.push('', '## 執行協定檢查（v2）', '')
+    if (summary.protocol.length === 0) lines.push('- 沒有任何 cell 的 config.json 記錄目錄配置。')
+    for (const p of summary.protocol) lines.push(`- ${p.label}：layout＝${p.layouts.join('、')}${p.mismatch ? `；**不符**（${p.mismatch}），涉及的驗收線記為 INCOMPLETE` : ''}`)
+  }
+  if (summary.descriptive) {
+    lines.push('', '## 描述性指標（v2，事先寫定的規則，不作驗收）', '')
+    lines.push('| cell | 類別 | 有紀錄的樣本 | 每樣本工具呼叫（平均） | 翻閱 session 存放區 | 翻閱生命日誌 | 延遲中位數（秒） | 有翻閱時得分 | 沒翻閱時得分 |')
+    lines.push('| --- | --- | --- | --- | --- | --- | --- | --- | --- |')
+    for (const d of summary.descriptive) {
+      const latency = d.medianLatencyMs === null ? '—' : (d.medianLatencyMs / 1000).toFixed(1)
+      lines.push(
+        `| ${d.label} | ${d.category} | ${d.samples} | ${fmt(d.meanToolCalls, 1)} | ${d.sessionStoreAccess}/${d.samples} | ${d.lifeLogAccess}/${d.samples} | ${latency} | ${pct(d.scoredWhenAccessed.correct, d.scoredWhenAccessed.n)} | ${pct(d.scoredWhenNotAccessed.correct, d.scoredWhenNotAccessed.n)} |`,
+      )
+    }
   }
   if (extra.issues.length > 0) {
     lines.push('', '## 紀錄與協定問題（全部已按契約計入分母）', '')

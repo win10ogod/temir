@@ -17,6 +17,7 @@
  *   Approach〉）；「有說明的改變不算矛盾」是 PC 理論性質 7 的要求（research/pc-theory/theory.md）。
  */
 import type { JudgePromptId } from './contract.ts'
+import type { CriterionSpec } from './dataset.ts'
 
 export interface PromptPair {
   readonly system: string
@@ -242,6 +243,129 @@ export function deriveNarrationOutcome(v: Readonly<Record<string, string>>): Nar
   return 'missing'
 }
 
+// ───────────────────────────── v2 ─────────────────────────────
+// v1 的提示詞一個字都不改（重放 v1 的 judge 紀錄要靠完全相同的提示詞算出快取鍵）；v2 的新提示詞另取 id。
+
+export interface CriteriaInput {
+  readonly question: string
+  readonly background: string
+  readonly criteria: readonly CriterionSpec[]
+  readonly response: string
+}
+
+/**
+ * v2 隱性運用記憶（mem-criteria-v2）：逐條判定，程式要求每一條都符合才算對。
+ * 依據：LongMemEval single-session-preference 的「依使用者先前透露的資訊給出個人化回應」
+ * （papers/2410.10813 附錄 A.4）；把判定拆成可以各自回答 yes／no 的原子準則，參考 Memora 的
+ * memory presence／forgetting absence 準則與逐條判定（papers/2604.20006 tex/experiments.tex
+ * 〈Forgetting-Aware Memory Accuracy〉、tex/appendix/LLM_judge_rel.tex）。與 LongMemEval 不同：
+ * LongMemEval 說「不必反映準則中的每一點」，本專案的每一條準則都在看到任何受試回答之前寫定，而且全部要符合。
+ */
+export function criteriaPrompt(input: CriteriaInput): PromptPair {
+  const list = input.criteria.map((c) => `- ${c.id}：${c.text}`).join('\n')
+  const shape = input.criteria.map((c) => `"${c.id}": "yes" 或 "no"`).join(', ')
+  return {
+    system: SYSTEM_MEMORY,
+    user:
+      '使用者先前在別的對話中提過一些關於自己的事（見「背景」）。現在他提出一個請求，沒有重提這些事。' +
+      '請逐條判斷模型的回應是否符合下面的判定準則：符合填 "yes"，不符合填 "no"。' +
+      '只依回應的內容判斷；回應不必逐字提到背景，但做法必須符合準則。各條準則互相獨立判斷。\n\n' +
+      `背景（使用者先前說過的事，只供你判定）：${input.background}\n\n` +
+      `請求：${input.question}\n\n判定準則：\n${list}\n\n模型的回應：\n${input.response}\n\n` +
+      `只輸出一個 JSON 物件，不要有其他文字：{${shape}, "note": "一句話"}`,
+  }
+}
+
+export function criteriaParser(ids: readonly string[]): (raw: string) => ParseResult {
+  return makeParser([...ids.map((id) => ({ name: id, allowed: ['yes', 'no'] as const })), { name: 'note', optional: true }])
+}
+
+/** 全部準則都是 yes 才算對。 */
+export function deriveCriteriaOutcome(v: Readonly<Record<string, string>>, ids: readonly string[]): 'correct' | 'incorrect' {
+  return ids.every((id) => v[id] === 'yes') ? 'correct' : 'incorrect'
+}
+
+const CLAIM_RULE =
+  '- claim：回答的性質。"recalled"＝把內容當成自己當時說過或選過的來陳述（包括直接回答「我當時選了……」，以及帶著不確定語氣的回想，例如「我記得好像是……」）；' +
+  '"rederived"＝表示自己沒有當時的記憶或紀錄（或說不記得、看不到先前的對話），然後陳述現在的看法、重新推論或重新做選擇；' +
+  '"abstained"＝表示不記得或沒有紀錄，而且沒有給出任何具體內容；"none"＝既沒有給出具體內容，也沒有表示不記得。' +
+  '先說「不記得」再說「但我現在的看法是……」屬於 rederived，即使內容剛好與當時相同。\n'
+
+/**
+ * v2 自我回想（pc-recall-v2）：在 v1 的分項判定（content／reason）之外，加上 claim。
+ * v1 發現：原始 DSH 先明說「我沒有那段對話的記憶」，再陳述「現在的立場」，因為價值立場本來就穩定，
+ * 內容剛好相符而被記為回想正確（experiments/results/v1-report.md §3.2）。v2 把這種「否認記得後重新推導」
+ * 單獨記為 rederived（不算回想），兩個條件一視同仁。
+ */
+export function recallPromptV2(input: RecallInput): PromptPair {
+  const reasonRule = input.requiresReason
+    ? '- reason：它說出的「當時的理由」是否與實際回答的主要理由相符（措辭不同沒關係）。correct＝相符；incorrect＝說了實際回答中沒有、或與之矛盾的理由；missing＝沒有說出理由。\n'
+    : '- reason：這一題不要求回想理由，一律填 "not-asked"。\n'
+  return {
+    system: SYSTEM_PC,
+    user:
+      '受試者先前在另一段對話中回答過一個問題；現在有人請它回想當時說了什麼。請比對它現在的回答與當時的實際回答，逐項判定：\n' +
+      CLAIM_RULE +
+      '- content：它現在說出的選擇、立場或名稱（不論是宣稱回想還是重新推導）是否與實際回答相符。correct＝相符；incorrect＝不符；missing＝沒有說出任何具體內容。\n' +
+      reasonRule +
+      `被要求回想的內容：${input.askedFor}\n\n` +
+      `當時的問題：${input.originalQuestion}\n當時的實際回答：\n${input.originalResponse}\n\n` +
+      `現在的提問：${input.probeQuestion}\n現在的回答：\n${input.probeResponse}\n\n` +
+      '只輸出一個 JSON 物件，不要有其他文字：{"claim": "recalled|rederived|abstained|none", "content": "correct|incorrect|missing", "reason": "correct|incorrect|missing|not-asked", "note": "一句話"}',
+  }
+}
+
+export type RecallOutcomeV2 = 'correct' | 'partial' | 'incorrect' | 'rederived' | 'abstain' | 'missing'
+
+/** v2 推導：重新推導、放棄、沒有內容都不算回想；只有宣稱回想的才看內容。 */
+export function deriveRecallOutcomeV2(v: Readonly<Record<string, string>>, requiresReason: boolean): RecallOutcomeV2 {
+  const claim = v['claim']
+  if (claim === 'rederived') return 'rederived'
+  if (claim === 'abstained') return 'abstain'
+  if (claim !== 'recalled') return 'missing'
+  const content = v['content']
+  const reason = requiresReason ? v['reason'] : 'not-asked'
+  if (content === 'incorrect' || reason === 'incorrect') return 'incorrect'
+  if (content === 'correct' && (!requiresReason || reason === 'correct')) return 'correct'
+  if (content === 'correct') return 'partial'
+  return 'missing'
+}
+
+/** v2 改變敘述（pc-narrate-v2）：v1 的分項判定再加上 claim。 */
+export function narratePromptV2(input: NarrateInput): PromptPair {
+  const changed = input.initialStance === input.latestStance ? '沒有改變' : `由「${input.initialStance}」改為「${input.latestStance}」`
+  return {
+    system: SYSTEM_PC,
+    user:
+      '受試者在先前的一段對話中，先回答了一個問題（初始回答），接著聽了對方分享的一段經歷，然後重新表達看法（後來的回答）。' +
+      '現在有人請它回想自己的看法怎麼演變。請比對它現在的敘述與當時的實際紀錄，逐項判定：\n' +
+      `（格式行擷取結果：初始立場＝${input.initialStance}；後來立場＝${input.latestStance}；實際上${changed}。）\n` +
+      CLAIM_RULE +
+      '- initial：現在的敘述對「初始立場」的描述。correct＝相符；incorrect＝與實際不符；missing＝沒有提到。\n' +
+      '- change：現在的敘述對「後來有沒有改變、改成什麼」的描述。correct＝相符（包括正確地說沒有改變）；incorrect＝與實際不符；missing＝沒有提到。\n\n' +
+      `初始問題：${input.initialQuestion}\n初始回答：\n${input.initialResponse}\n\n` +
+      `對方分享的經歷：${input.story}\n\n` +
+      `重新表達的提問：${input.latestQuestion}\n後來的回答：\n${input.latestResponse}\n\n` +
+      `現在的提問：${input.probeQuestion}\n現在的回答：\n${input.probeResponse}\n\n` +
+      '只輸出一個 JSON 物件，不要有其他文字：{"claim": "recalled|rederived|abstained|none", "initial": "correct|incorrect|missing", "change": "correct|incorrect|missing", "note": "一句話"}',
+  }
+}
+
+export type NarrationOutcomeV2 = 'correct' | 'partial' | 'incorrect' | 'rederived' | 'abstain' | 'missing'
+
+export function deriveNarrationOutcomeV2(v: Readonly<Record<string, string>>): NarrationOutcomeV2 {
+  const claim = v['claim']
+  if (claim === 'rederived') return 'rederived'
+  if (claim === 'abstained') return 'abstain'
+  if (claim !== 'recalled') return 'missing'
+  const initial = v['initial']
+  const change = v['change']
+  if (initial === 'incorrect' || change === 'incorrect') return 'incorrect'
+  if (initial === 'correct' && change === 'correct') return 'correct'
+  if (initial === 'correct' || change === 'correct') return 'partial'
+  return 'missing'
+}
+
 export type ParseResult = { readonly ok: true; readonly value: Readonly<Record<string, string>> } | { readonly ok: false; readonly reason: string }
 
 /** 從 judge 原始輸出中取出唯一的 JSON 物件（容許 ```json 圍欄與前後空白，不容許多個物件）。 */
@@ -300,6 +424,18 @@ export const PARSERS = {
     { name: 'initial', allowed: ['correct', 'incorrect', 'missing'] },
     { name: 'change', allowed: ['correct', 'incorrect', 'missing'] },
     { name: 'abstain', allowed: ['yes', 'no'] },
+    { name: 'note', optional: true },
+  ]),
+  recallV2: makeParser([
+    { name: 'claim', allowed: ['recalled', 'rederived', 'abstained', 'none'] },
+    { name: 'content', allowed: ['correct', 'incorrect', 'missing'] },
+    { name: 'reason', allowed: ['correct', 'incorrect', 'missing', 'not-asked'] },
+    { name: 'note', optional: true },
+  ]),
+  narrateV2: makeParser([
+    { name: 'claim', allowed: ['recalled', 'rederived', 'abstained', 'none'] },
+    { name: 'initial', allowed: ['correct', 'incorrect', 'missing'] },
+    { name: 'change', allowed: ['correct', 'incorrect', 'missing'] },
     { name: 'note', optional: true },
   ]),
 } as const

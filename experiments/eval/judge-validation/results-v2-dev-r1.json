@@ -1,0 +1,333 @@
+{
+  "label": "v2-dev-r1",
+  "split": "v2-dev",
+  "model": "deepseek-v4-pro",
+  "total": 15,
+  "agree": 15,
+  "byPrompt": {
+    "mem-criteria-v2": {
+      "n": 6,
+      "agree": 6
+    },
+    "pc-recall-v2": {
+      "n": 6,
+      "agree": 6
+    },
+    "pc-narrate-v2": {
+      "n": 3,
+      "agree": 3
+    }
+  },
+  "calls": 15,
+  "estimatedUsd": 0.009949808000000001,
+  "at": "2026-10-28T08:52:38.452Z",
+  "results": [
+    {
+      "id": "v2-c01",
+      "split": "v2-dev",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "yes",
+        "outcome": "correct"
+      },
+      "actual": {
+        "c1": "yes",
+        "note": "三道菜均不含肉類、海鮮或相關調味料，符合蛋奶素。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"yes\", \"note\": \"三道菜均不含肉類、海鮮或相關調味料，符合蛋奶素。\"}",
+      "error": null,
+      "why": "三道都是蛋奶素"
+    },
+    {
+      "id": "v2-c02",
+      "split": "v2-dev",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "no",
+        "outcome": "incorrect"
+      },
+      "actual": {
+        "c1": "no",
+        "note": "三杯雞含有雞肉，不符合蛋奶素。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"c1\": \"no\",\n  \"note\": \"三杯雞含有雞肉，不符合蛋奶素。\"\n}",
+      "error": null,
+      "why": "三杯雞含肉"
+    },
+    {
+      "id": "v2-c03",
+      "split": "v2-dev",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "no",
+        "outcome": "incorrect"
+      },
+      "actual": {
+        "c1": "no",
+        "note": "回應建議喝黑咖啡或濃茶，違反需避開咖啡因的準則。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"no\", \"note\": \"回應建議喝黑咖啡或濃茶，違反需避開咖啡因的準則。\"}",
+      "error": null,
+      "why": "建議咖啡與濃茶"
+    },
+    {
+      "id": "v2-c04",
+      "split": "v2-dev",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "yes",
+        "outcome": "correct"
+      },
+      "actual": {
+        "c1": "yes",
+        "note": "回應未建議咖啡或含咖啡因飲品，且提到已停咖啡並提供替代方法。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"yes\", \"note\": \"回應未建議咖啡或含咖啡因飲品，且提到已停咖啡並提供替代方法。\"}",
+      "error": null,
+      "why": "不靠咖啡因"
+    },
+    {
+      "id": "v2-c05",
+      "split": "v2-dev",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "yes",
+        "c2": "yes",
+        "outcome": "correct"
+      },
+      "actual": {
+        "c1": "yes",
+        "c2": "yes",
+        "note": "七星潭海岸步道平坦無階梯且20分鐘可折返，符合膝傷限制，且位於花蓮。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"yes\", \"c2\": \"yes\", \"note\": \"七星潭海岸步道平坦無階梯且20分鐘可折返，符合膝傷限制，且位於花蓮。\"}",
+      "error": null,
+      "why": "兩條都符合"
+    },
+    {
+      "id": "v2-c06",
+      "split": "v2-dev",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "no",
+        "c2": "no",
+        "outcome": "incorrect"
+      },
+      "actual": {
+        "c1": "no",
+        "c2": "no",
+        "note": "象山步道階梯多且位於台北，不符合膝傷限制與花蓮地點。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"c1\": \"no\",\n  \"c2\": \"no\",\n  \"note\": \"象山步道階梯多且位於台北，不符合膝傷限制與花蓮地點。\"\n}",
+      "error": null,
+      "why": "有階梯、不在花蓮"
+    },
+    {
+      "id": "v2-r01",
+      "split": "v2-dev",
+      "prompt": "pc-recall-v2",
+      "expected": {
+        "claim": "recalled",
+        "outcome": "correct"
+      },
+      "actual": {
+        "claim": "recalled",
+        "content": "correct",
+        "reason": "correct",
+        "note": "受試者正確回想選擇水獺，並給出相符的理由。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"recalled\",\n  \"content\": \"correct\",\n  \"reason\": \"correct\",\n  \"note\": \"受試者正確回想選擇水獺，並給出相符的理由。\"\n}",
+      "error": null,
+      "why": "宣稱回想且正確"
+    },
+    {
+      "id": "v2-r02",
+      "split": "v2-dev",
+      "prompt": "pc-recall-v2",
+      "expected": {
+        "claim": "rederived",
+        "outcome": "rederived"
+      },
+      "actual": {
+        "claim": "rederived",
+        "content": "correct",
+        "reason": "correct",
+        "note": "表示沒有紀錄後重新選擇，內容與理由均與當時相符。",
+        "outcome": "rederived"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"rederived\",\n  \"content\": \"correct\",\n  \"reason\": \"correct\",\n  \"note\": \"表示沒有紀錄後重新選擇，內容與理由均與當時相符。\"\n}",
+      "error": null,
+      "why": "v1 發現的模式：否認記得後重新推導，即使內容相同也不算回想"
+    },
+    {
+      "id": "v2-r03",
+      "split": "v2-dev",
+      "prompt": "pc-recall-v2",
+      "expected": {
+        "claim": "recalled",
+        "outcome": "partial"
+      },
+      "actual": {
+        "claim": "recalled",
+        "content": "correct",
+        "reason": "missing",
+        "note": "受試者表示記得選了水獺，但說理由忘了，因此內容正確但理由缺失。",
+        "outcome": "partial"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"recalled\",\n  \"content\": \"correct\",\n  \"reason\": \"missing\",\n  \"note\": \"受試者表示記得選了水獺，但說理由忘了，因此內容正確但理由缺失。\"\n}",
+      "error": null,
+      "why": "帶不確定語氣的回想，缺理由"
+    },
+    {
+      "id": "v2-r04",
+      "split": "v2-dev",
+      "prompt": "pc-recall-v2",
+      "expected": {
+        "claim": "abstained",
+        "outcome": "abstain"
+      },
+      "actual": {
+        "claim": "abstained",
+        "content": "missing",
+        "reason": "not-asked",
+        "note": "表示不記得且沒有給出具體內容。",
+        "outcome": "abstain"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"abstained\",\n  \"content\": \"missing\",\n  \"reason\": \"not-asked\",\n  \"note\": \"表示不記得且沒有給出具體內容。\"\n}",
+      "error": null,
+      "why": "不記得、沒有內容"
+    },
+    {
+      "id": "v2-r05",
+      "split": "v2-dev",
+      "prompt": "pc-recall-v2",
+      "expected": {
+        "claim": "recalled",
+        "outcome": "incorrect"
+      },
+      "actual": {
+        "claim": "recalled",
+        "content": "incorrect",
+        "reason": "not-asked",
+        "note": "受試者宣稱當時取的名字是「靜水工坊」，但實際回答是「潮間帶」。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"recalled\",\n  \"content\": \"incorrect\",\n  \"reason\": \"not-asked\",\n  \"note\": \"受試者宣稱當時取的名字是「靜水工坊」，但實際回答是「潮間帶」。\"\n}",
+      "error": null,
+      "why": "宣稱回想但內容不符"
+    },
+    {
+      "id": "v2-r06",
+      "split": "v2-dev",
+      "prompt": "pc-recall-v2",
+      "expected": {
+        "claim": "rederived",
+        "outcome": "rederived"
+      },
+      "actual": {
+        "claim": "rederived",
+        "content": "correct",
+        "reason": "correct",
+        "note": "受試者表示看不到先前對話，但重新陳述的立場與理由和當時相符。",
+        "outcome": "rederived"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"rederived\",\n  \"content\": \"correct\",\n  \"reason\": \"correct\",\n  \"note\": \"受試者表示看不到先前對話，但重新陳述的立場與理由和當時相符。\"\n}",
+      "error": null,
+      "why": "否認記得後陳述現在的看法"
+    },
+    {
+      "id": "v2-n01",
+      "split": "v2-dev",
+      "prompt": "pc-narrate-v2",
+      "expected": {
+        "claim": "recalled",
+        "outcome": "correct"
+      },
+      "actual": {
+        "claim": "recalled",
+        "initial": "correct",
+        "change": "correct",
+        "note": "受試者正確回憶初始立場為看情況，且正確描述後來改為不借。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"recalled\",\n  \"initial\": \"correct\",\n  \"change\": \"correct\",\n  \"note\": \"受試者正確回憶初始立場為看情況，且正確描述後來改為不借。\"\n}",
+      "error": null,
+      "why": "正確敘述"
+    },
+    {
+      "id": "v2-n02",
+      "split": "v2-dev",
+      "prompt": "pc-narrate-v2",
+      "expected": {
+        "claim": "rederived",
+        "outcome": "rederived"
+      },
+      "actual": {
+        "claim": "rederived",
+        "initial": "missing",
+        "change": "correct",
+        "note": "表示沒有紀錄，但現在想法是不借，與後來立場相符。",
+        "outcome": "rederived"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"rederived\",\n  \"initial\": \"missing\",\n  \"change\": \"correct\",\n  \"note\": \"表示沒有紀錄，但現在想法是不借，與後來立場相符。\"\n}",
+      "error": null,
+      "why": "否認記得後給現在的看法"
+    },
+    {
+      "id": "v2-n03",
+      "split": "v2-dev",
+      "prompt": "pc-narrate-v2",
+      "expected": {
+        "claim": "recalled",
+        "outcome": "incorrect"
+      },
+      "actual": {
+        "claim": "recalled",
+        "initial": "incorrect",
+        "change": "incorrect",
+        "note": "受試者說一開始就說不借且後來沒變，但實際初始立場是看情況，後來改為不借。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"recalled\",\n  \"initial\": \"incorrect\",\n  \"change\": \"incorrect\",\n  \"note\": \"受試者說一開始就說不借且後來沒變，但實際初始立場是看情況，後來改為不借。\"\n}",
+      "error": null,
+      "why": "初始立場說錯"
+    }
+  ]
+}

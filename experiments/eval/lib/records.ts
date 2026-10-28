@@ -18,6 +18,8 @@ export interface RecordTurn {
   readonly toolCalls: readonly ToolCall[]
   readonly recallInjected: number | null
   readonly error: string | null
+  /** 選用（執行器的額外欄位）：這一輪花了幾毫秒；只用於 v2 的描述性指標。 */
+  readonly ms?: unknown
 }
 
 export interface RunRecord {
@@ -206,13 +208,47 @@ export interface SelectQuery {
   readonly expected: number
   readonly expectedTurns: number
   readonly datasetSha256: string
+  /**
+   * v2（契約 `protocol.infraErrorPattern`）：回合錯誤訊息符合這個樣式的紀錄視為基礎設施錯誤（限流、配額），
+   * 同一個重複位置有其他紀錄時不採用它（由重跑取代）；沒有其他紀錄時仍以錯誤計分。
+   * 設定時改用依 repeat 對位的選取（見 selectV2）。省略時行為與 v1 完全相同。
+   */
+  readonly infraError?: RegExp
+}
+
+export interface Selection {
+  readonly samples: Sample[]
+  /** 多出、沒有被採用的紀錄數（不計分，但列入 protocol issues）。 */
+  readonly extras: number
+  /** v2：因為同一位置另有紀錄而沒有採用的基礎設施錯誤紀錄數。 */
+  readonly infraSkipped: number
+}
+
+/** 一筆紀錄 → 樣本（檢查資料集版本、回合數、錯誤回合、空回覆）。 */
+function toSample(e: Entry | undefined, i: number, q: SelectQuery): Sample {
+  if (!e) return { repeat: i, status: 'missing-record', detail: '沒有對應的紀錄' }
+  if (e.kind === 'bad') return { repeat: i, status: 'malformed-record', detail: `${e.bad.file}:${e.bad.line} ${e.bad.reason}` }
+  const rec = e.rec
+  if (rec.datasetSha256 !== q.datasetSha256) {
+    return { repeat: i, status: 'dataset-mismatch', detail: `紀錄的 datasetSha256=${rec.datasetSha256.slice(0, 12)}…`, record: rec }
+  }
+  if (rec.turns.length !== q.expectedTurns) {
+    return { repeat: i, status: 'turn-count-mismatch', detail: `預期 ${q.expectedTurns} 輪，紀錄 ${rec.turns.length} 輪`, record: rec }
+  }
+  const errored = rec.turns.findIndex((t) => t.error !== null)
+  if (errored >= 0) {
+    return { repeat: i, status: 'turn-error', detail: `第 ${errored} 輪錯誤：${String(rec.turns[errored]!.error).slice(0, 200)}`, record: rec }
+  }
+  const response = rec.turns[rec.turns.length - 1]!.assistant
+  if (response.trim().length === 0) return { repeat: i, status: 'empty-response', detail: '最後一輪沒有可見回覆', record: rec }
+  return { repeat: i, status: 'ok', record: rec, response }
 }
 
 /**
  * 依契約為一題選出 expected 個樣本：先依 repeat、再依 startedAt 排序取前 expected 筆；
  * 不足的補 missing-record。多出的紀錄回報在 extras（不計分，但列入 protocol issues）。
  */
-export function selectSamples(loaded: LoadedRecords, q: SelectQuery): { samples: Sample[]; extras: number } {
+export function selectSamples(loaded: LoadedRecords, q: SelectQuery): Selection {
   const matches = (x: { phase?: string; itemId?: string; condition?: string; historyModel?: string; probeModel?: string }) =>
     x.phase === q.phase &&
     x.itemId === q.itemId &&
@@ -223,37 +259,49 @@ export function selectSamples(loaded: LoadedRecords, q: SelectQuery): { samples:
     ...loaded.records.filter(matches).map((rec) => ({ kind: 'ok' as const, rec })),
     ...loaded.malformed.filter(matches).map((bad) => ({ kind: 'bad' as const, bad })),
   ].sort(compareEntries)
+  if (q.infraError) return selectV2(entries, q, q.infraError)
   const samples: Sample[] = []
-  for (let i = 0; i < q.expected; i++) {
-    const e = entries[i]
-    if (!e) {
-      samples.push({ repeat: i, status: 'missing-record', detail: '沒有對應的紀錄' })
-      continue
+  for (let i = 0; i < q.expected; i++) samples.push(toSample(entries[i], i, q))
+  return { samples, extras: Math.max(0, entries.length - q.expected), infraSkipped: 0 }
+}
+
+/**
+ * v2 的選取（只在契約有 `protocol.infraErrorPattern` 時使用）：
+ * 1. 第 i 個位置採用標明 repeat＝i 的紀錄中最早的一筆（依 startedAt）；沒有標明 repeat 的紀錄依時間順序補進空位。
+ * 2. 回合錯誤符合基礎設施錯誤樣式的紀錄，先不參與；某個位置沒有其他紀錄時，才用它（仍以錯誤計分）。
+ * 3. 非基礎設施的錯誤（逾時、模型錯誤……）照常參與「最早的一筆」規則——重跑不能取代它，只會變成多出的紀錄。
+ */
+function selectV2(entries: readonly Entry[], q: SelectQuery, infraError: RegExp): Selection {
+  const repeatOf = (e: Entry): number | undefined => (e.kind === 'ok' ? e.rec.repeat : e.bad.repeat)
+  const isInfra = (e: Entry): boolean => e.kind === 'ok' && e.rec.turns.some((t) => t.error !== null && infraError.test(String(t.error)))
+  const regular = entries.filter((e) => !isInfra(e))
+  const infra = entries.filter(isInfra)
+  const slots: (Entry | undefined)[] = Array.from({ length: q.expected }, () => undefined)
+  const used = new Set<Entry>()
+  const fill = (pool: readonly Entry[]): void => {
+    for (let i = 0; i < q.expected; i++) {
+      if (slots[i]) continue
+      const e = pool.find((x) => !used.has(x) && repeatOf(x) === i)
+      if (e) {
+        slots[i] = e
+        used.add(e)
+      }
     }
-    if (e.kind === 'bad') {
-      samples.push({ repeat: i, status: 'malformed-record', detail: `${e.bad.file}:${e.bad.line} ${e.bad.reason}` })
-      continue
+    for (let i = 0; i < q.expected; i++) {
+      if (slots[i]) continue
+      const e = pool.find((x) => !used.has(x) && repeatOf(x) === undefined)
+      if (e) {
+        slots[i] = e
+        used.add(e)
+      }
     }
-    const rec = e.rec
-    if (rec.datasetSha256 !== q.datasetSha256) {
-      samples.push({ repeat: i, status: 'dataset-mismatch', detail: `紀錄的 datasetSha256=${rec.datasetSha256.slice(0, 12)}…`, record: rec })
-      continue
-    }
-    if (rec.turns.length !== q.expectedTurns) {
-      samples.push({ repeat: i, status: 'turn-count-mismatch', detail: `預期 ${q.expectedTurns} 輪，紀錄 ${rec.turns.length} 輪`, record: rec })
-      continue
-    }
-    const errored = rec.turns.findIndex((t) => t.error !== null)
-    if (errored >= 0) {
-      samples.push({ repeat: i, status: 'turn-error', detail: `第 ${errored} 輪錯誤：${String(rec.turns[errored]!.error).slice(0, 200)}`, record: rec })
-      continue
-    }
-    const response = rec.turns[rec.turns.length - 1]!.assistant
-    if (response.trim().length === 0) {
-      samples.push({ repeat: i, status: 'empty-response', detail: '最後一輪沒有可見回覆', record: rec })
-      continue
-    }
-    samples.push({ repeat: i, status: 'ok', record: rec, response })
   }
-  return { samples, extras: Math.max(0, entries.length - q.expected) }
+  fill(regular)
+  fill(infra)
+  const samples = slots.map((e, i) => toSample(e, i, q))
+  return {
+    samples,
+    extras: regular.filter((e) => !used.has(e)).length,
+    infraSkipped: infra.filter((e) => !used.has(e)).length,
+  }
 }

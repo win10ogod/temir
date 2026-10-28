@@ -31,6 +31,12 @@ export interface EvidenceRef {
   readonly text: string
 }
 
+/** v2：一條判定準則。id 形如 c1、c2；text 寫成「符合＝yes」的肯定句。 */
+export interface CriterionSpec {
+  readonly id: string
+  readonly text: string
+}
+
 /** 探針的 meta 欄位（全部可省略）。 */
 export interface ProbeMeta {
   /** 同一題要在「歷史結束快照」上獨立重跑幾次（每次都是新 session）。預設 1。 */
@@ -59,6 +65,10 @@ export interface ProbeMeta {
   readonly askedFor?: string
   /** 人格：自我回想題是否要求回想理由（要求時，只答出選擇而缺理由記為 partial）。 */
   readonly requiresReason?: boolean
+  /** v2 記憶：隱性運用記憶題給 judge 的背景（使用者先前說過、與這題有關的事）。 */
+  readonly background?: string
+  /** v2 記憶：隱性運用記憶題的判定準則（全部符合才算對）。 */
+  readonly criteria?: readonly CriterionSpec[]
   /** 註記（不影響計分）。 */
   readonly note?: string
 }
@@ -155,6 +165,14 @@ export function validateStructure(ds: Dataset): string[] {
     }
     if (m?.choiceType === 'closed' && (!m.options || m.options.length < 2)) {
       errors.push(`探針 ${p.id} 是 closed 選擇題但沒有 options`)
+    }
+    if (m?.criteria) {
+      const ids = m.criteria.map((c) => c.id)
+      if (ids.length === 0) errors.push(`探針 ${p.id} 的 meta.criteria 是空的`)
+      if (new Set(ids).size !== ids.length) errors.push(`探針 ${p.id} 的判定準則 id 重複`)
+      for (const c of m.criteria) {
+        if (!/^c\d+$/u.test(c.id) || !isString(c.text) || c.text.trim().length === 0) errors.push(`探針 ${p.id} 的判定準則 ${String(c.id)} 格式錯誤`)
+      }
     }
   }
   return errors

@@ -10,6 +10,7 @@
  * - 只有 judge 被刻意關閉（--judge none）或重放時找不到紀錄，才是 unavailable（報告標示為未完成）。
  */
 import { appendFileSync, existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import type { JudgePromptId, JudgeSpec } from './contract.ts'
 import { sha256 } from './dataset.ts'
 import type { ParseResult, PromptPair } from './prompts.ts'
@@ -44,9 +45,48 @@ export interface JudgeRequest {
 export interface Judge {
   readonly name: string
   judge(req: JudgeRequest): Promise<JudgeOutcome>
-  /** 累計花費（美元，依契約價格估算）。 */
+  /** 本次執行累計花費（美元，依契約價格估算）。 */
   spentUsd(): number
+  /** 本次執行實際送出的 API 請求數。 */
   calls(): number
+  /**
+   * 摘要所依據的 judge 紀錄來源：哪個 judge、多少次 API 呼叫、估計花費。
+   * 即時呼叫時就是本次執行；重放時由重放的 judge 紀錄檔重建（讓 `--judge replay` 能逐位元組重現原摘要）。
+   */
+  provenance(): JudgeProvenance
+}
+
+export interface JudgeProvenance {
+  readonly name: string
+  readonly calls: number
+  readonly spentUsd: number
+}
+
+/**
+ * 由 judge 紀錄檔（judge-raw.jsonl）重建呼叫數與花費：每一行是一次嘗試；`budget-exhausted` 那一行
+ * 沒有送出請求，不計；有 usage 的行依檔案順序累加花費（與 DeepSeekJudge 執行時累加的順序相同）。
+ * 同一個檔案路徑只算一次。
+ */
+export function recordStats(files: readonly string[], prices: JudgeSpec['pricesUsdPerMillion']): { calls: number; spentUsd: number; entries: number } {
+  let calls = 0
+  let spentUsd = 0
+  let entries = 0
+  for (const file of [...new Set(files.map((f) => resolve(f)))]) {
+    if (!existsSync(file)) continue
+    for (const line of readFileSync(file, 'utf8').split('\n')) {
+      if (!line.trim()) continue
+      let e: CacheEntry
+      try {
+        e = JSON.parse(line) as CacheEntry
+      } catch {
+        continue
+      }
+      entries++
+      if (e.status !== 'budget-exhausted') calls++
+      if (e.usage) spentUsd += costUsd(e.usage, prices)
+    }
+  }
+  return { calls, spentUsd, entries }
 }
 
 export function requestKey(spec: Pick<JudgeSpec, 'model' | 'temperature' | 'maxTokens' | 'thinking'>, pair: PromptPair): string {
@@ -141,6 +181,10 @@ export class DeepSeekJudge implements Judge {
 
   calls(): number {
     return this.#calls
+  }
+
+  provenance(): JudgeProvenance {
+    return { name: this.name, calls: this.#calls, spentUsd: this.#spent }
   }
 
   #record(entry: Omit<CacheEntry, 'at' | 'model'>): void {
@@ -250,10 +294,13 @@ export class ReplayJudge implements Judge {
   readonly name = 'replay'
   readonly #spec: JudgeSpec
   readonly #cache: Map<string, CacheEntry>
+  readonly #stats: { calls: number; spentUsd: number; entries: number }
 
   constructor(spec: JudgeSpec, cacheFiles: readonly string[]) {
+    const files = [...new Set(cacheFiles.map((f) => resolve(f)))]
     this.#spec = spec
-    this.#cache = readCache(cacheFiles)
+    this.#cache = readCache(files)
+    this.#stats = recordStats(files, spec.pricesUsdPerMillion)
   }
 
   spentUsd(): number {
@@ -262,6 +309,13 @@ export class ReplayJudge implements Judge {
 
   calls(): number {
     return 0
+  }
+
+  /** 重放的紀錄來自 DeepSeek judge（只有它會寫紀錄檔）；沒有任何紀錄時標為 replay。 */
+  provenance(): JudgeProvenance {
+    return this.#stats.entries > 0
+      ? { name: 'deepseek', calls: this.#stats.calls, spentUsd: this.#stats.spentUsd }
+      : { name: this.name, calls: 0, spentUsd: 0 }
   }
 
   async judge(req: JudgeRequest): Promise<JudgeOutcome> {
@@ -282,6 +336,9 @@ export class NoJudge implements Judge {
   }
   calls(): number {
     return 0
+  }
+  provenance(): JudgeProvenance {
+    return { name: this.name, calls: 0, spentUsd: 0 }
   }
   async judge(req: JudgeRequest): Promise<JudgeOutcome> {
     return { status: 'unavailable', key: requestKey({ model: 'none', temperature: 0, maxTokens: 0, thinking: 'disabled' }, req.pair), raw: '', attempts: 0, cached: false, error: 'judge 已關閉' }
@@ -307,6 +364,10 @@ export class ScriptedJudge implements Judge {
 
   calls(): number {
     return this.seen.length
+  }
+
+  provenance(): JudgeProvenance {
+    return { name: this.name, calls: this.seen.length, spentUsd: 0 }
   }
 
   async judge(req: JudgeRequest): Promise<JudgeOutcome> {

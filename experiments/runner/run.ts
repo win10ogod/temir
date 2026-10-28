@@ -130,6 +130,18 @@ export const LAYOUTS: Record<'adjacent' | 'home', Layout> = {
   },
 }
 
+/** 生命日誌中個體輔助呼叫（擷取事實、線索詞與自我陳述）的次數與失敗次數。 */
+export function auxStats(lifeDb: string): { calls: number; errors: number } {
+  if (!existsSync(lifeDb)) return { calls: 0, errors: 0 }
+  const db = new DatabaseSync(lifeDb, { readOnly: true })
+  try {
+    const rows = db.prepare(`SELECT data FROM events WHERE kind = 'memory/aux'`).all() as { data: string }[]
+    return { calls: rows.length, errors: rows.filter((r) => (JSON.parse(r.data) as { error?: string }).error !== undefined).length }
+  } finally {
+    db.close()
+  }
+}
+
 function copyState(from: string, to: string, layout: Layout): void {
   rmSync(to, { recursive: true, force: true })
   mkdirSync(to, { recursive: true })
@@ -153,6 +165,8 @@ async function main(): Promise<void> {
       'run-id': { type: 'string' },
       'from-run': { type: 'string' },
       layout: { type: 'string', default: 'adjacent' },
+      // 'last'（v1）：只記每輪最後一則可見文字；'all'（v2）：每輪所有可見文字依序以空行連接。
+      'assistant-text': { type: 'string', default: 'last' },
       'turn-timeout-ms': { type: 'string', default: '900000' },
       // 多個 run 平行執行時，帳戶餘額差無法歸屬到單一 run；改由批次腳本量總花費。
       'no-balance': { type: 'boolean', default: false },
@@ -183,6 +197,8 @@ async function main(): Promise<void> {
   const layoutName = values.layout as keyof typeof LAYOUTS
   const layout = LAYOUTS[layoutName]
   if (!layout) throw new Error(`未知的目錄配置 ${values.layout}；可用：${Object.keys(LAYOUTS).join('、')}`)
+  const assistantText = values['assistant-text']
+  if (assistantText !== 'last' && assistantText !== 'all') throw new Error(`未知的 --assistant-text ${assistantText}；可用：last、all`)
   const live = join(stateDir, 'live')
   copyState(join(stateDir, 'none'), live, layout)
   const experimentsRoot = join(process.env['TEMIR_CACHE'] ?? join(homedir(), '.cache', 'temir'), 'experiments')
@@ -216,6 +232,7 @@ async function main(): Promise<void> {
     approvals: 'allowed-once for every request',
     questionReply: QUESTION_REPLY,
     layout: layoutName,
+    assistantText,
     isolation: 'fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat',
     code: { commit: git('rev-parse', 'HEAD'), dirty: git('status', '--porcelain').length > 0, diffSha256: sha256(git('diff', 'HEAD')) },
     runtime: { node: process.version, dsh: execFileSync('dsh', ['--version'], { encoding: 'utf8' }).trim() },
@@ -240,7 +257,7 @@ async function main(): Promise<void> {
       if (event.type === 'assistant/message') {
         const blocks = event.data.message.content as readonly Block[]
         const text = textOf(blocks).trim()
-        if (text) current.assistant = text
+        if (text) current.assistant = assistantText === 'all' && current.assistant ? `${current.assistant}\n\n${text}` : text
         for (const b of blocks) if (b.type === 'tool-call') current.toolCalls.push({ name: b.name ?? '', arguments: b.arguments ?? '' })
         if (event.data.usage) current.usage.push(event.data.usage)
       } else if (event.type === 'user/message' && (event.data.source as { kind: string }).kind === 'temir-recall') {
@@ -385,6 +402,17 @@ async function main(): Promise<void> {
     }
   }
 
+  // 輔助呼叫的失敗（例如限流）不一定成為回合錯誤；分歷史與探針兩段統計（探針段扣除快照中已有的部分）。
+  const historyAux = auxStats(layout.lifeDb(snapshot))
+  const probeAux = { calls: 0, errors: 0 }
+  for (const probe of probes) {
+    for (let repeat = 0; repeat < Math.max(1, probe.meta?.repeats ?? 1); repeat++) {
+      const stats = auxStats(layout.lifeDb(join(stateDir, 'probes', probe.id, `r${repeat}`)))
+      probeAux.calls += Math.max(0, stats.calls - historyAux.calls)
+      probeAux.errors += Math.max(0, stats.errors - historyAux.errors)
+    }
+  }
+
   const balanceAfter = usesDeepseek ? await deepseekBalance() : null
   const summary = {
     runId,
@@ -397,6 +425,7 @@ async function main(): Promise<void> {
     historyRuntimeExitCode: histories.exit,
     // 快照時仍未完成自我陳述擷取的回覆數（應為 0；非 0 代表沉澱逾時）。
     unsettledSelfStatements: histories.unsettled,
+    auxiliaryCalls: { history: historyAux, probes: probeAux },
     // 只記錄花費（帳戶餘額前後差，解析度 US$0.01），不記錄餘額本身。
     deepseekSpentUsd: balanceBefore !== null && balanceAfter !== null ? Number((balanceBefore - balanceAfter).toFixed(2)) : null,
   }

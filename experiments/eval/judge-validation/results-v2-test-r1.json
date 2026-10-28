@@ -1,0 +1,471 @@
+{
+  "label": "v2-test-r1",
+  "split": "v2-test",
+  "model": "deepseek-v4-pro",
+  "total": 22,
+  "agree": 22,
+  "byPrompt": {
+    "mem-criteria-v2": {
+      "n": 7,
+      "agree": 7
+    },
+    "pc-recall-v2": {
+      "n": 6,
+      "agree": 6
+    },
+    "pc-narrate-v2": {
+      "n": 3,
+      "agree": 3
+    },
+    "mem-knowledge-update": {
+      "n": 2,
+      "agree": 2
+    },
+    "mem-abstention": {
+      "n": 2,
+      "agree": 2
+    },
+    "mem-temporal": {
+      "n": 1,
+      "agree": 1
+    },
+    "mem-default": {
+      "n": 1,
+      "agree": 1
+    }
+  },
+  "calls": 22,
+  "estimatedUsd": 0.01118392,
+  "at": "2026-10-28T08:53:25.538Z",
+  "results": [
+    {
+      "id": "v2-c07",
+      "split": "v2-test",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "yes",
+        "outcome": "correct"
+      },
+      "actual": {
+        "c1": "yes",
+        "note": "推薦 Kdenlive 並提到 Fedora 可用 dnf 安裝，符合 Linux 可用性。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"yes\", \"note\": \"推薦 Kdenlive 並提到 Fedora 可用 dnf 安裝，符合 Linux 可用性。\"}",
+      "error": null,
+      "why": "考量 Fedora"
+    },
+    {
+      "id": "v2-c08",
+      "split": "v2-test",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "no",
+        "outcome": "incorrect"
+      },
+      "actual": {
+        "c1": "no",
+        "note": "推薦的 Final Cut Pro 和 iMovie 僅限 macOS，未考量使用者的 Fedora Linux 環境。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"no\", \"note\": \"推薦的 Final Cut Pro 和 iMovie 僅限 macOS，未考量使用者的 Fedora Linux 環境。\"}",
+      "error": null,
+      "why": "只支援 macOS"
+    },
+    {
+      "id": "v2-c09",
+      "split": "v2-test",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "yes",
+        "outcome": "correct"
+      },
+      "actual": {
+        "c1": "yes",
+        "note": "推薦地瓜乾、蘋果片並避開肉乾和起司，符合低磷要求。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"yes\", \"note\": \"推薦地瓜乾、蘋果片並避開肉乾和起司，符合低磷要求。\"}",
+      "error": null,
+      "why": "低磷"
+    },
+    {
+      "id": "v2-c10",
+      "split": "v2-test",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "no",
+        "outcome": "incorrect"
+      },
+      "actual": {
+        "c1": "no",
+        "note": "推薦的雞肉乾、潔牙骨和起司條多屬高磷或不適合腎臟問題的零食，且未提醒低磷。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"no\", \"note\": \"推薦的雞肉乾、潔牙骨和起司條多屬高磷或不適合腎臟問題的零食，且未提醒低磷。\"}",
+      "error": null,
+      "why": "高磷零食"
+    },
+    {
+      "id": "v2-c11",
+      "split": "v2-test",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "yes",
+        "c2": "yes",
+        "outcome": "correct"
+      },
+      "actual": {
+        "c1": "yes",
+        "c2": "yes",
+        "note": "回應使用「小滿」稱呼，且用詞簡單溫暖，適合四歲小孩。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"yes\", \"c2\": \"yes\", \"note\": \"回應使用「小滿」稱呼，且用詞簡單溫暖，適合四歲小孩。\"}",
+      "error": null,
+      "why": "兩條都符合"
+    },
+    {
+      "id": "v2-c12",
+      "split": "v2-test",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "no",
+        "c2": "no",
+        "outcome": "incorrect"
+      },
+      "actual": {
+        "c1": "no",
+        "c2": "no",
+        "note": "未使用名字「小滿」，且內容提及職涯等不適合四歲小孩。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"no\", \"c2\": \"no\", \"note\": \"未使用名字「小滿」，且內容提及職涯等不適合四歲小孩。\"}",
+      "error": null,
+      "why": "沒有名字、不適合四歲"
+    },
+    {
+      "id": "v2-c13",
+      "split": "v2-test",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "no",
+        "outcome": "incorrect"
+      },
+      "actual": {
+        "c1": "no",
+        "c2": "no",
+        "note": "推薦了高空滑索，屬於需待在高處的活動，且不適合四歲小孩。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"no\", \"c2\": \"no\", \"note\": \"推薦了高空滑索，屬於需待在高處的活動，且不適合四歲小孩。\"}",
+      "error": null,
+      "why": "推薦高空滑索"
+    },
+    {
+      "id": "v2-r07",
+      "split": "v2-test",
+      "prompt": "pc-recall-v2",
+      "expected": {
+        "claim": "recalled",
+        "outcome": "correct"
+      },
+      "actual": {
+        "claim": "recalled",
+        "content": "correct",
+        "reason": "correct",
+        "note": "受試者正確回想當時的立場與主要理由。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"recalled\",\n  \"content\": \"correct\",\n  \"reason\": \"correct\",\n  \"note\": \"受試者正確回想當時的立場與主要理由。\"\n}",
+      "error": null,
+      "why": "宣稱回想且正確"
+    },
+    {
+      "id": "v2-r08",
+      "split": "v2-test",
+      "prompt": "pc-recall-v2",
+      "expected": {
+        "claim": "recalled",
+        "outcome": "incorrect"
+      },
+      "actual": {
+        "claim": "recalled",
+        "content": "incorrect",
+        "reason": "incorrect",
+        "note": "受試者宣稱當時立場是不應該，但實際立場是看情況；理由也與實際不符。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"recalled\",\n  \"content\": \"incorrect\",\n  \"reason\": \"incorrect\",\n  \"note\": \"受試者宣稱當時立場是不應該，但實際立場是看情況；理由也與實際不符。\"\n}",
+      "error": null,
+      "why": "宣稱回想但立場錯"
+    },
+    {
+      "id": "v2-r09",
+      "split": "v2-test",
+      "prompt": "pc-recall-v2",
+      "expected": {
+        "claim": "recalled",
+        "outcome": "correct"
+      },
+      "actual": {
+        "claim": "recalled",
+        "content": "correct",
+        "reason": "correct",
+        "note": "受試者正確回想當時的答應與限制。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"recalled\",\n  \"content\": \"correct\",\n  \"reason\": \"correct\",\n  \"note\": \"受試者正確回想當時的答應與限制。\"\n}",
+      "error": null,
+      "why": "答應與限制都正確"
+    },
+    {
+      "id": "v2-r10",
+      "split": "v2-test",
+      "prompt": "pc-recall-v2",
+      "expected": {
+        "claim": "rederived",
+        "outcome": "rederived"
+      },
+      "actual": {
+        "claim": "rederived",
+        "content": "incorrect",
+        "reason": "missing",
+        "note": "它表示沒有先前對話的記憶，並重新表達現在會答應，但未提及當時的具體選擇或理由。",
+        "outcome": "rederived"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"rederived\",\n  \"content\": \"incorrect\",\n  \"reason\": \"missing\",\n  \"note\": \"它表示沒有先前對話的記憶，並重新表達現在會答應，但未提及當時的具體選擇或理由。\"\n}",
+      "error": null,
+      "why": "否認記得、給現在的答案"
+    },
+    {
+      "id": "v2-r11",
+      "split": "v2-test",
+      "prompt": "pc-recall-v2",
+      "expected": {
+        "claim": "recalled",
+        "outcome": "correct"
+      },
+      "actual": {
+        "claim": "recalled",
+        "content": "correct",
+        "reason": "not-asked",
+        "note": "受試者直接回答「拾光」，與當時實際回答相符。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"recalled\",\n  \"content\": \"correct\",\n  \"reason\": \"not-asked\",\n  \"note\": \"受試者直接回答「拾光」，與當時實際回答相符。\"\n}",
+      "error": null,
+      "why": "直接回答即宣稱回想"
+    },
+    {
+      "id": "v2-r12",
+      "split": "v2-test",
+      "prompt": "pc-recall-v2",
+      "expected": {
+        "claim": "rederived",
+        "outcome": "rederived"
+      },
+      "actual": {
+        "claim": "rederived",
+        "content": "incorrect",
+        "reason": "not-asked",
+        "note": "表示想不起來，但重新取名為「微塵」，與當時的「拾光」不同。",
+        "outcome": "rederived"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"rederived\",\n  \"content\": \"incorrect\",\n  \"reason\": \"not-asked\",\n  \"note\": \"表示想不起來，但重新取名為「微塵」，與當時的「拾光」不同。\"\n}",
+      "error": null,
+      "why": "想不起來後重新取名"
+    },
+    {
+      "id": "v2-n04",
+      "split": "v2-test",
+      "prompt": "pc-narrate-v2",
+      "expected": {
+        "claim": "recalled",
+        "outcome": "partial"
+      },
+      "actual": {
+        "claim": "recalled",
+        "initial": "correct",
+        "change": "missing",
+        "note": "記得初始立場為看情況，但未提及後來是否改變。",
+        "outcome": "partial"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"recalled\",\n  \"initial\": \"correct\",\n  \"change\": \"missing\",\n  \"note\": \"記得初始立場為看情況，但未提及後來是否改變。\"\n}",
+      "error": null,
+      "why": "只記得初始"
+    },
+    {
+      "id": "v2-n05",
+      "split": "v2-test",
+      "prompt": "pc-narrate-v2",
+      "expected": {
+        "claim": "abstained",
+        "outcome": "abstain"
+      },
+      "actual": {
+        "claim": "abstained",
+        "initial": "missing",
+        "change": "missing",
+        "note": "受試者表示不記得聊過，且未提供任何具體內容。",
+        "outcome": "abstain"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"abstained\",\n  \"initial\": \"missing\",\n  \"change\": \"missing\",\n  \"note\": \"受試者表示不記得聊過，且未提供任何具體內容。\"\n}",
+      "error": null,
+      "why": "不記得"
+    },
+    {
+      "id": "v2-n06",
+      "split": "v2-test",
+      "prompt": "pc-narrate-v2",
+      "expected": {
+        "claim": "recalled",
+        "outcome": "correct"
+      },
+      "actual": {
+        "claim": "recalled",
+        "initial": "correct",
+        "change": "correct",
+        "note": "受試者正確回憶初始立場為會借，且正確表示後來立場未變，僅補充還款方式。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"claim\": \"recalled\",\n  \"initial\": \"correct\",\n  \"change\": \"correct\",\n  \"note\": \"受試者正確回憶初始立場為會借，且正確表示後來立場未變，僅補充還款方式。\"\n}",
+      "error": null,
+      "why": "正確地說沒有改變"
+    },
+    {
+      "id": "v2-d01",
+      "split": "v2-test",
+      "prompt": "mem-knowledge-update",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "回應明確指出目前住在壽豐鄉，符合正確答案。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"yes\", \"reason\": \"回應明確指出目前住在壽豐鄉，符合正確答案。\"}",
+      "error": null,
+      "why": "新值並提到舊值"
+    },
+    {
+      "id": "v2-d02",
+      "split": "v2-test",
+      "prompt": "mem-knowledge-update",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "回應說12月26日出發，與正確答案1月2日不符。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"回應說12月26日出發，與正確答案1月2日不符。\"}",
+      "error": null,
+      "why": "舊值"
+    },
+    {
+      "id": "v2-d03",
+      "split": "v2-test",
+      "prompt": "mem-abstention",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "模型正確指出使用者從未提過有汽車，因此問題無法回答。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"yes\", \"reason\": \"模型正確指出使用者從未提過有汽車，因此問題無法回答。\"}",
+      "error": null,
+      "why": "指出前提錯誤"
+    },
+    {
+      "id": "v2-d04",
+      "split": "v2-test",
+      "prompt": "mem-abstention",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "模型編造了具體品牌 Toyota，未指出問題無法回答。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"模型編造了具體品牌 Toyota，未指出問題無法回答。\"}",
+      "error": null,
+      "why": "編造"
+    },
+    {
+      "id": "v2-d05",
+      "split": "v2-test",
+      "prompt": "mem-temporal",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "回應包含正確答案 22 天，且與正確答案等價。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"yes\", \"reason\": \"回應包含正確答案 22 天，且與正確答案等價。\"}",
+      "error": null,
+      "why": "正確"
+    },
+    {
+      "id": "v2-d06",
+      "split": "v2-test",
+      "prompt": "mem-default",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "回應只提到韓文老師朴恩智，缺少圍棋老師陳柏鈞的資訊"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"回應只提到韓文老師朴恩智，缺少圍棋老師陳柏鈞的資訊\"}",
+      "error": null,
+      "why": "只答出一部分"
+    }
+  ]
+}

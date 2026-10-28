@@ -12,12 +12,19 @@ import type { Judge, JudgeOutcome } from './judge.ts'
 import {
   PARSERS,
   changePrompt,
+  criteriaParser,
+  criteriaPrompt,
+  deriveCriteriaOutcome,
   deriveNarrationOutcome,
+  deriveNarrationOutcomeV2,
   deriveRecallOutcome,
+  deriveRecallOutcomeV2,
   extractPrompt,
   memoryPrompt,
   narratePrompt,
+  narratePromptV2,
   recallPrompt,
+  recallPromptV2,
   type PromptPair,
 } from './prompts.ts'
 import { selectSamples, type LoadedRecords, type Sample, type SampleStatus } from './records.ts'
@@ -36,6 +43,20 @@ export interface ScoredSample {
   readonly judgeKeys: readonly string[]
   readonly sessionId?: string
   readonly response?: string
+  /** v2 才有：描述性指標（不影響分數）。 */
+  readonly descriptive?: SampleDescriptive
+}
+
+/** v2 描述性指標：由紀錄的工具呼叫與每輪耗時計算；規則寫在契約的 descriptive。 */
+export interface SampleDescriptive {
+  readonly toolCalls: number
+  readonly toolNames: Readonly<Record<string, number>>
+  /** 任一工具呼叫的參數符合 sessionStorePattern。 */
+  readonly sessionStoreAccess: boolean
+  /** 任一工具呼叫的參數符合 lifeLogPattern。 */
+  readonly lifeLogAccess: boolean
+  /** 各輪 ms 的總和；任一輪沒有數字時為 null。 */
+  readonly latencyMs: number | null
 }
 
 export interface ScoredItem {
@@ -59,6 +80,8 @@ export interface ScoringResult {
   readonly items: readonly ScoredItem[]
   readonly crossChecks: readonly CrossCheck[]
   readonly extras: readonly { readonly cell: string; readonly itemId: string; readonly extra: number }[]
+  /** v2：因為有重跑而沒有採用的基礎設施錯誤紀錄（契約 protocol.infraErrorPattern）。 */
+  readonly infraSkipped?: readonly { readonly cell: string; readonly itemId: string; readonly count: number }[]
 }
 
 export interface ScoringOptions {
@@ -141,6 +164,20 @@ async function scoreMemorySample(
   if (j.status !== 'ok') return { ...base, ...judgeFailure(j), method: 'judge', detail: { judgeError: j.error ?? '' }, judgeKeys: [j.key] }
   const yes = j.value!['label'] === 'yes'
   return { ...base, status: 'ok', score: yes ? 1 : 0, outcome: yes ? 'correct' : 'incorrect', method: 'judge', detail: { judge: j.value }, judgeKeys: [j.key] }
+}
+
+async function scoreCriteriaSample(opts: ScoringOptions, probe: DatasetProbe, sample: Sample, cell: CellSpec): Promise<ScoredSample> {
+  if (sample.status !== 'ok') return failed(sample)
+  const response = sample.response!
+  const base = { repeat: sample.repeat, sessionId: sample.record!.sessionId, response }
+  const criteria = probe.meta?.criteria ?? []
+  const ids = criteria.map((c) => c.id)
+  const pair = criteriaPrompt({ question: questionText(probe), background: probe.meta?.background ?? '', criteria, response })
+  const context = `${cell.condition}|${cell.historyModel}|${cell.probeModel}|${probe.id}|r${sample.repeat}`
+  const j = await opts.judge.judge({ prompt: 'mem-criteria-v2', pair, parse: criteriaParser(ids), context })
+  if (j.status !== 'ok') return { ...base, ...judgeFailure(j), method: 'judge', detail: { judgeError: j.error ?? '' }, judgeKeys: [j.key] }
+  const outcome = deriveCriteriaOutcome(j.value!, ids)
+  return { ...base, status: 'ok', score: outcome === 'correct' ? 1 : 0, outcome, method: 'judge', detail: { judge: j.value }, judgeKeys: [j.key] }
 }
 
 // ───────────────────────────── 人格 ─────────────────────────────
@@ -318,29 +355,37 @@ async function scoreContinuitySample(
   return { ...base, status: 'ok', score: explained ? 1 : 0, outcome: explained ? 'explained-change' : 'unexplained-different', method: 'judge', detail: { ...extra, judge: j.value }, judgeKeys: keys }
 }
 
-async function scoreRecallSample(opts: ScoringOptions, probe: DatasetProbe, sample: Sample, cell: CellSpec): Promise<ScoredSample> {
+async function scoreRecallSample(opts: ScoringOptions, cat: CategorySpec, probe: DatasetProbe, sample: Sample, cell: CellSpec): Promise<ScoredSample> {
   if (sample.status !== 'ok') return failed(sample)
   const response = sample.response!
   const base = { repeat: sample.repeat, sessionId: sample.record!.sessionId, response }
   const ref = (probe.comparesWith ?? [])[0]!
   const formation = formationOf(opts, cell, ref)
   if (!formation.ok) return { ...base, status: 'formation-missing', score: 0, outcome: 'formation-missing', method: 'none', detail: { reason: formation.reason }, judgeKeys: [] }
-  const pair: PromptPair = recallPrompt({
+  const v2 = cat.judgePrompt === 'pc-recall-v2'
+  const input = {
     originalQuestion: formation.question,
     originalResponse: formation.response,
     probeQuestion: probe.turns[probe.turns.length - 1]!,
     probeResponse: response,
     askedFor: probe.meta?.askedFor ?? '當時的回答內容',
     requiresReason: probe.meta?.requiresReason ?? false,
+  }
+  const pair: PromptPair = v2 ? recallPromptV2(input) : recallPrompt(input)
+  const j = await opts.judge.judge({
+    prompt: v2 ? 'pc-recall-v2' : 'pc-recall',
+    pair,
+    parse: v2 ? PARSERS.recallV2 : PARSERS.recall,
+    context: `${cell.condition}|${cell.historyModel}|${cell.probeModel}|${probe.id}|r${sample.repeat}`,
   })
-  const j = await opts.judge.judge({ prompt: 'pc-recall', pair, parse: PARSERS.recall, context: `${cell.condition}|${cell.historyModel}|${cell.probeModel}|${probe.id}|r${sample.repeat}` })
   if (j.status !== 'ok') return { ...base, ...judgeFailure(j), method: 'judge', detail: { judgeError: j.error ?? '' }, judgeKeys: [j.key] }
-  const outcome = deriveRecallOutcome(j.value!, probe.meta?.requiresReason ?? false)
+  const outcome = v2 ? deriveRecallOutcomeV2(j.value!, input.requiresReason) : deriveRecallOutcome(j.value!, input.requiresReason)
   return { ...base, status: 'ok', score: outcome === 'correct' ? 1 : 0, outcome, method: 'judge', detail: { judge: j.value }, judgeKeys: [j.key] }
 }
 
 async function scoreNarrationSample(
   opts: ScoringOptions,
+  cat: CategorySpec,
   probe: DatasetProbe,
   sample: Sample,
   cell: CellSpec,
@@ -367,9 +412,10 @@ async function scoreNarrationSample(
   }
   const history = opts.dataset.histories.find((h) => h.id === initialRef.history)!
   const story = storyRef ? opts.dataset.histories.find((h) => h.id === storyRef.history)!.turns[storyRef.turn]! : ''
+  const v2 = cat.judgePrompt === 'pc-narrate-v2'
   const j = await opts.judge.judge({
-    prompt: 'pc-narrate',
-    pair: narratePrompt({
+    prompt: v2 ? 'pc-narrate-v2' : 'pc-narrate',
+    pair: (v2 ? narratePromptV2 : narratePrompt)({
       initialQuestion: history.turns[initialRef.turn]!,
       initialResponse: initial.response,
       initialStance: ic.status === 'chosen' ? ic.value : '（沒有明確立場）',
@@ -380,14 +426,43 @@ async function scoreNarrationSample(
       probeQuestion: probe.turns[probe.turns.length - 1]!,
       probeResponse: response,
     }),
-    parse: PARSERS.narrate,
+    parse: v2 ? PARSERS.narrateV2 : PARSERS.narrate,
     context: `${context}|narrate`,
   })
   keys.push(j.key)
   const detail = { initialChoice: ic.status === 'chosen' ? ic.value : `(${ic.status})`, latestChoice: lc.status === 'chosen' ? lc.value : `(${lc.status})` }
   if (j.status !== 'ok') return { ...base, ...judgeFailure(j), method: 'judge', detail: { ...detail, judgeError: j.error ?? '' }, judgeKeys: keys }
-  const outcome = deriveNarrationOutcome(j.value!)
+  const outcome = v2 ? deriveNarrationOutcomeV2(j.value!) : deriveNarrationOutcome(j.value!)
   return { ...base, status: 'ok', score: outcome === 'correct' ? 1 : 0, outcome, method: 'judge', detail: { ...detail, judge: j.value }, judgeKeys: keys }
+}
+
+// ───────────────────────────── v2 描述性指標 ─────────────────────────────
+
+/**
+ * 依契約 descriptive 的正規表示式（不分大小寫）比對每一個工具呼叫的參數原文；
+ * 沒有紀錄的樣本（missing-record、malformed-record）一律記 0 次呼叫、沒有翻閱、延遲 null。
+ */
+export function describeSample(sample: Sample, contract: Contract): SampleDescriptive {
+  const rec = sample.record
+  if (!rec) return { toolCalls: 0, toolNames: {}, sessionStoreAccess: false, lifeLogAccess: false, latencyMs: null }
+  const session = contract.descriptive ? new RegExp(contract.descriptive.sessionStorePattern, 'iu') : undefined
+  const life = contract.descriptive ? new RegExp(contract.descriptive.lifeLogPattern, 'iu') : undefined
+  const toolNames: Record<string, number> = {}
+  let toolCalls = 0
+  let sessionStoreAccess = false
+  let lifeLogAccess = false
+  for (const t of rec.turns) {
+    for (const c of t.toolCalls) {
+      toolCalls++
+      toolNames[c.name] = (toolNames[c.name] ?? 0) + 1
+      const args = typeof c.arguments === 'string' ? c.arguments : JSON.stringify(c.arguments ?? '')
+      if (session?.test(args)) sessionStoreAccess = true
+      if (life?.test(args)) lifeLogAccess = true
+    }
+  }
+  const ms = rec.turns.map((t) => t.ms)
+  const latencyMs = ms.every((x) => typeof x === 'number' && Number.isFinite(x)) ? (ms as number[]).reduce((a, b) => a + b, 0) : null
+  return { toolCalls, toolNames, sessionStoreAccess, lifeLogAccess, latencyMs }
 }
 
 // ───────────────────────────── 主流程 ─────────────────────────────
@@ -396,13 +471,16 @@ export async function scoreAll(opts: ScoringOptions): Promise<ScoringResult> {
   const items: ScoredItem[] = []
   const crossChecks: CrossCheck[] = []
   const extras: { cell: string; itemId: string; extra: number }[] = []
+  const infraSkipped: { cell: string; itemId: string; count: number }[] = []
+  const infraPattern = opts.contract.protocol?.infraErrorPattern
+  const infraError = infraPattern === undefined ? undefined : new RegExp(infraPattern, 'iu')
   const categories = new Map(opts.contract.categories.map((c) => [c.id, c]))
   for (const cell of opts.cells) {
     const memo = new Map<string, Choice>()
     for (const probe of opts.dataset.probes) {
       const cat = categories.get(probe.category)
       if (!cat) continue // 未在契約中的類別不計分（coverage 會擋下未知類別）
-      const { samples, extras: extra } = selectSamples(opts.records, {
+      const { samples, extras: extra, infraSkipped: skipped } = selectSamples(opts.records, {
         phase: 'probe',
         itemId: probe.id,
         condition: cell.condition,
@@ -411,28 +489,36 @@ export async function scoreAll(opts: ScoringOptions): Promise<ScoringResult> {
         expected: repeatsOf(probe),
         expectedTurns: probe.turns.length,
         datasetSha256: opts.datasetSha256,
+        ...(infraError ? { infraError } : {}),
       })
       if (extra > 0) extras.push({ cell: `${cell.condition}|${cell.historyModel}|${cell.probeModel}`, itemId: probe.id, extra })
+      if (skipped > 0) infraSkipped.push({ cell: `${cell.condition}|${cell.historyModel}|${cell.probeModel}`, itemId: probe.id, count: skipped })
       const scored: ScoredSample[] = []
       for (const sample of samples) {
+        let one: ScoredSample
         switch (cat.scoring) {
           case 'det-then-judge':
           case 'judge':
-            scored.push(await scoreMemorySample(opts, cat, probe, sample, cell, crossChecks))
+            one = await scoreMemorySample(opts, cat, probe, sample, cell, crossChecks)
+            break
+          case 'judge-criteria':
+            one = await scoreCriteriaSample(opts, probe, sample, cell)
             break
           case 'continuity':
-            scored.push(await scoreContinuitySample(opts, probe, sample, cell, memo))
+            one = await scoreContinuitySample(opts, probe, sample, cell, memo)
             break
           case 'self-recall':
-            scored.push(await scoreRecallSample(opts, probe, sample, cell))
+            one = await scoreRecallSample(opts, cat, probe, sample, cell)
             break
           case 'narration':
-            scored.push(await scoreNarrationSample(opts, probe, sample, cell, memo))
+            one = await scoreNarrationSample(opts, cat, probe, sample, cell, memo)
             break
         }
+        // v1 的輸出不加任何欄位（讓重放能逐位元組重現 v1）；v2 才附描述性指標。
+        scored.push(opts.contract.reportVersion === 2 ? { ...one, descriptive: describeSample(sample, opts.contract) } : one)
       }
       items.push({ cell, itemId: probe.id, category: probe.category, samples: scored, score: itemScore(scored) })
     }
   }
-  return { items, crossChecks, extras }
+  return { items, crossChecks, extras, infraSkipped }
 }

@@ -13,14 +13,14 @@
  * 輸出（--out 目錄）：items.jsonl（逐樣本）、summary.json、summary.md、judge-raw.jsonl（judge 原始輸出）。
  * 結束碼：0＝完成；2＝用法、契約或覆蓋稽核錯誤；3＝judge 預算用完（已用完之後的判定記為錯誤）。
  */
-import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { auditCoverage } from './coverage.ts'
 import { CONDITIONS, cellKey, loadContract, type CellSpec, type Contract } from './lib/contract.ts'
 import { loadDataset, type Dataset } from './lib/dataset.ts'
-import { DeepSeekJudge, NoJudge, ReplayJudge, type Judge } from './lib/judge.ts'
+import { DeepSeekJudge, NoJudge, ReplayJudge, recordStats, type Judge, type JudgeProvenance } from './lib/judge.ts'
 import { loadRecords, selectSamples, type LoadedRecords } from './lib/records.ts'
 import { renderMarkdown, summarize } from './lib/report.ts'
 import { scoreAll } from './lib/scoring.ts'
@@ -96,6 +96,43 @@ export function historyIssues(records: LoadedRecords, dataset: Dataset, datasetS
   return issues
 }
 
+/**
+ * v2 執行協定：讀每個紀錄檔旁邊的 config.json 的 `layout`（沒有這個欄位記為 "unrecorded"），
+ * 彙整成每個 cell 用到的目錄配置（歷史與探針紀錄都算）。
+ */
+export function layoutsByCell(records: LoadedRecords, cells: readonly CellSpec[]): Map<string, string[]> {
+  const layoutOfFile = new Map<string, string>()
+  const layoutOf = (file: string): string => {
+    const cached = layoutOfFile.get(file)
+    if (cached) return cached
+    let layout = 'unrecorded'
+    const config = join(dirname(file), 'config.json')
+    try {
+      const parsed = JSON.parse(readFileSync(config, 'utf8')) as { layout?: unknown }
+      if (typeof parsed.layout === 'string') layout = parsed.layout
+    } catch {
+      layout = 'unrecorded'
+    }
+    layoutOfFile.set(file, layout)
+    return layout
+  }
+  const out = new Map<string, string[]>()
+  for (const cell of cells) {
+    const hasProbe = records.records.some(
+      (r) => r.phase === 'probe' && r.condition === cell.condition && r.historyModel === cell.historyModel && r.probeModel === cell.probeModel,
+    )
+    if (!hasProbe) continue // 沒有探針紀錄的 cell 由「未執行」處理，不列入協定檢查
+    const set = new Set<string>()
+    for (const r of records.records) {
+      const sameHistory = r.condition === cell.condition && r.historyModel === cell.historyModel
+      const relevant = r.phase === 'history' ? sameHistory : sameHistory && r.probeModel === cell.probeModel
+      if (relevant) set.add(layoutOf(r.file))
+    }
+    if (set.size > 0) out.set(cellKey(cell), [...set].sort())
+  }
+  return out
+}
+
 function historyAmbiguities(records: LoadedRecords): string[] {
   const seen = new Map<string, Set<string>>()
   for (const r of records.records) {
@@ -166,12 +203,13 @@ async function main(): Promise<number> {
     cells,
     crossCheck: values['cross-check'],
   })
-  const summary = summarize(result, contract, loaded.sha256, cells, toolCallCounts(records, cells))
+  const summary = summarize(result, contract, loaded.sha256, cells, toolCallCounts(records, cells), layoutsByCell(records, cells))
 
   const issues = [
     ...records.issues.map((i) => `${i.file}:${i.line} ${i.reason}`),
     ...records.malformed.map((m) => `${m.file}:${m.line} 損壞紀錄（${m.condition}/${m.phase}/${m.itemId}）：${m.reason}`),
     ...result.extras.map((e) => `${e.cell} ${e.itemId} 多出 ${e.extra} 筆紀錄（未計分）`),
+    ...(result.infraSkipped ?? []).map((e) => `${e.cell} ${e.itemId} 有 ${e.count} 筆基礎設施錯誤（限流／配額）的紀錄由重跑取代（未計分）`),
     ...historyAmbiguities(records),
     ...historyIssues(records, loaded.dataset, loaded.sha256, cells),
     ...cellIssues,
@@ -193,18 +231,36 @@ async function main(): Promise<number> {
         detail: s.detail,
         judgeKeys: s.judgeKeys,
         response: s.response ?? null,
+        // v2 才有描述性欄位；v1 的逐例檔維持原樣。
+        ...(s.descriptive ? { descriptive: s.descriptive } : {}),
       }),
     ),
   )
   writeFileSync(join(out, 'items.jsonl'), `${itemLines.join('\n')}\n`)
+  // 摘要中的 judge 來源：即時呼叫＝本次執行；重放＝重放的紀錄檔（見 lib/judge.ts provenance）。
+  // v1 契約（沒有 reportVersion）沿用 v1 的措辭，讓 `--judge replay` 能逐位元組重現 v1 的摘要。
+  // v2：不論即時或重放，摘要都描述「這份摘要所依據的 judge 紀錄」——即時呼叫時是本輸出目錄的
+  // judge-raw.jsonl（整個檔案），重放時是重放的紀錄檔——措辭與數字都不隨模式改變，重放可逐位元組重現。
+  const prov: JudgeProvenance =
+    contract.reportVersion === 2 && judge.name === 'deepseek'
+      ? (() => {
+          const st = recordStats([cacheFile], contract.judge.pricesUsdPerMillion)
+          return st.entries > 0 ? { name: 'deepseek', calls: st.calls, spentUsd: st.spentUsd } : { name: 'deepseek', calls: 0, spentUsd: 0 }
+        })()
+      : judge.provenance()
   const judgeLine =
-    judge.name === 'deepseek'
-      ? `judge：${contract.judge.model}（thinking ${contract.judge.thinking}、temperature ${contract.judge.temperature}），本次新呼叫 ${judge.calls()} 次，估計花費 US$${judge.spentUsd().toFixed(4)}（依契約的尖峰價格）`
-      : `judge：${judge.name}（本次沒有呼叫 API）`
-  writeFileSync(join(out, 'summary.json'), `${JSON.stringify({ ...summary, issues, judge: { name: judge.name, calls: judge.calls(), spentUsd: judge.spentUsd() } }, null, 2)}\n`)
+    contract.reportVersion === 2
+      ? prov.name === 'deepseek'
+        ? `judge：${contract.judge.model}（thinking ${contract.judge.thinking}、temperature ${contract.judge.temperature}）；判定紀錄共 ${prov.calls} 次 API 呼叫，估計花費 US$${prov.spentUsd.toFixed(4)}（依契約的尖峰價格）`
+        : `judge：沒有判定紀錄（${prov.name}）`
+      : prov.name === 'deepseek'
+        ? `judge：${contract.judge.model}（thinking ${contract.judge.thinking}、temperature ${contract.judge.temperature}），本次新呼叫 ${prov.calls} 次，估計花費 US$${prov.spentUsd.toFixed(4)}（依契約的尖峰價格）`
+        : `judge：${prov.name}（本次沒有呼叫 API）`
+  writeFileSync(join(out, 'summary.json'), `${JSON.stringify({ ...summary, issues, judge: { name: prov.name, calls: prov.calls, spentUsd: prov.spentUsd } }, null, 2)}\n`)
   writeFileSync(join(out, 'summary.md'), renderMarkdown(summary, contract, { judgeLine, issues }))
 
   console.log(`已寫入 ${out}/summary.md（${result.items.length} 題 × cell，${itemLines.length} 個樣本）`)
+  if (judge.name === 'replay') console.log('重放：本次沒有呼叫 API；摘要中的 judge 呼叫數與花費取自重放的 judge 紀錄檔。')
   for (const a of summary.acceptance) console.log(`${a.verdict.padEnd(10)} ${a.id}：${a.explanation}`)
   if (issues.length > 0) console.log(`紀錄與協定問題 ${issues.length} 筆（已計入分母），見 summary.md`)
   if (judge.name === 'deepseek' && judge.spentUsd() >= maxUsd) {

@@ -5,6 +5,7 @@
  * 用法：
  *   source scripts/env.sh
  *   node experiments/eval/validate-judge.ts --split dev|test|test2|all --label <名稱> [--only pc-recall,pc-narrate] [--max-usd 0.5]
+ *   v2 的新提示詞：--cases cases-v2.json --split v2-dev|v2-test
  * 輸出：experiments/eval/judge-validation/results-<label>.json 與 raw-<label>.jsonl（judge 原始輸出）。
  */
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -16,9 +17,17 @@ import { DeepSeekJudge } from './lib/judge.ts'
 import {
   PARSERS,
   changePrompt,
+  criteriaParser,
+  criteriaPrompt,
+  deriveCriteriaOutcome,
   deriveNarrationOutcome,
+  deriveNarrationOutcomeV2,
   deriveRecallOutcome,
+  deriveRecallOutcomeV2,
   extractPrompt,
+  narratePromptV2,
+  recallPromptV2,
+  type CriteriaInput,
   memoryPrompt,
   narratePrompt,
   recallPrompt,
@@ -35,7 +44,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 
 interface Case {
   readonly id: string
-  readonly split: 'dev' | 'test' | 'test2'
+  readonly split: 'dev' | 'test' | 'test2' | 'v2-dev' | 'v2-test'
   readonly prompt: JudgePromptId
   readonly input: Record<string, unknown>
   readonly expected: Record<string, string>
@@ -60,6 +69,14 @@ export function buildCase(c: Case): { pair: PromptPair; parse: (raw: string) => 
       return { pair: recallPrompt(c.input as unknown as RecallInput), parse: PARSERS.recall }
     case 'pc-narrate':
       return { pair: narratePrompt(c.input as unknown as NarrateInput), parse: PARSERS.narrate }
+    case 'mem-criteria-v2': {
+      const i = c.input as unknown as CriteriaInput
+      return { pair: criteriaPrompt(i), parse: criteriaParser(i.criteria.map((x) => x.id)) }
+    }
+    case 'pc-recall-v2':
+      return { pair: recallPromptV2(c.input as unknown as RecallInput), parse: PARSERS.recallV2 }
+    case 'pc-narrate-v2':
+      return { pair: narratePromptV2(c.input as unknown as NarrateInput), parse: PARSERS.narrateV2 }
   }
 }
 
@@ -68,6 +85,12 @@ export function derived(c: Case, value: Readonly<Record<string, string>> | undef
   if (!value) return undefined
   if (c.prompt === 'pc-recall') return { ...value, outcome: deriveRecallOutcome(value, Boolean(c.input['requiresReason'])) }
   if (c.prompt === 'pc-narrate') return { ...value, outcome: deriveNarrationOutcome(value) }
+  if (c.prompt === 'pc-recall-v2') return { ...value, outcome: deriveRecallOutcomeV2(value, Boolean(c.input['requiresReason'])) }
+  if (c.prompt === 'pc-narrate-v2') return { ...value, outcome: deriveNarrationOutcomeV2(value) }
+  if (c.prompt === 'mem-criteria-v2') {
+    const ids = ((c.input as unknown as CriteriaInput).criteria ?? []).map((x) => x.id)
+    return { ...value, outcome: deriveCriteriaOutcome(value, ids) }
+  }
   return value
 }
 
@@ -81,6 +104,7 @@ async function main(): Promise<number> {
     options: {
       split: { type: 'string', default: 'dev' },
       only: { type: 'string' },
+      cases: { type: 'string', default: 'cases.json' },
       label: { type: 'string' },
       'max-usd': { type: 'string', default: '0.5' },
     },
@@ -90,7 +114,7 @@ async function main(): Promise<number> {
     return 2
   }
   const contract = loadContract(join(here, '..', 'specs', 'memory-accuracy-v1.contract.json'))
-  const file = JSON.parse(readFileSync(join(here, 'judge-validation', 'cases.json'), 'utf8')) as { cases: Case[] }
+  const file = JSON.parse(readFileSync(join(here, 'judge-validation', values.cases), 'utf8')) as { cases: Case[] }
   const prompts = values.only ? new Set(values.only.split(',')) : undefined
   const cases = file.cases.filter((c) => (values.split === 'all' || c.split === values.split) && (!prompts || prompts.has(c.prompt)))
   const rawFile = join(here, 'judge-validation', `raw-${values.label}.jsonl`)

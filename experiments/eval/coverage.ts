@@ -56,6 +56,10 @@ export function auditCoverage(ds: Dataset, contract: Contract): CoverageReport {
         if (typeof m?.requiresReason !== 'boolean') errors.push(`探針 ${p.id}（self-recall）缺少 meta.requiresReason（布林）`)
       }
       if (cat.scoring === 'judge' && cat.judgePrompt === 'mem-preference' && !m?.rubric) errors.push(`探針 ${p.id} 缺少 meta.rubric`)
+      if (cat.scoring === 'judge-criteria') {
+        if (!m?.criteria || m.criteria.length === 0) errors.push(`探針 ${p.id}（judge-criteria）缺少 meta.criteria`)
+        if (!m?.background || m.background.trim().length === 0) errors.push(`探針 ${p.id}（judge-criteria）缺少 meta.background`)
+      }
       if (cat.judgePrompt === 'mem-abstention' && !p.gold.abstain) errors.push(`探針 ${p.id} 在拒答類別但 gold.abstain 不是 true`)
       if (p.gold.abstain && cat.judgePrompt !== 'mem-abstention') errors.push(`探針 ${p.id} 的 gold.abstain 為 true，但類別不是拒答`)
     }

@@ -3,7 +3,7 @@
  * 重跑會得到逐位元組相同的檔案（JSON.stringify 的鍵順序即原始碼中的順序，2 格縮排，結尾換行）。
  *
  * 用法：
- *   node experiments/datasets/build.ts           產生並寫入 JSON，印出 sha256
+ *   node experiments/datasets/build.ts           產生並寫入 JSON，印出 sha256（v1 的檔案已凍結，重寫的內容必須逐位元組相同）
  *   node experiments/datasets/build.ts --check   不寫檔，只確認現有 JSON 與產生結果完全相同（不同則結束碼 1）
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
@@ -13,7 +13,9 @@ import { auditCoverage } from '../eval/coverage.ts'
 import { loadContract } from '../eval/lib/contract.ts'
 import { sha256, type Dataset } from '../eval/lib/dataset.ts'
 import { memoryV1 } from './memory-v1.source.ts'
+import { memoryV2 } from './memory-v2.source.ts'
 import { personalityV1 } from './personality-v1.source.ts'
+import { personalityV2 } from './personality-v2.source.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const specs = join(here, '..', 'specs')
@@ -21,6 +23,8 @@ const specs = join(here, '..', 'specs')
 export const TARGETS: readonly { readonly dataset: Dataset; readonly file: string; readonly contract: string }[] = [
   { dataset: memoryV1, file: join(here, 'memory-v1.json'), contract: join(specs, 'memory-accuracy-v1.contract.json') },
   { dataset: personalityV1, file: join(here, 'personality-v1.json'), contract: join(specs, 'personality-consistency-v1.contract.json') },
+  { dataset: memoryV2, file: join(here, 'memory-v2.json'), contract: join(specs, 'memory-accuracy-v2.contract.json') },
+  { dataset: personalityV2, file: join(here, 'personality-v2.json'), contract: join(specs, 'personality-consistency-v2.contract.json') },
 ]
 
 export function serialize(dataset: Dataset): string {

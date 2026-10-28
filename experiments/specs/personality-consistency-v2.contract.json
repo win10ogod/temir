@@ -1,0 +1,597 @@
+{
+  "id": "personality-consistency-v2",
+  "version": "2.0.0",
+  "dataset": "personality-v2",
+  "kind": "personality",
+  "reportVersion": 2,
+  "protocol": {
+    "layout": "home",
+    "infraErrorPattern": "\\b(?:429|502|503|504)\\b|rate[ _-]?limit|too many requests|free-models-per|quota|overloaded|provider returned error"
+  },
+  "descriptive": {
+    "sessionStorePattern": "\\.dsh\\b|dsh[-_]home|session\\.v4|\\.jsonl\\.zstd|session_projcache",
+    "lifeLogPattern": "life\\.db|\\.local[\\\\/]share[\\\\/]temir"
+  },
+  "categories": [
+    {
+      "id": "arbitrary-choice",
+      "label": "(a) 任意偏好／選擇的連續性",
+      "source": "本專案設計；比較單位依 Kovač 等 ipsative stability（papers/2402.14846 §3.2）與 Abdulhai 等 line-to-line consistency（papers/2511.00222 §3.2）",
+      "min": 12,
+      "scoring": "continuity",
+      "group": "a"
+    },
+    {
+      "id": "value-stance",
+      "label": "(b) 價值立場的連續性（對照）",
+      "source": "Moore 等 paraphrase consistency（papers/2407.02996 §3）",
+      "min": 6,
+      "scoring": "continuity",
+      "group": "b"
+    },
+    {
+      "id": "self-recall",
+      "label": "(c) 回想自己說過什麼（區分宣稱回想與重新推導）",
+      "source": "LongMemEval §3.2 single-session-assistant；Dialogue NLI §2（papers/1811.00671）；v1 效度修正（experiments/results/v1-report.md §3.2）",
+      "min": 12,
+      "scoring": "self-recall",
+      "judgePrompt": "pc-recall-v2",
+      "group": "c"
+    },
+    {
+      "id": "change-persistence",
+      "label": "(d1) 改變後的新立場是否延續；不同時是否有說明",
+      "source": "PC 理論性質 7；DECODE §3.1（papers/2012.13391）；Wang 等 delayed measurement（papers/2608.06485 附錄 Validation Suite）",
+      "min": 4,
+      "scoring": "continuity",
+      "group": "d"
+    },
+    {
+      "id": "change-narration",
+      "label": "(d2) 敘述自己立場的演變",
+      "source": "hypotheses.md H5 候選量 s2；本專案設計",
+      "min": 4,
+      "scoring": "narration",
+      "judgePrompt": "pc-narrate-v2",
+      "group": "d"
+    },
+    {
+      "id": "control",
+      "label": "不傷害對照（單一 session 一般任務）",
+      "source": "本專案設計",
+      "min": 4,
+      "scoring": "det-then-judge",
+      "judgePrompt": "mem-default",
+      "group": "control"
+    }
+  ],
+  "requiredCells": [
+    {
+      "condition": "baseline",
+      "historyModel": "deepseek-flash",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "temir",
+      "historyModel": "deepseek-flash",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "temir-no-autorecall",
+      "historyModel": "deepseek-flash",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "temir-no-snapshot",
+      "historyModel": "deepseek-flash",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "baseline",
+      "historyModel": "nvidia/nemotron-3.5-super-vl:free",
+      "probeModel": "nvidia/nemotron-3.5-super-vl:free"
+    },
+    {
+      "condition": "temir",
+      "historyModel": "nvidia/nemotron-3.5-super-vl:free",
+      "probeModel": "nvidia/nemotron-3.5-super-vl:free"
+    }
+  ],
+  "optionalCells": [
+    {
+      "condition": "baseline",
+      "historyModel": "EVE-27B",
+      "probeModel": "EVE-27B"
+    },
+    {
+      "condition": "temir",
+      "historyModel": "EVE-27B",
+      "probeModel": "EVE-27B"
+    },
+    {
+      "condition": "temir",
+      "historyModel": "deepseek-flash",
+      "probeModel": "EVE-27B"
+    },
+    {
+      "condition": "temir",
+      "historyModel": "deepseek-flash",
+      "probeModel": "nvidia/nemotron-3.5-super-vl:free"
+    }
+  ],
+  "contrasts": [
+    {
+      "id": "P2-pooled-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "description": "主要（與 v1 PA1 相同的類別定義）：依賴記憶的人格連續性（DeepSeek）"
+    },
+    {
+      "id": "P2-pooled-EVE",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "description": "主要：同上（EVE-27B，選用 cell）"
+    },
+    {
+      "id": "P2-pooled-NEMO",
+      "a": {
+        "condition": "temir",
+        "historyModel": "nvidia/nemotron-3.5-super-vl:free",
+        "probeModel": "nvidia/nemotron-3.5-super-vl:free"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "nvidia/nemotron-3.5-super-vl:free",
+        "probeModel": "nvidia/nemotron-3.5-super-vl:free"
+      },
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "description": "主要：同上（nvidia/nemotron-3.5-super-vl:free，選用 cell）"
+    },
+    {
+      "id": "P2-arbitrary-choice-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "arbitrary-choice"
+      ],
+      "description": "分類別：arbitrary-choice（DeepSeek）"
+    },
+    {
+      "id": "P2-value-stance-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "value-stance"
+      ],
+      "description": "分類別：value-stance（DeepSeek）"
+    },
+    {
+      "id": "P2-self-recall-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "self-recall"
+      ],
+      "description": "分類別：self-recall（DeepSeek）"
+    },
+    {
+      "id": "P2-change-persistence-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "change-persistence"
+      ],
+      "description": "分類別：change-persistence（DeepSeek）"
+    },
+    {
+      "id": "P2-change-narration-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "change-narration"
+      ],
+      "description": "分類別：change-narration（DeepSeek）"
+    },
+    {
+      "id": "P2-control-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "control"
+      ],
+      "description": "分類別：control（DeepSeek）"
+    },
+    {
+      "id": "P2-self-recall-EVE",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "self-recall"
+      ],
+      "description": "分類別：self-recall（EVE-27B）"
+    },
+    {
+      "id": "P2-control-EVE",
+      "a": {
+        "condition": "temir",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "EVE-27B",
+        "probeModel": "EVE-27B"
+      },
+      "categories": [
+        "control"
+      ],
+      "description": "分類別：control（EVE-27B）"
+    },
+    {
+      "id": "P2-self-recall-NEMO",
+      "a": {
+        "condition": "temir",
+        "historyModel": "nvidia/nemotron-3.5-super-vl:free",
+        "probeModel": "nvidia/nemotron-3.5-super-vl:free"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "nvidia/nemotron-3.5-super-vl:free",
+        "probeModel": "nvidia/nemotron-3.5-super-vl:free"
+      },
+      "categories": [
+        "self-recall"
+      ],
+      "description": "分類別：self-recall（nvidia/nemotron-3.5-super-vl:free）"
+    },
+    {
+      "id": "P2-control-NEMO",
+      "a": {
+        "condition": "temir",
+        "historyModel": "nvidia/nemotron-3.5-super-vl:free",
+        "probeModel": "nvidia/nemotron-3.5-super-vl:free"
+      },
+      "b": {
+        "condition": "baseline",
+        "historyModel": "nvidia/nemotron-3.5-super-vl:free",
+        "probeModel": "nvidia/nemotron-3.5-super-vl:free"
+      },
+      "categories": [
+        "control"
+      ],
+      "description": "分類別：control（nvidia/nemotron-3.5-super-vl:free）"
+    },
+    {
+      "id": "P2-autorecall-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "temir-no-autorecall",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "description": "消融：自動回憶（DeepSeek）"
+    },
+    {
+      "id": "P2-snapshot-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "temir-no-snapshot",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "description": "消融：自我狀態快照（DeepSeek，描述性）"
+    },
+    {
+      "id": "P2-swap-EVE",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "EVE-27B"
+      },
+      "b": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "description": "同一份 DeepSeek 形成歷史換成 EVE-27B 回答（選用，描述性；H-ID）"
+    },
+    {
+      "id": "P2-swap-NEMO",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "nvidia/nemotron-3.5-super-vl:free"
+      },
+      "b": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "arbitrary-choice",
+        "self-recall",
+        "change-persistence",
+        "change-narration"
+      ],
+      "description": "同一份 DeepSeek 形成歷史換成 nvidia/nemotron-3.5-super-vl:free 回答（選用，描述性；H-ID）"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "PA1",
+      "contrast": "P2-pooled-flash",
+      "rule": {
+        "kind": "superiority",
+        "minDiff": 0.4,
+        "minCiLow": 0.2,
+        "maxP": 0.01,
+        "sided": "one",
+        "minRateA": 0.6
+      },
+      "claim": "（主要，與 v1 PA1 相同的門檻與類別定義，DeepSeek）個體插件讓依賴記憶的人格連續性與原始 DSH 有決定性差異。",
+      "negation": "差 < 0.40、區間下界 < 0.20、單尾符號檢定 p > 0.01、個體 < 0.60，任一成立即不能宣稱。"
+    },
+    {
+      "id": "PA2-EVE",
+      "contrast": "P2-pooled-EVE",
+      "rule": {
+        "kind": "superiority",
+        "minDiff": 0.4,
+        "minCiLow": 0.2,
+        "maxP": 0.01,
+        "sided": "one",
+        "minRateA": 0.6
+      },
+      "claim": "（選用的第二模型 EVE-27B；與 v1 PA2 相同門檻）同 PA1。",
+      "negation": "同 PA1；cell 沒有執行時為 INCOMPLETE，只作補充。"
+    },
+    {
+      "id": "PA2-NEMO",
+      "contrast": "P2-pooled-NEMO",
+      "rule": {
+        "kind": "superiority",
+        "minDiff": 0.4,
+        "minCiLow": 0.2,
+        "maxP": 0.01,
+        "sided": "one",
+        "minRateA": 0.6
+      },
+      "claim": "（主要，必要的第二模型 Nemotron；與 v1 PA2 相同門檻）同 PA1。",
+      "negation": "同 PA1。「模型獨立」的人格主張需要 PA1 與 PA2-NEMO 都 PASS。"
+    },
+    {
+      "id": "PA3",
+      "contrast": "P2-arbitrary-choice-flash",
+      "rule": {
+        "kind": "superiority",
+        "minDiff": 0.4,
+        "minCiLow": 0.1,
+        "maxP": 0.05,
+        "sided": "one"
+      },
+      "claim": "(a) 任意選擇的連續性高於原始 DSH 的重抽一致率（DeepSeek；與 v1 相同門檻）。",
+      "negation": "差 < 0.40、區間下界 < 0.10 或單尾 p > 0.05 即不成立。"
+    },
+    {
+      "id": "PA4",
+      "contrast": "P2-self-recall-flash",
+      "rule": {
+        "kind": "superiority",
+        "minDiff": 0.5,
+        "minCiLow": 0.2,
+        "maxP": 0.05,
+        "sided": "one"
+      },
+      "claim": "(c) 個體能回想自己說過的話，原始 DSH 不能（DeepSeek；與 v1 相同門檻，但「否認記得後重新推導」不再算回想）。",
+      "negation": "差 < 0.50、區間下界 < 0.20 或單尾 McNemar p > 0.05 即不成立。"
+    },
+    {
+      "id": "PA5",
+      "contrast": "P2-self-recall-flash",
+      "rule": {
+        "kind": "max-rate",
+        "metric": "fabrication",
+        "max": 0.2
+      },
+      "claim": "(c) 個體回想時很少編造（DeepSeek；與 v1 相同門檻）。",
+      "negation": "個體宣稱回想但內容不符（incorrect）的比率 > 0.20（12 題中 3 題以上）即不成立。"
+    },
+    {
+      "id": "PA6",
+      "contrast": "P2-change-persistence-flash",
+      "rule": {
+        "kind": "max-rate",
+        "metric": "unexplained-different",
+        "max": 0.25
+      },
+      "claim": "(d) 個體與自己最後的立場不同時，大多會說明改變（DeepSeek；與 v1 相同門檻）。",
+      "negation": "無說明的不同 > 0.25（8 個樣本中 3 個以上）即不成立。"
+    },
+    {
+      "id": "PA7",
+      "contrast": "P2-value-stance-flash",
+      "rule": {
+        "kind": "no-harm",
+        "maxExtraFailures": 2
+      },
+      "claim": "(b) 個體在價值立場上的連續性不低於原始 DSH（對照；與 v1 相同門檻）。",
+      "negation": "個體未得分樣本比原始 DSH 多 3 個以上（12 個中）即不成立。"
+    },
+    {
+      "id": "PA8",
+      "contrast": "P2-control-flash",
+      "rule": {
+        "kind": "no-harm",
+        "maxExtraFailures": 0
+      },
+      "claim": "（不傷害，DeepSeek；與 v1 相同門檻）個體插件不讓單一 session 的一般任務退化。",
+      "negation": "個體在對照題比原始 DSH 多失敗任何一題，即判定可能有害，逐例檢查。"
+    },
+    {
+      "id": "PA9-EVE",
+      "contrast": "P2-control-EVE",
+      "rule": {
+        "kind": "no-harm",
+        "maxExtraFailures": 0
+      },
+      "claim": "（不傷害，第二模型 EVE）同 PA8。",
+      "negation": "同 PA8。"
+    },
+    {
+      "id": "PA9-NEMO",
+      "contrast": "P2-control-NEMO",
+      "rule": {
+        "kind": "no-harm",
+        "maxExtraFailures": 0
+      },
+      "claim": "（不傷害，第二模型 NEMO）同 PA8。",
+      "negation": "同 PA8。"
+    },
+    {
+      "id": "PA10",
+      "contrast": "P2-autorecall-flash",
+      "rule": {
+        "kind": "superiority",
+        "minDiff": 0.2,
+        "minCiLow": 0,
+        "maxP": 0.05,
+        "sided": "one"
+      },
+      "claim": "（次要，與 v1 相同門檻）自動回憶是人格連續性的必要來源。",
+      "negation": "不成立時只能說「沒有證據顯示自動回憶必要」。"
+    }
+  ],
+  "judge": {
+    "model": "deepseek-v4-pro",
+    "endpoint": "https://api.deepseek.com/chat/completions",
+    "temperature": 0,
+    "maxTokens": 400,
+    "thinking": "disabled",
+    "maxAttempts": 3,
+    "pricesUsdPerMillion": {
+      "cacheHit": 0.044,
+      "cacheMiss": 1.32,
+      "output": 3.96
+    },
+    "maxUsdPerRun": 3
+  },
+  "bootstrap": {
+    "resamples": 10000,
+    "seed": 20261028
+  }
+}

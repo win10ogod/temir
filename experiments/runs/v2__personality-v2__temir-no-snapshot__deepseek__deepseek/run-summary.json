@@ -1,0 +1,22 @@
+{
+  "runId": "v2__personality-v2__temir-no-snapshot__deepseek__deepseek",
+  "endedAt": "2026-10-28T09:39:02.044Z",
+  "histories": 12,
+  "historyFrom": null,
+  "probes": 42,
+  "probeSessions": 64,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 68,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 66,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

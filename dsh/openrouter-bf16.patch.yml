@@ -1,0 +1,17 @@
+# OpenRouter 付費端點的 NVIDIA Nemotron，經本機代理固定為 bf16 供應商（Crusoe → Nebius，不退回其他精度）。
+# 先啟動代理：node experiments/runner/openrouter-pin.ts --port 8787（見該檔說明）。
+# 路徑含 openrouter.ai，讓 pi-ai 套用與免費路由相同的 OpenRouter 請求格式。
+- id: llm-pi-ai
+  config:
+    providers:
+      or-nemotron-bf16:
+        api: openai-completions
+        baseURL: http://127.0.0.1:8787/openrouter.ai/api/v1
+        apiKeyEnv: OPENROUTER_API_KEY
+        models:
+          - id: nvidia/nemotron-3.5-super-vl
+            contextWindow: 262144
+- id: agent-default-model
+  config:
+    provider: or-nemotron-bf16
+    model: nvidia/nemotron-3.5-super-vl

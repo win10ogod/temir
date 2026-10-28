@@ -22,6 +22,12 @@ export const MODELS = {
     model: 'nvidia/nemotron-3.5-super-vl:free',
     patches: [join(REPO, 'dsh', 'openrouter-model.patch.yml')] as readonly string[],
   },
+  /** 付費端點，經 experiments/runner/openrouter-pin.ts 固定為 bf16 供應商（需先啟動代理）。 */
+  'nemotron-bf16': {
+    provider: 'or-nemotron-bf16',
+    model: 'nvidia/nemotron-3.5-super-vl',
+    patches: [join(REPO, 'dsh', 'openrouter-bf16.patch.yml')] as readonly string[],
+  },
 } as const
 export type ModelName = keyof typeof MODELS
 

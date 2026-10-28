@@ -13,7 +13,7 @@
 - [x] `temir-recall`：每步自動回憶＋recall 工具；記憶工具結果不再被索引（驗證：跨 session 回答正確且日誌顯示來源為自動回憶；跨模型 DeepSeek→EVE-27B 延續）
 - [~] Web：DSH Web UI 帶個體插件可啟動（驗證：`dsh web` 啟動、temir-life 寫入啟動事件）；**透過 Web 實際對話尚未驗證**
 - [ ] 互動式 CLI：DSH 目前提供 headless（單次＋`--session-id` 續談）與 Web；是否需要互動式終端介面待評估
-- [ ] `kill -9` 中斷恢復測試（生命日誌 WAL＋DSH session 恢復）
+- [x] `kill -9` 中斷恢復測試（驗證：10 步 bash 任務做到第 6 步時終止整個程序群組；生命日誌 integrity_check ok；以 `--session-id` 續談後個體檢查實際狀態、不重做已完成的 b6，完成 b7–b10，10 個檔案內容正確；session log 01）
 
 ## M1 記憶與 PC 紀錄
 - [ ] 價值／看法紀錄（連到證據事件）

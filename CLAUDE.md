@@ -44,8 +44,8 @@ TEMIR_MODEL=local scripts/dsh.sh web --no-open   # 改用本機模型、開 Web 
 individual/         個體（DSH bundle）：src/life、src/self、src/recall、test、cordis.patch.yml
 dsh/                額外的 DSH patch（本機模型）
 research/           methods/ dsh/ pc-theory/ decisions/ log/
-papers/<id>/raw/    論文 PDF 與 TeX（不入 git；INDEX.md 入 git）
-references/         參考 repo（不入 git；LOCK.md 入 git）
+papers/             論文全文（PDF、TeX）與 INDEX.md——只在本機，不入 git、不上傳
+references/         參考 repo 與版本鎖定 LOCK.md——只在本機，不入 git、不上傳
 experiments/        實驗規格與結果（結果數字只能來自實際執行）
 scripts/            env.sh、setup-dev.sh、dsh.sh、dsh_inventory.py
 ```

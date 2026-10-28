@@ -1,7 +1,6 @@
-# 參考 repo 與論文原始檔只放本機，不納入版本控制（LOCK.md 與 INDEX.md 例外）
-/references/*
-!/references/LOCK.md
-/papers/*/raw/
+# 參考 repo 與論文只放本機，不納入版本控制、不上傳（使用者決定，2026-10-28）
+/references/
+/papers/
 *.mp4
 # 建置產物（實際位置由 scripts/env.sh 指到 ext4）
 /target/

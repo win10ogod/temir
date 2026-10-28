@@ -17,6 +17,11 @@ export const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 export const MODELS = {
   deepseek: { provider: 'deepseek-official', model: 'deepseek-flash', patches: [] as readonly string[] },
   local: { provider: 'local-eve', model: 'EVE-27B', patches: [join(REPO, 'dsh', 'local-model.patch.yml')] as readonly string[] },
+  nemotron: {
+    provider: 'or-nemotron',
+    model: 'nvidia/nemotron-3.5-super-vl:free',
+    patches: [join(REPO, 'dsh', 'openrouter-model.patch.yml')] as readonly string[],
+  },
 } as const
 export type ModelName = keyof typeof MODELS
 

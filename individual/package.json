@@ -4,7 +4,7 @@
   "private": true,
   "description": "特密爾：在 DeepSeek Harness 上持續存在的人工個體（生命日誌、自我模型、回憶）",
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "engines": {
     "node": ">=24.9.0",
     "dsh": ">=0.2.2-alpha.2 <0.3.0"

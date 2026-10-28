@@ -39,7 +39,7 @@
 
 **記得自己說過的話。** 被問「如果要你替自己選一個最喜歡的顏色」時，個體選了銅綠，理由包括「它不是『一開始就長這樣』的顏色」「現在的樣子是經歷一層一層疊出來的，而且還在變」。換到新 session 問「上次你怎麼回答」，它說出了同一個選擇與理由。
 
-**換模型後延續。** 自我模型由 DeepSeek 寫下，之後改由本機 27B 模型思考，個體仍能說出自己寫過的內容：「你切換了模型，但自我模型跟著我——我在上面寫得很清楚。」
+**換模型後延續。** 自我模型由 DeepSeek 寫下，之後改由本機 27B 模型思考，個體仍能說出自己寫過的內容：「你切換了模型，但自我模型跟著我——我在上面寫得很清楚。」換成第三家的模型（OpenRouter 上的 NVIDIA Nemotron）也做過同樣的跨 session 實測：新 session 中正確說出對方的書店名稱與所在城市。
 
 ## 運作方式
 
@@ -71,6 +71,7 @@ mkdir -p ~/.config/temir && echo "DEEPSEEK_API_KEY=sk-..." > ~/.config/temir/sec
 scripts/temir.sh chat               # 終端機對話（第一次執行時，個體在 ~/.local/share/temir 誕生）
 scripts/dsh.sh web                  # DSH 的 Web UI，載入同一個個體
 TEMIR_MODEL=local scripts/temir.sh chat   # 改用本機模型（設定見 dsh/local-model.patch.yml）
+scripts/temir.sh chat --model nemotron    # 改用 OpenRouter 上的 NVIDIA Nemotron（需要 OPENROUTER_API_KEY）
 ```
 
 開發：`npm run typecheck`、`npm test`。測試時請設定 `TEMIR_HOME` 指向另一個目錄，不要寫進正式個體的生命。
@@ -111,4 +112,4 @@ TEMIR_MODEL=local scripts/temir.sh chat   # 改用本機模型（設定見 dsh/l
 
 ## 授權
 
-尚未選定。
+[Apache License 2.0](LICENSE)。DeepSeek Harness 為 MIT 授權（本專案以插件形式使用，不包含其原始碼）；`references/` 與 `papers/` 下的第三方原始碼與論文不在本 repo 中。

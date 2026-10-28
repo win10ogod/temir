@@ -1,0 +1,16 @@
+# OpenRouter 上的 NVIDIA Nemotron（免費版）。用途：在第三個模型家族上驗證個體不綁定特定模型。
+# 免費方案限制：每分鐘 20 次、未購買額度的帳號每天 50 次（openrouter.ai/docs/api-reference/limits，2026-10-28 讀取）。
+- id: llm-pi-ai
+  config:
+    providers:
+      or-nemotron:
+        api: openai-completions
+        baseURL: https://openrouter.ai/api/v1
+        apiKeyEnv: OPENROUTER_API_KEY
+        models:
+          - id: nvidia/nemotron-3.5-super-vl:free
+            contextWindow: 1000000
+- id: agent-default-model
+  config:
+    provider: or-nemotron
+    model: nvidia/nemotron-3.5-super-vl:free

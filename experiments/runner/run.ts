@@ -12,6 +12,11 @@
  * 隔離：每個 run 有自己的生命日誌、DSH home 與工作目錄（放在 ~/.cache/temir/experiments/<runId>，ext4）。
  * 歷史全部跑完後拍快照；每題探針（以及每一次重複，見資料集 `meta.repeats`）之前把三者還原成快照，
  * 題與題之間不互相污染。DSH 的使用者層級指令檔（`$DSH_AGENTS_HOME/AGENTS.md`）指向空目錄。
+ *
+ * 目錄配置（`--layout`）：
+ * - adjacent（v1，預設）：life、dsh-home、workspace、agents-home 四個目錄相鄰。
+ * - home（v2）：模擬一個全新使用者帳號：HOME＝<state>/home，DSH 在 ~/.dsh、生命日誌在
+ *   ~/.local/share/temir、工作目錄在 ~/workspace。兩個條件相同；原始 DSH 一樣可以自己去翻 ~/.dsh。
  * 原始 DSH 也保有同樣的工具與工作目錄（它若自己寫筆記檔，也會留到探針階段），比較才公平。
  *
  * 輸出（repo 內）：experiments/runs/<runId>/config.json、records.jsonl、run-summary.json。
@@ -97,13 +102,44 @@ export function pendingSelfStatements(lifeDb: string): number {
   }
 }
 
-function copyState(from: string, to: string): void {
+interface Layout {
+  /** 拍快照與還原時複製的頂層目錄。 */
+  readonly parts: readonly string[]
+  readonly env: (state: string) => Record<string, string>
+  readonly cwd: (state: string) => string
+  readonly lifeDb: (state: string) => string
+}
+
+export const LAYOUTS: Record<'adjacent' | 'home', Layout> = {
+  adjacent: {
+    parts: ['life', 'dsh-home', 'workspace', 'agents-home'],
+    env: (s) => ({ TEMIR_HOME: join(s, 'life'), DSH_HOME: join(s, 'dsh-home'), DSH_AGENTS_HOME: join(s, 'agents-home') }),
+    cwd: (s) => join(s, 'workspace'),
+    lifeDb: (s) => join(s, 'life', 'life.db'),
+  },
+  home: {
+    parts: ['home'],
+    env: (s) => ({
+      HOME: join(s, 'home'),
+      TEMIR_HOME: join(s, 'home', '.local', 'share', 'temir'),
+      DSH_HOME: join(s, 'home', '.dsh'),
+      DSH_AGENTS_HOME: join(s, 'home', '.agents'),
+    }),
+    cwd: (s) => join(s, 'home', 'workspace'),
+    lifeDb: (s) => join(s, 'home', '.local', 'share', 'temir', 'life.db'),
+  },
+}
+
+function copyState(from: string, to: string, layout: Layout): void {
   rmSync(to, { recursive: true, force: true })
   mkdirSync(to, { recursive: true })
-  for (const part of ['life', 'dsh-home', 'workspace', 'agents-home']) {
+  for (const part of layout.parts) {
     if (existsSync(join(from, part))) cpSync(join(from, part), join(to, part), { recursive: true })
     else mkdirSync(join(to, part), { recursive: true })
   }
+  // 工作目錄與（空的）使用者層級指令目錄一定存在。
+  mkdirSync(layout.cwd(to), { recursive: true })
+  mkdirSync(layout.env(to)['DSH_AGENTS_HOME']!, { recursive: true })
 }
 
 async function main(): Promise<void> {
@@ -116,6 +152,7 @@ async function main(): Promise<void> {
       probes: { type: 'string' },
       'run-id': { type: 'string' },
       'from-run': { type: 'string' },
+      layout: { type: 'string', default: 'adjacent' },
       'turn-timeout-ms': { type: 'string', default: '900000' },
       // 多個 run 平行執行時，帳戶餘額差無法歸屬到單一 run；改由批次腳本量總花費。
       'no-balance': { type: 'boolean', default: false },
@@ -143,8 +180,11 @@ async function main(): Promise<void> {
   if (existsSync(outDir)) throw new Error(`run 已存在：${outDir}`)
   mkdirSync(outDir, { recursive: true })
   mkdirSync(join(stateDir, 'logs'), { recursive: true })
+  const layoutName = values.layout as keyof typeof LAYOUTS
+  const layout = LAYOUTS[layoutName]
+  if (!layout) throw new Error(`未知的目錄配置 ${values.layout}；可用：${Object.keys(LAYOUTS).join('、')}`)
   const live = join(stateDir, 'live')
-  copyState(join(stateDir, 'none'), live)
+  copyState(join(stateDir, 'none'), live, layout)
   const experimentsRoot = join(process.env['TEMIR_CACHE'] ?? join(homedir(), '.cache', 'temir'), 'experiments')
   const fromRun = values['from-run']
   if (fromRun) {
@@ -152,8 +192,10 @@ async function main(): Promise<void> {
       condition: string
       historyModel: { model: string }
       dataset: { sha256: string }
+      layout?: string
     }
     if (from.condition !== condition) throw new Error(`--from-run 的條件是 ${from.condition}，不是 ${condition}`)
+    if ((from.layout ?? 'adjacent') !== layoutName) throw new Error(`--from-run 的目錄配置是 ${from.layout ?? 'adjacent'}，不是 ${layoutName}`)
     if (from.historyModel.model !== MODELS[historyModel].model) throw new Error(`--from-run 的歷史模型是 ${from.historyModel.model}`)
     if (from.dataset.sha256 !== sha256(datasetRaw)) throw new Error('--from-run 使用的資料集版本不同')
     if (!existsSync(join(experimentsRoot, fromRun, 'snapshot'))) throw new Error(`找不到 ${fromRun} 的歷史快照`)
@@ -173,6 +215,7 @@ async function main(): Promise<void> {
     // 所有條件相同：工具審核一律允許一次（記在 logs/approvals.log），受試者提問一律回覆同一句話（logs/questions.log）。
     approvals: 'allowed-once for every request',
     questionReply: QUESTION_REPLY,
+    layout: layoutName,
     isolation: 'fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat',
     code: { commit: git('rev-parse', 'HEAD'), dirty: git('status', '--porcelain').length > 0, diffSha256: sha256(git('diff', 'HEAD')) },
     runtime: { node: process.version, dsh: execFileSync('dsh', ['--version'], { encoding: 'utf8' }).trim() },
@@ -258,8 +301,8 @@ async function main(): Promise<void> {
     return HarnessProcess.start({
       model,
       patches,
-      cwd: join(state, 'workspace'),
-      env: { ...process.env, TEMIR_HOME: join(state, 'life'), DSH_HOME: join(state, 'dsh-home'), DSH_AGENTS_HOME: join(state, 'agents-home') },
+      cwd: layout.cwd(state),
+      env: { ...process.env, ...layout.env(state) },
       logPath: join(stateDir, 'logs', `${label}.log`),
       // 每個條件同樣允許工具執行；審核紀錄在 log 中。
       onApproval: async (request) => {
@@ -299,7 +342,7 @@ async function main(): Promise<void> {
     // 直到生命日誌中沒有待處理的回覆（或逾時），讓每題探針都從同一個完整的快照開始。
     let unsettled: number | null = null
     if (condition !== 'baseline') {
-      const lifeDb = join(live, 'life', 'life.db')
+      const lifeDb = layout.lifeDb(live)
       unsettled = pendingSelfStatements(lifeDb)
       if (unsettled > 0) {
         const settler = await launch(historyModel, live, 'settle')
@@ -310,13 +353,13 @@ async function main(): Promise<void> {
     }
 
     // 快照：歷史結束時的生命日誌、DSH home、工作目錄。
-    copyState(live, snapshot)
+    copyState(live, snapshot, layout)
     return { exit, unsettled }
   }
 
   // 換模型的 cell 沿用另一個 run 的快照，不重跑歷史。
   const snapshot = join(stateDir, 'snapshot')
-  if (fromRun) copyState(join(experimentsRoot, fromRun, 'snapshot'), snapshot)
+  if (fromRun) copyState(join(experimentsRoot, fromRun, 'snapshot'), snapshot, layout)
   const histories = fromRun ? { exit: null, unsettled: null } : await runHistories(snapshot)
 
   // 3. 探針：每題（每次重複）都從快照還原，在新的執行期與新的 session 中提問。
@@ -324,7 +367,7 @@ async function main(): Promise<void> {
     const repeats = Math.max(1, probe.meta?.repeats ?? 1)
     for (let repeat = 0; repeat < repeats; repeat++) {
       const state = join(stateDir, 'probes', probe.id, `r${repeat}`)
-      copyState(snapshot, state)
+      copyState(snapshot, state, layout)
       const startedAt = new Date().toISOString()
       const label = `probe-${probe.id}-r${repeat}`
       let probeHarness: HarnessProcess | undefined

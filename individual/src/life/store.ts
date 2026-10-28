@@ -186,22 +186,42 @@ export class LifeStore {
     if (this.#db.isOpen) this.#db.close()
   }
 
+  get isOpen(): boolean {
+    return this.#db.isOpen
+  }
+
+  /**
+   * 第一次開啟時寫入誕生事件。用 BEGIN IMMEDIATE 先取得寫入鎖，
+   * 兩個程序（例如 Web 與 CLI）同時開啟新的生命日誌時也只會有一次誕生。
+   */
   #ensureBirth(): string {
-    const row = this.#db.prepare(`SELECT value FROM meta WHERE key = 'individual_id'`).get() as
-      | { value: string }
-      | undefined
-    if (row) return row.value
-    const id = randomUUID()
-    this.#db.prepare(`INSERT INTO meta(key, value) VALUES ('individual_id', ?)`).run(id)
-    this.append({
-      kind: 'life/born',
-      origin: 'body',
-      data: {
-        individualId: id,
-        note: '生命日誌建立。沒有預設的名字、身份或人格；自我模型為空。',
-      },
-    })
-    return id
+    const read = () =>
+      this.#db.prepare(`SELECT value FROM meta WHERE key = 'individual_id'`).get() as { value: string } | undefined
+    const existing = read()
+    if (existing) return existing.value
+    this.#db.exec('BEGIN IMMEDIATE')
+    try {
+      const raced = read()
+      if (raced) {
+        this.#db.exec('COMMIT')
+        return raced.value
+      }
+      const id = randomUUID()
+      this.#db.prepare(`INSERT INTO meta(key, value) VALUES ('individual_id', ?)`).run(id)
+      this.append({
+        kind: 'life/born',
+        origin: 'body',
+        data: {
+          individualId: id,
+          note: '生命日誌建立。沒有預設的名字、身份或人格；自我模型為空。',
+        },
+      })
+      this.#db.exec('COMMIT')
+      return id
+    } catch (error) {
+      this.#db.exec('ROLLBACK')
+      throw error
+    }
   }
 
   /**
@@ -211,27 +231,36 @@ export class LifeStore {
     const id = input.id ?? `l:${randomUUID()}`
     const ts = input.ts ?? Date.now()
     const causes = [...(input.causes ?? [])]
-    const result = this.#db
-      .prepare(
-        `INSERT OR IGNORE INTO events(id, ts, kind, origin, session, model, text, data, causes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        id,
-        ts,
-        input.kind,
-        input.origin,
-        input.session ?? null,
-        input.model ?? null,
-        input.text ?? null,
-        JSON.stringify(input.data ?? null),
-        JSON.stringify(causes),
-      )
-    if (result.changes > 0) {
-      const seq = Number(result.lastInsertRowid)
-      if (input.text) this.#index(seq, input.text)
-      const link = this.#db.prepare(`INSERT OR IGNORE INTO links(src, dst) VALUES (?, ?)`)
-      for (const dst of causes) link.run(id, dst)
+    // 事件、檢索索引與關聯在同一個 savepoint 內寫入：要嘛全部成功，要嘛全部不寫。
+    this.#db.exec('SAVEPOINT life_append')
+    try {
+      const result = this.#db
+        .prepare(
+          `INSERT OR IGNORE INTO events(id, ts, kind, origin, session, model, text, data, causes)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          id,
+          ts,
+          input.kind,
+          input.origin,
+          input.session ?? null,
+          input.model ?? null,
+          input.text ?? null,
+          JSON.stringify(input.data ?? null),
+          JSON.stringify(causes),
+        )
+      if (result.changes > 0) {
+        const seq = Number(result.lastInsertRowid)
+        if (input.text) this.#index(seq, input.text)
+        const link = this.#db.prepare(`INSERT OR IGNORE INTO links(src, dst) VALUES (?, ?)`)
+        for (const dst of causes) link.run(id, dst)
+      }
+      this.#db.exec('RELEASE life_append')
+    } catch (error) {
+      this.#db.exec('ROLLBACK TO life_append')
+      this.#db.exec('RELEASE life_append')
+      throw error
     }
     const stored = this.get(id)
     if (!stored) throw new Error(`life log append lost event ${id}`)
@@ -292,6 +321,31 @@ export class LifeStore {
       .prepare(`SELECT * FROM events WHERE session = ? AND kind = ? ORDER BY seq DESC LIMIT 1`)
       .get(session, kind) as Row | undefined
     return row ? toEvent(row) : undefined
+  }
+
+  /**
+   * 某 session 中指定 kind 的事件（只取有檢索文字者，排除注入的內容）。
+   * order：'asc' 由舊到新、'desc' 由新到舊。
+   */
+  inSession(session: string, kind: string, order: 'asc' | 'desc', limit: number): LifeEvent[] {
+    const rows = this.#db
+      .prepare(
+        `SELECT * FROM events WHERE session = ? AND kind = ? AND text IS NOT NULL
+         ORDER BY seq ${order === 'asc' ? 'ASC' : 'DESC'} LIMIT ?`,
+      )
+      .all(session, kind, limit) as unknown as Row[]
+    return rows.map(toEvent)
+  }
+
+  /** 除了 `exclude` 之外，最近一次有指定 kind 事件的 session。 */
+  latestOtherSession(kind: string, exclude: string | undefined): string | undefined {
+    const row = this.#db
+      .prepare(
+        `SELECT session FROM events WHERE kind = ? AND text IS NOT NULL AND session IS NOT NULL
+         AND (? IS NULL OR session <> ?) ORDER BY seq DESC LIMIT 1`,
+      )
+      .get(kind, exclude ?? null, exclude ?? null) as { session: string } | undefined
+    return row?.session
   }
 
   /** 依時間順序列出所有指定 kind 的事件。 */

@@ -30,22 +30,29 @@ import {
 export const name = 'temir-self'
 export const inject = ['life', 'systemPrompt', 'tools']
 
+export interface Config {
+  /** 是否每步附上自我狀態快照（消融實驗可關閉；預設開）。 */
+  readonly snapshot?: boolean
+}
+
 const textOutput = {
   schema: { type: 'string' },
   render: (_args: unknown, value: string) => [{ type: 'text' as const, text: value }],
 } as const
 
-export function apply(ctx: Context): void {
+export function apply(ctx: Context, config: Config | undefined): void {
   const life = ctx.life
 
   ctx.systemPrompt.section({ name: 'temir:situation', order: 1, text: SITUATION })
-  ctx.systemPrompt.context({
-    name: 'temir:self',
-    order: 10,
-    interpolate: false,
-    required: true,
-    text: () => renderSelfSnapshot(life),
-  })
+  if (config?.snapshot ?? true) {
+    ctx.systemPrompt.context({
+      name: 'temir:self',
+      order: 10,
+      interpolate: false,
+      required: true,
+      text: () => renderSelfSnapshot(life),
+    })
+  }
 
   ctx.tools.register(
     defineTool({

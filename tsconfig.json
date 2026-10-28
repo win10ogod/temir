@@ -15,7 +15,13 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
-  "include": ["individual/src/**/*.ts", "individual/test/**/*.ts"]
+  "include": [
+    "individual/src/**/*.ts",
+    "individual/test/**/*.ts",
+    "cli/**/*.ts"
+  ]
 }

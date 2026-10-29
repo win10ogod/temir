@@ -17,7 +17,6 @@
 
 ## 實驗 v1（預先登記：experiments/specs/）
 - [x] 記憶準確率與人格一致性：規格、資料集、評估器（65 測試）、執行器；DeepSeek 必要 cell 全部完成（報告 experiments/results/v1-report.md）
-- [ ] 本機模型恢復後補跑 v1：人格 × 個體 × EVE-27B（必要）、消融 × EVE-27B、雙向換模型（選用）
 - [x] v2 預先登記（d183a39）：記憶 47 題主要比較（隱性運用 15 題）、人格 32 題；目錄配置 home；每輪全部可見文字
 - [x] v2 DeepSeek 必要 cell 8 個（錯誤 0）＋計分：PA1 PASS、MA1／MB1 FAIL、MB3 PASS（報告 experiments/results/v2-report.md）
 - [x] v2 Nemotron：協定修正 1（改付費端點、固定 bf16 供應商）；四個 cell 錯誤 0；PA2-NEMO、MA2-NEMO、MB2-NEMO PASS（免費端點兩個 cell 存檔不計分）

@@ -22,7 +22,7 @@
 - [x] v2 DeepSeek 必要 cell 8 個（錯誤 0）＋計分：PA1 PASS、MA1／MB1 FAIL、MB3 PASS（報告 experiments/results/v2-report.md）
 - [x] v2 Nemotron：協定修正 1（改付費端點、固定 bf16 供應商）；四個 cell 錯誤 0；PA2-NEMO、MA2-NEMO、MB2-NEMO PASS（免費端點兩個 cell 存檔不計分）
 - [x] v2 全部計分與報告（experiments/results/v2-report.md）
-- [ ] 發布：改寫歷史（移除舊餘額、本機模型檔名、references/、papers/）→ 公開 repo（Apache-2.0）
+- [x] 發布：改寫歷史（驗證與舊→新對照表：research/decisions/history-rewrite-2026-10-29.md）→ 公開 repo https://github.com/win10ogod/temir（Apache-2.0；驗證：遠端 main 與本機相同，session log 03）
 
 ## M1 記憶與 PC 紀錄
 - [ ] 價值／看法紀錄（連到證據事件）

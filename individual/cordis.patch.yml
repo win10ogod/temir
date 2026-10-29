@@ -21,3 +21,5 @@
       name: ./src/thought/index.ts
     - id: temir-skill
       name: ./src/skill/index.ts
+    - id: temir-plugin
+      name: ./src/plugin/index.ts

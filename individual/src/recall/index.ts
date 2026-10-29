@@ -4,7 +4,7 @@
  * 每個含有對方新訊息的步驟之前（DSH `agent/pre-step` waterfall）：
  * 1. 線索理解（輔助模型呼叫，見 aux.ts）：擷取這段話的事實與回想線索詞。
  * 2. 混合回憶（retrieve.ts）：原句與線索詞兩條路徑，以 RRF 合併；命中的事實對應回原始經歷。
- * 3. 新 session 的第一句，另外帶入最近一次對話的開頭與結尾。
+ * 3. 新 session 的第一句，另外帶入「關於對方，我記得的長期事實」（hypotheses.md H-M2）與最近一次對話的開頭與結尾。
  * 4. 以「回憶」訊息（source.kind=temir-recall, form=recall）放在對方的訊息之前；DSH 會把它記為
  *    user/message（model-visible means logged）。另寫一筆 `memory/recall` 記下線索、路徑與命中，
  *    供日後分析記憶是否真的影響了決策（hypotheses.md H-M1 的消融實驗）。
@@ -22,7 +22,7 @@ import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '../life/index.ts'
 import { runAux, type AuxCall, type AuxPurpose, type AuxRoute } from './aux.ts'
-import { FACTS_KIND, clip, hybridRecall, lastConversation, renderRecall, type FactsData } from './retrieve.ts'
+import { FACTS_KIND, clip, hybridRecall, lastConversation, personFacts, renderRecall, type FactsData } from './retrieve.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -45,7 +45,8 @@ export interface Config {
 }
 
 const HEADER =
-  '（回憶：以下是系統依目前的情境，從你的生命紀錄中自動取回的片段。它們只是線索，可能不完整，也可能與現在無關；使用前先判斷哪些真的相關、哪些比較新。）'
+  '（回憶：以下是系統依目前的情境，從你的生命紀錄中自動取回的片段。它們只是線索，可能不完整，也可能與現在無關；使用前先判斷哪些真的相關、哪些比較新。' +
+  '對方提到的事，如果這裡沒有、用 recall 也找不到，就是你沒有這段記憶：直接說不記得，不要順著對方的說法補上。）'
 
 /** 等待 promise，但最多等 ms 毫秒；計時器在結束後清除，不會讓程序多留。 */
 async function settleWithin(promise: Promise<unknown>, ms: number): Promise<void> {
@@ -70,7 +71,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const logger = ctx.logger('temir-recall')
 
   /** pre-step 擷取到的事實，等對應的 user/message 寫進生命日誌後再寫成 memory/facts。 */
-  const pendingFacts = new Map<string, readonly string[]>()
+  const pendingFacts = new Map<string, { readonly facts: readonly string[]; readonly lasting: readonly string[] }>()
   /** 背景擷取（自己的回覆）；卸載前等它們完成，避免程序結束時遺失。 */
   const background = new Set<Promise<void>>()
   ctx.effect(
@@ -134,8 +135,14 @@ export function apply(ctx: Context, config: Config | undefined): void {
   }
   const caughtUp: Promise<void> = expansion ? catchUp() : Promise.resolve()
 
-  function appendFacts(session: string, source: string, facts: readonly string[], from: FactsData['from']): void {
-    const data: FactsData = { facts, from }
+  function appendFacts(
+    session: string,
+    source: string,
+    facts: readonly string[],
+    from: FactsData['from'],
+    lasting: readonly string[] = [],
+  ): void {
+    const data: FactsData = { facts, from, ...(lasting.length > 0 ? { lasting } : {}) }
     life.append({ kind: FACTS_KIND, origin: 'self', session, data, text: facts.join('\n'), causes: [source] })
   }
 
@@ -156,7 +163,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
         const call = await aux('heard', route, cue, session, [], payload.signal)
         if (call?.result) {
           keywords = call.result.keywords
-          if (call.result.facts.length > 0) for (const m of human) pendingFacts.set(m.id, call.result.facts)
+          const { facts, lasting } = call.result
+          if (facts.length > 0) for (const m of human) pendingFacts.set(m.id, { facts, lasting })
         }
       }
       if (!automatic) return decision
@@ -164,6 +172,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
       try {
         const first = life.inSession(session, 'dsh/user/message', 'asc', 1).length === 0
         const last = first ? lastConversation(life, session) : undefined
+        const person = first ? personFacts(life) : []
         const recalled = hybridRecall(life, cue, keywords, { limit, excludeSession: session })
         life.append({
           kind: 'memory/recall',
@@ -174,13 +183,14 @@ export function apply(ctx: Context, config: Config | undefined): void {
             cue: clip(cue, 500),
             keywords,
             lastSession: last?.session ?? null,
-            hits: recalled.map((r) => ({ id: r.event.id, via: r.via, score: r.score })),
+            person: [...new Set(person.map((p) => p.id))],
+            hits: recalled.map((r) => ({ id: r.event.id, reply: r.reply?.id ?? null, via: r.via, score: r.score })),
           },
-          causes: recalled.map((r) => r.event.id),
+          causes: [...new Set([...recalled.flatMap((r) => [r.event.id, ...(r.reply ? [r.reply.id] : [])]), ...person.map((p) => p.id)])],
         })
-        if (recalled.length === 0 && !last) return decision
+        if (recalled.length === 0 && !last && person.length === 0) return decision
         const recall = createUserMessage({
-          content: [{ type: 'text', text: renderRecall(life, recalled, last, HEADER) }],
+          content: [{ type: 'text', text: renderRecall(life, recalled, last, HEADER, person) }],
           source: { kind: 'temir-recall', form: 'recall' },
         })
         return { ...decision, messages: [recall, ...decision.messages] }
@@ -193,10 +203,10 @@ export function apply(ctx: Context, config: Config | undefined): void {
     ctx.on('session/event', (session: Session, event: SessionEvent) => {
       try {
         if (event.type === 'user/message') {
-          const facts = pendingFacts.get(event.data.id)
-          if (facts) {
+          const pending = pendingFacts.get(event.data.id)
+          if (pending) {
             pendingFacts.delete(event.data.id)
-            appendFacts(session.id, `${session.id}#${event.seq}`, facts, 'heard')
+            appendFacts(session.id, `${session.id}#${event.seq}`, pending.facts, 'heard', pending.lasting)
           }
         } else if (expansion && event.type === 'assistant/message') {
           const said = textOf(event.data.message.content as readonly { type: string; text?: string }[]).trim()
@@ -230,8 +240,12 @@ export function apply(ctx: Context, config: Config | undefined): void {
           kind: 'memory/recall',
           origin: 'self',
           session,
-          data: { mode: 'voluntary', cue: clip(args.query, 500), hits: recalled.map((r) => ({ id: r.event.id, via: r.via, score: r.score })) },
-          causes: recalled.map((r) => r.event.id),
+          data: {
+            mode: 'voluntary',
+            cue: clip(args.query, 500),
+            hits: recalled.map((r) => ({ id: r.event.id, reply: r.reply?.id ?? null, via: r.via, score: r.score })),
+          },
+          causes: [...new Set(recalled.flatMap((r) => [r.event.id, ...(r.reply ? [r.reply.id] : [])]))],
         })
         if (recalled.length === 0) return '生命紀錄中沒有找到相關的經歷。（檢索以詞彙比對為主，換個說法或多寫幾個詞可能找得到。）'
         return renderRecall(life, recalled, undefined, `找到 ${recalled.length} 筆相關的經歷：`)

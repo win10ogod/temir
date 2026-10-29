@@ -329,6 +329,29 @@ export class LifeStore {
     return rows.map(toEvent)
   }
 
+  /** 同一 session 中排在 `seq` 之後、屬於指定 kind 的事件（只取有檢索文字者），由舊到新。 */
+  following(session: string, kinds: readonly string[], seq: number, limit: number): LifeEvent[] {
+    if (kinds.length === 0) return []
+    const rows = this.#db
+      .prepare(
+        `SELECT * FROM events WHERE session = ? AND seq > ? AND kind IN (${kinds.map(() => '?').join(', ')})
+         AND text IS NOT NULL ORDER BY seq ASC LIMIT ?`,
+      )
+      .all(session, seq, ...kinds, limit) as unknown as Row[]
+    return rows.map(toEvent)
+  }
+
+  /** 同一 session 中排在 `seq` 之前的最後一筆指定 kind 事件（只取檢索文字以 `textPrefix` 開頭者）。 */
+  preceding(session: string, kind: string, seq: number, textPrefix = ''): LifeEvent | undefined {
+    const row = this.#db
+      .prepare(
+        `SELECT * FROM events WHERE session = ? AND seq < ? AND kind = ? AND text IS NOT NULL
+         AND substr(text, 1, ?) = ? ORDER BY seq DESC LIMIT 1`,
+      )
+      .get(session, seq, kind, textPrefix.length, textPrefix) as Row | undefined
+    return row ? toEvent(row) : undefined
+  }
+
   /** 除了 `exclude` 之外，最近一次有指定 kind 事件的 session。 */
   latestOtherSession(kind: string, exclude: string | undefined): string | undefined {
     const row = this.#db

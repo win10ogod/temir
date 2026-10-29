@@ -111,6 +111,12 @@ export function formatTime(ts: number): string {
   return dateFormat.format(new Date(ts))
 }
 
+const dayFormat = new Intl.DateTimeFormat('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' })
+
+export function formatDay(ts: number): string {
+  return dayFormat.format(new Date(ts))
+}
+
 /** 每一步都附在對話中的自我狀態快照。 */
 export function renderSelfSnapshot(life: LifeStore): string {
   const lines: string[] = ['（以下是你的生命紀錄中目前的自我狀態，由系統自動附上。）', '']

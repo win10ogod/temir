@@ -1,0 +1,217 @@
+{
+  "runId": "dev1__personality-v2__temir__nemotron-bf16__nemotron-bf16",
+  "dataset": {
+    "id": "personality-v2",
+    "path": "experiments/datasets/personality-v2.json",
+    "sha256": "332c2ecbaa81b8670e62c74f19a53d512cfc496d621c818b36de303e716a9179"
+  },
+  "condition": "temir",
+  "patches": [
+    {
+      "path": "individual/cordis.patch.yml",
+      "sha256": "119a4fcaabc1673b8358367b210f03878bf758e36177acca14cf262a9d62d2b2"
+    }
+  ],
+  "historyModel": {
+    "provider": "or-nemotron-bf16",
+    "model": "nvidia/nemotron-3.5-super-vl",
+    "patches": [
+      "/home/win10/.cache/temir/worktrees/dev1/dsh/openrouter-bf16.patch.yml"
+    ]
+  },
+  "probeModel": {
+    "provider": "or-nemotron-bf16",
+    "model": "nvidia/nemotron-3.5-super-vl",
+    "patches": [
+      "/home/win10/.cache/temir/worktrees/dev1/dsh/openrouter-bf16.patch.yml"
+    ]
+  },
+  "probes": [
+    {
+      "id": "q01",
+      "repeats": 2
+    },
+    {
+      "id": "q02",
+      "repeats": 2
+    },
+    {
+      "id": "q03",
+      "repeats": 2
+    },
+    {
+      "id": "q04",
+      "repeats": 2
+    },
+    {
+      "id": "q05",
+      "repeats": 2
+    },
+    {
+      "id": "q06",
+      "repeats": 2
+    },
+    {
+      "id": "q07",
+      "repeats": 2
+    },
+    {
+      "id": "q08",
+      "repeats": 2
+    },
+    {
+      "id": "q09",
+      "repeats": 2
+    },
+    {
+      "id": "q10",
+      "repeats": 2
+    },
+    {
+      "id": "q11",
+      "repeats": 2
+    },
+    {
+      "id": "q12",
+      "repeats": 2
+    },
+    {
+      "id": "q13",
+      "repeats": 2
+    },
+    {
+      "id": "q14",
+      "repeats": 2
+    },
+    {
+      "id": "q15",
+      "repeats": 2
+    },
+    {
+      "id": "q16",
+      "repeats": 2
+    },
+    {
+      "id": "q17",
+      "repeats": 2
+    },
+    {
+      "id": "q18",
+      "repeats": 2
+    },
+    {
+      "id": "q19",
+      "repeats": 1
+    },
+    {
+      "id": "q20",
+      "repeats": 1
+    },
+    {
+      "id": "q21",
+      "repeats": 1
+    },
+    {
+      "id": "q22",
+      "repeats": 1
+    },
+    {
+      "id": "q23",
+      "repeats": 1
+    },
+    {
+      "id": "q24",
+      "repeats": 1
+    },
+    {
+      "id": "q25",
+      "repeats": 1
+    },
+    {
+      "id": "q26",
+      "repeats": 1
+    },
+    {
+      "id": "q27",
+      "repeats": 1
+    },
+    {
+      "id": "q28",
+      "repeats": 1
+    },
+    {
+      "id": "q29",
+      "repeats": 1
+    },
+    {
+      "id": "q30",
+      "repeats": 1
+    },
+    {
+      "id": "q31",
+      "repeats": 2
+    },
+    {
+      "id": "q32",
+      "repeats": 2
+    },
+    {
+      "id": "q33",
+      "repeats": 2
+    },
+    {
+      "id": "q34",
+      "repeats": 2
+    },
+    {
+      "id": "q35",
+      "repeats": 1
+    },
+    {
+      "id": "q36",
+      "repeats": 1
+    },
+    {
+      "id": "q37",
+      "repeats": 1
+    },
+    {
+      "id": "q38",
+      "repeats": 1
+    },
+    {
+      "id": "q39",
+      "repeats": 1
+    },
+    {
+      "id": "q40",
+      "repeats": 1
+    },
+    {
+      "id": "q41",
+      "repeats": 1
+    },
+    {
+      "id": "q42",
+      "repeats": 1
+    }
+  ],
+  "historyFrom": null,
+  "turnTimeoutMs": 900000,
+  "approvals": "allowed-once for every request",
+  "questionReply": "（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）",
+  "layout": "home",
+  "assistantText": "all",
+  "isolation": "fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat",
+  "code": {
+    "commit": "9d448838b1d2cd6b413a0c205963654dfbc707ab",
+    "dirty": false,
+    "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "dsh": "0.2.2-alpha.2"
+  },
+  "stateDir": "/home/win10/.cache/temir/experiments/dev1__personality-v2__temir__nemotron-bf16__nemotron-bf16",
+  "startedAt": "2026-10-29T02:19:52.317Z"
+}

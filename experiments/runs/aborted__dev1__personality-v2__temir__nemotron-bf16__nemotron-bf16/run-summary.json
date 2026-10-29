@@ -1,0 +1,22 @@
+{
+  "runId": "dev1__personality-v2__temir__nemotron-bf16__nemotron-bf16",
+  "endedAt": "2026-10-29T03:02:20.562Z",
+  "histories": 12,
+  "historyFrom": null,
+  "probes": 42,
+  "probeSessions": 64,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 68,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 65,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

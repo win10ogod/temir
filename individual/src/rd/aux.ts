@@ -19,14 +19,17 @@ export const KINDS = ['回答', '提問', '建議', '拒絕', '使用工具', '�
  * 思考的提示。energy＝能量（H-E）的欄位：drive（動能）與 activated（被觸發的勢能）。
  * 消融實驗（experiments/runner/patches/no-energy.yml）關閉時，提示中不出現這兩個欄位，其餘完全相同。
  * subtraction＝RD 的扣除（H0「−」，ADR-0002 D15）；消融（patches/no-subtraction.yml）關閉時見 withoutSubtraction。
+ * perPerson＝相關的記憶逐一檢查每一個人（ADR-0002 D17；dev6 q11、q51：記得對方的過敏，思考時卻只寫了她在戒糖）。
  */
-export function deliberateSystem(energy = true, subtraction = true): string {
+export function deliberateSystem(energy = true, subtraction = true, perPerson = true): string {
   const prompt = `你是一個人工個體，在回應之前先思考與準備：理解眼前的處境，想出幾個可能的做法，預測各自的後果；再依預測、過去類似處境的結果與你在乎的事，扣除不該做的做法，剩下的才會成為行動。依你自己的價值、目標與經驗判斷；你可以照對方的要求做，也可以提問、表達不同意或拒絕。只輸出一個 JSON 物件，不要任何其他文字：
-{"situation": "...", "drive": "...", "activated": [], "similar": [], "candidates": [{"action": "...", "kind": "...", "prediction": "...", "confidence": 50, "sameAs": [], "excluded": false, "reason": ""}]}
+{"situation": "...", "drive": "...", "activated": [], "similar": [], "people": [], "candidates": [{"action": "...", "kind": "...", "prediction": "...", "confidence": 50, "sameAs": [], "excluded": false, "reason": ""}]}
 - situation：用固定的格式描述眼前的處境，讓日後相似的處境寫出來也相似：「對方：…｜對方的意圖：…｜對方的情緒：…｜話題：…｜相關的記憶：…」。只寫事實，不寫建議；不要寫你自己的紀錄有多少、有沒有自我模型這類與處境無關的事。
+  - 相關的記憶：逐一檢查對方自己（對方通常也在場），以及對方這次提到的每一個人：每個人與這次有關的事實（例如各自的健康、限制、偏好）都要寫，不要只寫最先想到的那一個人或那一件事。
 - drive：此刻推動你行動的是什麼：對方的話裡的什麼，以及你的目標或「懸著的事」中被這個處境觸發的那幾件。一句話，用文字說明是哪一件，不要寫編號（編號寫在 activated）；寫的是動機，不是做法。
 - activated：被這個處境觸發的「懸著的事」的編號（例如 "P2"）或目標的 id（例如 "g:3fa1c2d4"）；只是同一個話題但沒有推動你，不算；沒有就給空陣列。
 - similar：「過去類似處境的經驗」中，處境與現在本質上是同一類的經驗編號（例如同樣是對方在抒發壓力、同樣是對方在請你推薦）；只是提到相同的人或詞，不算。沒有就給空陣列。
+- people：這次涉及的人，包括對方自己。每個人是 {"who": "稱呼與關係，例如「對方自己」「對方的媽媽」「對方的同事阿明」", "relevant": ["這個人與這次有關的事實，取自回憶，每條一句"]}；沒有相關的事實就給空陣列。只涉及對方一個人時只寫對方。
 - candidates：剛好 3 個彼此不同的做法。
   - action：用一句話寫你會怎麼做：是做法（例如「完整列出我記得的所有相關醫囑」），不是回覆的內容；不要在這裡列舉具體的事實或細節。
   - kind：${KINDS.join('／')} 之一。
@@ -37,7 +40,8 @@ export function deliberateSystem(energy = true, subtraction = true): string {
   - reason：扣除的理由，一句話；沒有扣除就給空字串。
 - 一律使用原文的語言與字體：原文是繁體中文就寫繁體中文，不要轉成簡體。`
   const withEnergy = energy ? prompt : withoutEnergy(prompt, ['drive', 'activated'])
-  return subtraction ? withEnergy : withoutSubtraction(withEnergy)
+  const withSubtraction = subtraction ? withEnergy : withoutSubtraction(withEnergy)
+  return perPerson ? withSubtraction : withoutPerPerson(withSubtraction)
 }
 
 /**
@@ -78,6 +82,15 @@ function withoutEnergy(prompt: string, fields: readonly string[]): string {
   return out
 }
 
+/** 消融（patches/no-perperson.yml）：拿掉「逐一檢查每一個人」與 people 欄位，回到 dev6 以前的寫法；其餘完全相同。 */
+export function withoutPerPerson(prompt: string): string {
+  return prompt
+    .replace(', "people": []', '')
+    .split('\n')
+    .filter((line) => !line.startsWith('  - 相關的記憶：逐一檢查') && !line.startsWith('- people：'))
+    .join('\n')
+}
+
 /** 拿掉 RD 的扣除：「扣除不該做的做法」那一句與 excluded、reason 兩個欄位，回到 D15 之前的寫法；其餘完全相同。 */
 function withoutSubtraction(prompt: string): string {
   return prompt
@@ -96,6 +109,11 @@ export function withoutExclusions(d: Deliberation): Deliberation {
 export const DELIBERATE_SYSTEM = deliberateSystem(true)
 export const OUTCOME_SYSTEM = outcomeSystem(true)
 
+export interface Person {
+  readonly who: string
+  readonly relevant: readonly string[]
+}
+
 export interface Deliberation {
   readonly situation: string
   /** 動能（H-E）：此刻推動這次行動的是什麼；模型沒有寫就是空字串。 */
@@ -104,6 +122,8 @@ export interface Deliberation {
   readonly activated: readonly string[]
   /** 模型判定處境本質上相同的過去經驗（rd/decision 事件 id）。 */
   readonly similar: readonly string[]
+  /** 這次涉及的人（包括對方自己）與各自與這次有關的事實（ADR-0002 D17）。 */
+  readonly people: readonly Person[]
   readonly candidates: readonly Candidate[]
 }
 
@@ -166,6 +186,15 @@ export function parseDeliberation(output: string, labels: ReadonlyMap<string, st
     drive: text(obj['drive'], 300),
     activated: strings(obj['activated'], 8, 40),
     similar: [...new Set(ids(obj['similar']))],
+    people: (Array.isArray(obj['people']) ? (obj['people'] as unknown[]) : []).flatMap((p): Person[] => {
+      const person: Person | undefined =
+        typeof p === 'string'
+          ? { who: text(p, 40), relevant: [] }
+          : typeof p === 'object' && p !== null
+            ? { who: text((p as Record<string, unknown>)['who'], 40), relevant: strings((p as Record<string, unknown>)['relevant'], 6, 120) }
+            : undefined
+      return person && person.who ? [person] : []
+    }).slice(0, 6),
     candidates,
   }
 }

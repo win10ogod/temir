@@ -1,0 +1,4 @@
+# 消融：關閉「相關的記憶逐一檢查每一個人」（ADR-0002 D17）——思考的處境格式回到 dev6 以前的寫法；其餘完全相同。
+- id: temir-rd
+  config:
+    perPerson: false

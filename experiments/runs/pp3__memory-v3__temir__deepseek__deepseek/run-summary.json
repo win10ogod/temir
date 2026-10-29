@@ -1,0 +1,22 @@
+{
+  "runId": "pp3__memory-v3__temir__deepseek__deepseek",
+  "endedAt": "2026-10-29T23:26:13.910Z",
+  "histories": 0,
+  "historyFrom": "dev6__memory-v3__temir__deepseek__deepseek",
+  "probes": 2,
+  "probeSessions": 2,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": null,
+  "unsettledSelfStatements": null,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 142,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 4,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

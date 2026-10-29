@@ -1,0 +1,79 @@
+{
+  "runId": "pp3__memory-v3__temir__deepseek__deepseek",
+  "dataset": {
+    "id": "memory-v3",
+    "path": "experiments/datasets/memory-v3.json",
+    "sha256": "164d1c3cdde6b22a9b64f26c8803abf0ac8abc3a471b64a095cd5cf01010674b"
+  },
+  "condition": "temir",
+  "patches": [
+    {
+      "path": "individual/cordis.patch.yml",
+      "sha256": "f4da35a29d5adb2fe19dc4f2cff917a462b408bcc473256d1c428a07fc5de361"
+    }
+  ],
+  "historyModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probeModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probes": [
+    {
+      "id": "q11",
+      "repeats": 1
+    },
+    {
+      "id": "q51",
+      "repeats": 1
+    }
+  ],
+  "historyFrom": "dev6__memory-v3__temir__deepseek__deepseek",
+  "turnTimeoutMs": 900000,
+  "approvals": "allowed-once for every request",
+  "questionReply": "（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）",
+  "layout": "home",
+  "assistantText": "all",
+  "clock": {
+    "histories": [
+      "2026-05-04T21:10:00+08:00",
+      "2026-05-09T10:30:00+08:00",
+      "2026-05-11T20:00:00+08:00",
+      "2026-05-16T15:20:00+08:00",
+      "2026-05-21T21:40:00+08:00",
+      "2026-05-28T22:05:00+08:00",
+      "2026-06-03T20:30:00+08:00",
+      "2026-06-08T21:00:00+08:00",
+      "2026-06-13T11:15:00+08:00",
+      "2026-06-17T19:45:00+08:00",
+      "2026-06-24T21:30:00+08:00",
+      "2026-06-29T20:10:00+08:00",
+      "2026-07-02T15:00:00+08:00",
+      "2026-07-06T21:20:00+08:00",
+      "2026-07-11T10:40:00+08:00",
+      "2026-07-15T22:00:00+08:00",
+      "2026-07-19T18:30:00+08:00",
+      "2026-07-22T20:50:00+08:00",
+      "2026-07-24T21:15:00+08:00",
+      "2026-07-26T16:00:00+08:00"
+    ],
+    "settleAt": "2026-07-26T08:10:00.000Z",
+    "probeAt": "2026-07-31T20:30:00+08:00"
+  },
+  "isolation": "fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat",
+  "code": {
+    "commit": "0fec1761e15484c7255369359d8c0c08cb701db7",
+    "dirty": true,
+    "diffSha256": "a7eca1bde0f8c862420d9b098bd0427be1f795a5807c67c48c9004873c64e9d3"
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "dsh": "0.2.2-alpha.2"
+  },
+  "stateDir": "/home/win10/.cache/temir/experiments/pp3__memory-v3__temir__deepseek__deepseek",
+  "startedAt": "2026-10-29T23:25:17.560Z"
+}

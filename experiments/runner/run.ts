@@ -68,6 +68,7 @@ export const CONDITIONS = {
   // 2026-10-29 第二輪：能量（H-E）的消融。
   'temir-no-energy': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-energy.yml')],
   'temir-no-subtraction': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-subtraction.yml')],
+  'temir-no-perperson': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-perperson.yml')],
 } as const
 export type Condition = keyof typeof CONDITIONS
 

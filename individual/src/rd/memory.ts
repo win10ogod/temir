@@ -36,6 +36,8 @@ export interface DecisionData {
   readonly drive?: string
   /** 被這個處境觸發的勢能（self/energy.ts 的 key，或 goal:<目標 id>）。 */
   readonly activated?: readonly string[]
+  /** 這次涉及的人與各自與這次有關的事（ADR-0002 D17）；舊紀錄沒有這個欄位。 */
+  readonly people?: readonly { readonly who: string; readonly relevant: readonly string[] }[]
 }
 
 /** 行動留下的懸念的種類（H-E 第三版）：答應的事、在等的事、還沒解開的不安。 */
@@ -207,6 +209,14 @@ export function renderPreparation(delib: Deliberation, correction: Correction, n
   const lines = [
     '（準備：這是你在回應之前的思考與行動準備，不是對方說的話，對方看不到。準備只是方向；回應的內容以回憶與對話為準，不要只用這裡提到的細節。）',
     `處境：${preparedSituation(delib.situation)}`,
+    // 涉及兩個人以上時（ADR-0002 D17）：列出每個人，以及思考時想到、各自與這次有關的事，當作「至少要顧到」的底線；
+    // 摘要可能不完整（見 preparedSituation），所以明寫回憶中還有的也要用。只涉及一個人時不列，避免把回應框窄。
+    ...(delib.people.length >= 2
+      ? [
+          '這次涉及的人，以及你思考時想到、各自與這次有關的事（至少要顧到這些；回憶中還有的也要用，不要只顧其中一個人）：',
+          ...delib.people.map((p) => `- ${p.who}${p.relevant.length > 0 ? `：${p.relevant.join('；')}` : ''}`),
+        ]
+      : []),
     ...(delib.drive ? [`推動你的：${delib.drive}`] : []),
     '你考慮過的做法：',
   ]

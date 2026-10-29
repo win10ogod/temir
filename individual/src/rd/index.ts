@@ -73,6 +73,8 @@ export interface Config {
    * 選擇回到全部候選中分數最高的，準備訊息不提扣除。其餘完全相同。
    */
   readonly subtraction?: boolean
+  /** 相關的記憶逐一檢查每一個人（ADR-0002 D17，預設開；消融時關閉）。 */
+  readonly perPerson?: boolean
 }
 
 function textOf(content: readonly { readonly type: string; readonly text?: string }[]): string {
@@ -91,6 +93,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const timeoutMs = config?.timeoutMs ?? 90_000
   const energy = config?.energy ?? true
   const subtraction = config?.subtraction ?? true
+  const perPerson = config?.perPerson ?? true
   const silenceMs = (config?.silenceMinutes ?? 10) * 60_000
   const logger = ctx.logger('temir-rd')
 
@@ -279,7 +282,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
           '## 對方剛說的話',
           clip(cue, 3000),
         ].join('\n')
-        const output = await call('deliberate', route, deliberateSystem(energy, subtraction), input, session, [], payload.signal)
+        const output = await call('deliberate', route, deliberateSystem(energy, subtraction, perPerson), input, session, [], payload.signal)
         const parsed = output === undefined ? undefined : parseDeliberation(output, labels)
         if (!parsed) return decision
         // 處境、drive、候選與扣除理由都會進入準備訊息與紀錄：把編號換成那件事的描述（編號只在這次思考的輸入中有意義）。
@@ -293,6 +296,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
           cue: clip(cue, 500),
           situation: deliberation.situation,
           ...(deliberation.drive ? { drive: deliberation.drive } : {}),
+          ...(deliberation.people.length > 0 ? { people: deliberation.people } : {}),
           ...(() => {
             const activated = resolvePotential(deliberation.activated, potentialLabels, goalIds)
             return activated.length > 0 ? { activated } : {}

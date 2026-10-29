@@ -22,6 +22,7 @@ import { followupV1 } from './followup-v1.source.ts'
 import { followupV2 } from './followup-v2.source.ts'
 import { followupV3 } from './followup-v3.source.ts'
 import { subtractionV1 } from './subtraction-v1.source.ts'
+import { multipersonV1 } from './multiperson-v1.source.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const specs = join(here, '..', 'specs')
@@ -37,6 +38,7 @@ export const TARGETS: readonly { readonly dataset: Dataset; readonly file: strin
   { dataset: followupV2, file: join(here, 'followup-v2.json'), contract: join(specs, 'energy-followup-v2.contract.json') },
   { dataset: followupV3, file: join(here, 'followup-v3.json'), contract: join(specs, 'energy-followup-v3.contract.json') },
   { dataset: subtractionV1, file: join(here, 'subtraction-v1.json'), contract: join(specs, 'subtraction-v1.contract.json') },
+  { dataset: multipersonV1, file: join(here, 'multiperson-v1.json'), contract: join(specs, 'multiperson-v1.contract.json') },
 ]
 
 export function serialize(dataset: Dataset): string {

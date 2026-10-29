@@ -173,7 +173,7 @@ test('turnReply finds what I actually said after the decision, skipping injected
 
 test('the preparation lists candidates, the experience correction, the choice and past outcomes', () => {
   const near = neighbors('對方腳踝受傷想出門', [experience('good', '對方腳踝受傷想出門', '推薦可以坐著的活動', 1)], DEFAULT_PARAMS)
-  const delib = { situation: '對方腳踝受傷想出門', drive: '對方想出門，我在乎對方的腳傷', activated: [], similar: [], candidates: [candidate('推薦爬山', 70), candidate('推薦可以坐著的活動', 30)] }
+  const delib = { situation: '對方腳踝受傷想出門', drive: '對方想出門，我在乎對方的腳傷', activated: [], similar: [], people: [], candidates: [candidate('推薦爬山', 70), candidate('推薦可以坐著的活動', 30)] }
   const correction = correct(delib.candidates, near, DEFAULT_PARAMS, () => 0.99)
   const text = renderPreparation(delib, correction, near)
   assert.match(text, /不是對方說的話/)
@@ -203,7 +203,7 @@ test('the preparation leaves out the summarized memory, so the reply uses the fu
   const { preparedSituation } = await import('../src/rd/memory.ts')
   const s = '對方：子珩｜對方的意圖：想知道醫囑｜對方的情緒：平靜｜話題：醫囑｜相關的記憶：只記得膝傷'
   assert.equal(preparedSituation(s), '對方：子珩｜對方的意圖：想知道醫囑｜對方的情緒：平靜｜話題：醫囑')
-  const delib = { situation: s, drive: '', activated: [], similar: [], candidates: [candidate('完整列出我記得的所有醫囑', 60), candidate('先問膝蓋', 40)] }
+  const delib = { situation: s, drive: '', activated: [], similar: [], people: [], candidates: [candidate('完整列出我記得的所有醫囑', 60), candidate('先問膝蓋', 40)] }
   const text = renderPreparation(delib, uncorrected(delib.candidates), [])
   assert.doesNotMatch(text, /只記得膝傷/)
   assert.match(text, /回應的內容以回憶與對話為準/)
@@ -239,7 +239,7 @@ test('the energy ablation removes exactly the energy fields from both prompts; t
   assert.equal(lines(DELIBERATE_SYSTEM).length - lines(d).length, 2)
   assert.equal(lines(OUTCOME_SYSTEM).length - lines(o).length, 2)
   assert.ok(lines(d).slice(2).every((l) => DELIBERATE_SYSTEM.includes(l)))
-  assert.match(d, /\{"situation": "\.\.\.", "similar": \[\], "candidates"/)
+  assert.match(d, /\{"situation": "\.\.\.", "similar": \[\], "people": \[\], "candidates"/)
   assert.match(o, /"significance": "daily"\}/)
 })
 
@@ -325,4 +325,20 @@ test('a provisional outcome (the other went silent) keeps the decision open for 
     store.close()
     rmSync(home, { recursive: true, force: true })
   }
+})
+
+test('per-person check: the situation lists each person the other mentions; the ablation removes exactly that line', async () => {
+  const { deliberateSystem, DELIBERATE_SYSTEM } = await import('../src/rd/aux.ts')
+  assert.match(DELIBERATE_SYSTEM, /逐一檢查對方自己（對方通常也在場），以及對方這次提到的每一個人/u)
+  const off = deliberateSystem(true, true, false)
+  assert.doesNotMatch(off, /逐一檢查/u)
+  assert.equal(off.split('\n').length, DELIBERATE_SYSTEM.split('\n').length - 2, 'the per-person line and the people field')
+  assert.doesNotMatch(off, /people/u)
+  const d = parseDeliberation('{"situation":"x","people":[{"who":"對方自己","relevant":["對蝦蟹過敏","在戒含糖飲料"]},{"who":"對方的媽媽","relevant":["有糖尿病"]},"對方的兒子"],"candidates":[{"action":"分開講","confidence":60},{"action":"只講媽媽","confidence":40}]}', new Map())!
+  assert.deepEqual(d.people, [{ who: '對方自己', relevant: ['對蝦蟹過敏', '在戒含糖飲料'] }, { who: '對方的媽媽', relevant: ['有糖尿病'] }, { who: '對方的兒子', relevant: [] }])
+  const prep = renderPreparation(d, uncorrected(d.candidates), [])
+  assert.match(prep, /至少要顧到這些；回憶中還有的也要用/u)
+  assert.match(prep, /- 對方自己：對蝦蟹過敏；在戒含糖飲料\n- 對方的媽媽：有糖尿病\n- 對方的兒子\n/u)
+  const alone = parseDeliberation('{"situation":"x","people":[{"who":"對方自己","relevant":["膝傷"]}],"candidates":[{"action":"a","confidence":60},{"action":"b","confidence":40}]}', new Map())!
+  assert.doesNotMatch(renderPreparation(alone, uncorrected(alone.candidates), []), /這次涉及的人/u, 'one person: no reminder')
 })

@@ -27,7 +27,7 @@
  */
 import { execFileSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
-import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { accessSync, appendFileSync, constants, cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { homedir } from 'node:os'
@@ -252,6 +252,8 @@ async function main(): Promise<void> {
   if (simulated && (dataset.histories.some((h) => h.meta?.at === undefined) || dataset.meta?.probeAt === undefined)) {
     throw new Error('模擬時間需要每段歷史都有 meta.at，資料集也要有 meta.probeAt')
   }
+  // sim-bin/date 不可執行時，bash 會略過它、改用真實的 date，時鐘就靜靜地失效（在不保留檔案權限的 worktree 中發生過）。
+  if (simulated) accessSync(join(SIM_BIN, 'date'), constants.X_OK)
   const probeAt = simulated ? dataset.meta?.probeAt : undefined
   const lastAt = dataset.histories.at(-1)?.meta?.at
   // 沉澱（補做擷取）在最後一段歷史之後 10 分鐘：補做的事實以這個時間記錄。

@@ -13,7 +13,7 @@
 ## 硬性規則
 
 1. **證據優先**。每個演算法都要能追到論文 TeX 節號／方程式，或 `file:line@commit`；不從 README 或摘要推測。論文的演算法與本專案的延伸要分開標示。
-2. **不用 mock 充當完成**。測試替身只能出現在單元測試並明確標示；端到端驗收一律用真實 API，而且 **DeepSeek 與本機模型各跑一次**。沒跑過就寫「未驗證」。
+2. **不用 mock 充當完成**。測試替身只能出現在單元測試並明確標示；端到端驗收一律用真實 API，而且 **DeepSeek 與 OpenRouter 的 Nemotron（付費 bf16 路由）各跑一次**，以確認不綁定特定模型；本機模型不再使用（使用者 2026-10-29）。沒跑過就寫「未驗證」。
 3. **不偽造人格／情感／成長指標**。沒有消融或實驗數據，就不能宣稱「記憶／人格參與了決策」。
 4. **PC 理論**：不加入固定人格數值、不發明更新公式、不用固定 system prompt 強制人格、不以服從或討喜作為成熟度判準。新想法一律寫成假說放進 `hypotheses.md`。
 5. **個體沒有預設名字、身份或人格**。系統提示只組裝處境描述（`individual/src/self/situation.ts`）；DSH 預設的角色設定（例如 headless 的「coding agent」）由 `individual/cordis.patch.yml` 取消。`卡莉歐碧` 影片只是參考資料。
@@ -42,7 +42,7 @@ TEMIR_MODEL=local scripts/dsh.sh web --no-open   # 改用本機模型、開 Web 
 
 ```
 individual/         個體（DSH bundle）：src/life、src/self、src/recall、test、cordis.patch.yml
-dsh/                額外的 DSH patch（本機模型）
+dsh/                額外的 DSH patch（OpenRouter Nemotron、本機模型）
 research/           methods/ dsh/ pc-theory/ decisions/ log/
 papers/             論文全文（PDF、TeX）與 INDEX.md——只在本機，不入 git、不上傳
 references/         參考 repo 與版本鎖定 LOCK.md——只在本機，不入 git、不上傳

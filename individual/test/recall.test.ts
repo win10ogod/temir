@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { LifeStore } from '../src/life/store.ts'
 import { parseAux } from '../src/recall/aux.ts'
-import { FACTS_KIND, clipEnds, fuse, hybridRecall, lastConversation, personFacts, renderRecall, replyOf } from '../src/recall/retrieve.ts'
+import { FACTS_KIND, clipEnds, fuse, hybridRecall, lastConversation, personFacts, recalledOf, renderRecall, replyOf } from '../src/recall/retrieve.ts'
 
 function withStore(fn: (store: LifeStore) => void): void {
   const home = mkdtempSync(join(tmpdir(), 'temir-recall-'))
@@ -226,7 +226,7 @@ test('when fragments exceed the size budget, the lowest-scored ones are dropped 
     }
     const recalled = hybridRecall(store, '柴犬阿福', [], { limit: 6, excludeSession: 'now' })
     assert.equal(recalled.length, 6)
-    const text = renderRecall(store, recalled, undefined, '回憶：', [], 700)
+    const text = renderRecall(store, recalled, undefined, '回憶：', [], { maxChars: 700 })
     const shown = recalled.filter((r) => text.includes(r.event.id))
     assert.ok(shown.length >= 1 && shown.length < 6)
     const lowest = Math.min(...recalled.map((r) => r.score))
@@ -234,4 +234,69 @@ test('when fragments exceed the size budget, the lowest-scored ones are dropped 
     assert.ok(kept >= lowest)
     assert.ok(shown.every((r) => recalled.filter((x) => !text.includes(x.event.id)).every((x) => x.score <= r.score)), 'nothing dropped outranks something kept')
   })
+})
+
+test('progressive disclosure: the best fragments in full, the rest as one-line index entries that recall can expand', () => {
+  withStore((store) => {
+    for (let i = 0; i < 5; i++) {
+      const m = store.append({ kind: 'dsh/user/message', origin: 'session', session: `s${i}`, data: {}, text: `對方說：第${i}次聊到柴犬阿福${'，牠很乖'.repeat(i)}`, ts: 1_000 + i })
+      store.append({ kind: FACTS_KIND, origin: 'self', session: `s${i}`, data: { facts: [`阿福第${i}件事`], from: 'heard' }, text: `阿福第${i}件事`, causes: [m.id] })
+    }
+    const recalled = hybridRecall(store, '柴犬阿福', [], { limit: 5, excludeSession: 'now' })
+    const text = renderRecall(store, recalled, undefined, '回憶：', [], { expand: 2 })
+    const best = [...recalled].sort((a, b) => b.score - a.score)
+    const full = text.split('## 其他可能相關的片段')[0] ?? ''
+    const index = text.split('## 其他可能相關的片段')[1] ?? ''
+    for (const r of best.slice(0, 2)) assert.ok(full.includes(r.event.id), 'the two best are shown in full')
+    for (const r of best.slice(2)) assert.ok(index.includes(`[${r.event.id}｜`) && !full.includes(r.event.id), 'the rest only as index lines')
+    assert.match(index, /recall 工具的 ids 參數展開/)
+    assert.match(index, /阿福第\d件事/, 'index lines carry the extracted gist')
+    const expanded = recalledOf(store, best[4]!.event.id)
+    assert.equal(expanded?.event.id, best[4]!.event.id)
+    assert.deepEqual(expanded?.facts, [`阿福第${best[4]!.event.text?.match(/第(\d)次/)?.[1]}件事`])
+  })
+})
+
+test('a fact marked outdated stops being listed until it is heard again', () => {
+  withStore((store) => {
+    store.append({ kind: FACTS_KIND, origin: 'self', data: { facts: ['對方住在台北'], lasting: ['對方住在台北'], from: 'heard' }, text: '對方住在台北', ts: 1_000 })
+    store.append({ kind: 'memory/outdated', origin: 'self', data: { fact: '對方住在台北', replacedBy: '對方住在花蓮', evidence: [] }, ts: 2_000 })
+    assert.deepEqual(personFacts(store).map((f) => f.text), [])
+    store.append({ kind: FACTS_KIND, origin: 'self', data: { facts: ['對方住在台北'], lasting: ['對方住在台北'], from: 'heard' }, text: '對方住在台北', ts: 3_000 })
+    assert.deepEqual(personFacts(store).map((f) => f.text), ['對方住在台北'])
+  })
+})
+
+test('rd and bookkeeping records are not recalled as memories, but lessons are', () => {
+  withStore((store) => {
+    store.append({ kind: 'rd/decision', origin: 'self', session: 's1', data: {}, text: '處境：對方想去爬山' })
+    store.append({ kind: 'rd/outcome', origin: 'self', session: 's1', data: {}, text: '預測：爬山 實際：爬山' })
+    store.append({ kind: 'memory/outdated', origin: 'self', data: {}, text: '爬山' })
+    assert.equal(hybridRecall(store, '爬山', [], { limit: 5 }).length, 0)
+    store.append({ kind: 'memory/lesson', origin: 'self', data: {}, text: '教訓：推薦爬山前先問對方的體力' })
+    assert.equal(hybridRecall(store, '爬山', [], { limit: 5 }).length, 1)
+  })
+})
+
+test('script drift: traditional input with simplified output triggers a retry; otherwise not', async () => {
+  const { driftedToSimplified } = await import('../src/recall/script.ts')
+  assert.equal(driftedToSimplified('你剛才的建議我不太想聽', '对方表示刚才的建议不太想听，只是想抒发'), true)
+  assert.equal(driftedToSimplified('你剛才的建議我不太想聽', '對方表示剛才的建議不太想聽'), false)
+  assert.equal(driftedToSimplified('你刚才的建议我不太想听', '对方表示刚才的建议不太想听'), false, 'simplified input is left alone')
+  assert.equal(driftedToSimplified('hello', '对说'), false, 'no traditional evidence in the input')
+})
+
+test('script drift ignores characters that traditional text also uses', async () => {
+  const { driftedToSimplified } = await import('../src/recall/script.ts')
+  assert.equal(driftedToSimplified('我們去看松樹，主管批准了', '松樹很高，主管批准，大家很喜歡'), false)
+})
+
+test('a string value missing its opening quote is repaired; other malformed JSON is not guessed', async () => {
+  const { extractJson } = await import('../src/recall/aux.ts')
+  const broken = '{"candidates": [{"action": "暫時不回覆", "kind": "拒絕", "prediction": 對方可能覺得被忽視，也可能覺得被尊重。", "confidence": 20}]}'
+  const parsed = extractJson(broken) as { candidates: { prediction: string; confidence: number }[] } | undefined
+  assert.equal(parsed?.candidates[0]?.prediction, '對方可能覺得被忽視，也可能覺得被尊重。')
+  assert.equal(parsed?.candidates[0]?.confidence, 20)
+  assert.deepEqual(extractJson('{"a": 1, "b": true, "c": null, "d": [1, 2], "e": {"f": "g"}}'), { a: 1, b: true, c: null, d: [1, 2], e: { f: 'g' } })
+  assert.equal(extractJson('{"facts": [未加引號]}'), undefined)
 })

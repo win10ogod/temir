@@ -10,8 +10,11 @@ import type { LifeEventInput } from './store.ts'
 /** 本專案注入訊息使用的 source kind 前綴。 */
 export const TEMIR_SOURCE_PREFIX = 'temir-'
 
-/** 結果本身就是生命紀錄內容的工具；它們的結果不再建立索引，避免回憶到回憶。 */
-export const MEMORY_TOOLS: ReadonlySet<string> = new Set(['recall'])
+/**
+ * 個體記憶與自我的工具。它們的結果是回想到的內容或寫入的確認；寫入的紀錄本身（self/revision、memory/lesson……）
+ * 另外建立索引，所以這些結果只保存不索引，避免回憶到回憶與重複的確認訊息。
+ */
+export const MEMORY_TOOLS: ReadonlySet<string> = new Set(['recall', 'integrate', 'narrate', 'self_revise', 'goal', 'appraise'])
 
 /** 追蹤記憶工具的呼叫，讓對應的 tool/result 只保存不索引。每個 DSH 程序一份。 */
 export class IngestState {

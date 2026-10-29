@@ -1,0 +1,4 @@
+# 按需披露（ADR-0002 D1）：自動回憶中只有分數最高的 3 筆呈現全文，其餘只列索引，由個體用 recall 的 ids 展開。
+- id: temir-recall
+  config:
+    disclosure: progressive

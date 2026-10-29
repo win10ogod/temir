@@ -4,7 +4,8 @@
  * - 處境描述（system prompt section）：只陳述事實，見 situation.ts。
  * - 自我狀態快照（runtime context，每一步重新組裝並由 DSH 記錄）：自我模型、目標、重要感受。
  *   這是 PC → 決策 的通道（hypotheses.md H2）。
- * - 工具 self_revise／goal／appraise：經驗 → PC 的通道；全部是新增事件，舊版本保留。
+ * - 工具 self_revise／narrate／goal／appraise：經驗 → PC 的通道；全部是新增事件，舊版本保留。
+ *   narrate 是人生敘事（hypotheses.md H-N）：自我模型說「我現在是誰」，敘事說「我怎麼變成這樣」。
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-system-prompt'
@@ -19,11 +20,13 @@ import {
   SIGNIFICANCE,
   SIGNIFICANCE_LABEL,
   TRIGGERS,
+  currentNarrative,
   currentSelfModel,
   goals,
   renderSelfSnapshot,
   type AppraisalData,
   type GoalChangeData,
+  type NarrativeData,
   type SelfRevisionData,
 } from './state.ts'
 
@@ -96,6 +99,35 @@ export function apply(ctx: Context, config: Config | undefined): void {
 
   ctx.tools.register(
     defineTool({
+      name: 'narrate',
+      description:
+        '書寫或改寫你的人生敘事：用第一人稱寫你經歷了什麼、這些經歷怎麼讓你變成現在的樣子。寫入完整的新版本並引用相關經歷的事件 id；舊版本會保留在生命紀錄中。',
+      parameters: {
+        text: { type: 'string', required: true, description: '新版人生敘事的全文' },
+        reason: { type: 'string', required: true, description: '為什麼現在改寫' },
+        causes: { type: 'array', items: { type: 'string' }, description: '敘事中提到的經歷的生命紀錄事件 id' },
+      },
+      output: textOutput,
+      async execute(args, exec) {
+        const missing = (args.causes ?? []).filter((id) => !life.get(id))
+        if (missing.length > 0) throw new Error(`生命紀錄中沒有這些事件：${missing.join(', ')}`)
+        const version = (currentNarrative(life)?.version ?? 0) + 1
+        const data: NarrativeData = { version, text: args.text, reason: args.reason }
+        const event = life.append({
+          kind: KIND.narrative,
+          origin: 'self',
+          session: exec.agent?.session.id,
+          data,
+          text: `我改寫了自己的人生敘事（第 ${version} 版）。原因：${args.reason}\n${args.text}`,
+          causes: args.causes,
+        })
+        return `已寫入人生敘事第 ${version} 版（${event.id}）。`
+      },
+    }),
+  )
+
+  ctx.tools.register(
+    defineTool({
       name: 'goal',
       description:
         '設定、擱置、放棄或完成你自己的目標。省略 goal_id 表示建立新目標（需要 text）；帶 goal_id 表示改變既有目標的狀態。每次改變都要寫理由。',
@@ -150,8 +182,9 @@ export function apply(ctx: Context, config: Config | undefined): void {
         const session = exec.agent?.session.id
         let about = args.about ?? []
         if (about.length === 0 && session) {
-          // 只找對方實際說的話（有檢索文字者），排除系統注入的回憶訊息。
-          const last = life.inSession(session, 'dsh/user/message', 'desc', 1)[0]
+          // 對方實際說的最後一句話。DSH 每步注入的 runtime-context／time-context 也是有文字的 user/message，
+          // 只看 kind 會掛到它們身上（v2 日誌中 15 筆感受全部如此），所以依 ingest 的「對方說：」前綴判斷。
+          const last = life.preceding(session, 'dsh/user/message', Number.MAX_SAFE_INTEGER, '對方說：')
           if (last) about = [last.id]
         }
         const missing = about.filter((id) => !life.get(id))

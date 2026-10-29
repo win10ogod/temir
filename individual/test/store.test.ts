@@ -109,3 +109,20 @@ test('reindex rebuilds the derived search index from the log', () => {
     assert.equal(store.search('看到海').length, 1)
   })
 })
+
+test('preceding finds the last message the other person actually said, skipping injected context', () => {
+  const home = mkdtempSync(join(tmpdir(), 'temir-store-'))
+  const store = LifeStore.open(home)
+  try {
+    const said = store.append({ kind: 'dsh/user/message', origin: 'session', session: 's1', data: {}, text: '對方說：今天好累' })
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 's1', data: {}, text: '[runtime-context] 環境' })
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 's1', data: {}, text: '[time-context] 時間' })
+    assert.equal(store.preceding('s1', 'dsh/user/message', Number.MAX_SAFE_INTEGER, '對方說：')?.id, said.id)
+    assert.match(store.preceding('s1', 'dsh/user/message', Number.MAX_SAFE_INTEGER)?.text ?? '', /time-context/)
+    assert.equal(store.after(0, ['dsh/user/message'], 10).length, 3)
+    assert.equal(store.lastSeq(), store.recent(1)[0]?.seq)
+  } finally {
+    store.close()
+    rmSync(home, { recursive: true, force: true })
+  }
+})

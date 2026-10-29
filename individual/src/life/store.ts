@@ -267,6 +267,38 @@ export class LifeStore {
     return stored
   }
 
+  /**
+   * 在同一個 savepoint 內做多次寫入：要嘛全部成功，要嘛全部不寫（例如整合期的一組修訂）。
+   * fn 必須是同步的（append 是同步的）。
+   */
+  transaction<T>(fn: () => T): T {
+    this.#db.exec('SAVEPOINT life_tx')
+    try {
+      const result = fn()
+      this.#db.exec('RELEASE life_tx')
+      return result
+    } catch (error) {
+      this.#db.exec('ROLLBACK TO life_tx')
+      this.#db.exec('RELEASE life_tx')
+      throw error
+    }
+  }
+
+  /** 最大的 seq（空日誌為 0）。 */
+  lastSeq(): number {
+    const row = this.#db.prepare(`SELECT max(seq) AS seq FROM events`).get() as { seq: number | null }
+    return row.seq ?? 0
+  }
+
+  /** seq 大於 `seq` 的指定 kind 事件，由舊到新。 */
+  after(seq: number, kinds: readonly string[], limit: number): LifeEvent[] {
+    if (kinds.length === 0) return []
+    const rows = this.#db
+      .prepare(`SELECT * FROM events WHERE seq > ? AND kind IN (${kinds.map(() => '?').join(', ')}) ORDER BY seq ASC LIMIT ?`)
+      .all(seq, ...kinds, limit) as unknown as Row[]
+    return rows.map(toEvent)
+  }
+
   #index(seq: number, text: string): void {
     const terms = indexTerms(text)
     if (terms.length > 0) {

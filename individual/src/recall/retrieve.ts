@@ -15,8 +15,11 @@
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import { SIGNIFICANCE_LABEL, formatDay, formatTime, type AppraisalData } from '../self/state.ts'
 
-/** 這些是記帳用的事件，不作為回憶內容。`memory/facts` 不在此列：它是可檢索的記憶。 */
-export const EXCLUDED_KIND_PREFIXES = ['memory/recall', 'memory/aux', 'body/', 'life/', 'dsh/system/'] as const
+/**
+ * 這些是記帳用的事件，不作為回憶內容。`memory/facts`、`memory/lesson` 不在此列：它們是可檢索的記憶。
+ * `rd/`（行動前的思考與事後比對）只供經驗修正與整合期使用；`memory/outdated` 是過時事實的標記。
+ */
+export const EXCLUDED_KIND_PREFIXES = ['memory/recall', 'memory/aux', 'memory/outdated', 'rd/', 'body/', 'life/', 'dsh/system/'] as const
 
 export const FACTS_KIND = 'memory/facts'
 const HEARD = 'dsh/user/message'
@@ -25,7 +28,7 @@ const SAID = 'dsh/assistant/message'
 const HEARD_PREFIX = '對方說：'
 
 /** 對方真正說的話（排除 DSH 注入的 runtime-context、time-context 等內容）。 */
-function isHeard(event: LifeEvent): boolean {
+export function isHeard(event: LifeEvent): boolean {
   return event.kind === HEARD && (event.text ?? '').startsWith(HEARD_PREFIX)
 }
 
@@ -152,6 +155,24 @@ export function hybridRecall(life: LifeStore, cue: string, keywords: readonly st
   return out
 }
 
+/** 依事件 id 取回一段回憶（對話事件擴成整個回合），供 recall 工具展開索引中的片段。 */
+export function recalledOf(life: LifeStore, id: string): Recalled | undefined {
+  const hit = life.get(id)
+  if (!hit) return undefined
+  const source = hit.kind === FACTS_KIND ? (life.get(hit.causes[0] ?? '') ?? hit) : hit
+  const round = roundOf(life, source)
+  const event = round?.heard ?? round?.said[0] ?? source
+  const replies = round?.said.filter((e) => replyOf(e) !== '') ?? []
+  return {
+    event,
+    reply: replies.at(-1),
+    facts: [...new Set(factsOf(life, event.id))],
+    saidFacts: [...new Set((round?.said ?? []).flatMap((e) => factsOf(life, e.id)))],
+    via: ['id'],
+    score: 0,
+  }
+}
+
 export interface LastConversation {
   readonly session: string
   readonly heard: LifeEvent | undefined
@@ -167,6 +188,15 @@ export function lastConversation(life: LifeStore, currentSession: string | undef
     heard: life.inSession(session, HEARD, 'asc', 10).find(isHeard),
     said: life.inSession(session, SAID, 'desc', 10).find((e) => replyOf(e) !== ''),
   }
+}
+
+/** 整合期標記某條長期事實已不再成立（見 integrate/）。 */
+export const OUTDATED_KIND = 'memory/outdated'
+
+export interface OutdatedData {
+  readonly fact: string
+  readonly replacedBy: string
+  readonly evidence: readonly string[]
 }
 
 export interface PersonFact {
@@ -192,6 +222,11 @@ export function personFacts(life: LifeStore, budget = 2400): PersonFact[] {
       latest.set(text, { text, ts: event.ts, id: event.id })
     }
   }
+  // 整合期標為過時的事實，在標記之後不再列出（之後又聽到同一句話時，會以新的時間重新列出）。
+  for (const event of life.all(OUTDATED_KIND)) {
+    const fact = latest.get((event.data as OutdatedData).fact)
+    if (fact && fact.ts <= event.ts) latest.delete(fact.text)
+  }
   const chosen: PersonFact[] = []
   let used = 0
   for (const fact of [...latest.values()].reverse()) {
@@ -207,6 +242,9 @@ const KIND_LABEL: Record<string, string> = {
   [SAID]: '我的回應',
   'dsh/tool/result': '工具',
   'self/revision': '自我修訂',
+  'self/narrative': '人生敘事',
+  'self/integration': '整合',
+  'memory/lesson': '教訓',
   'goal/change': '目標',
   appraisal: '感受',
 }
@@ -229,16 +267,33 @@ function line(event: LifeEvent, max: number): string {
   return `- [${event.id}｜${formatTime(event.ts)}｜${KIND_LABEL[event.kind] ?? event.kind}] ${clipEnds(body, max)}`
 }
 
-/** 回憶的呈現：關於對方的長期事實（若有）＋最近一次對話（若有）＋相關片段（依時間排列），各自附上事實與感受。
- * 相關片段總長超過 maxChars 時，先捨去分數最低的片段。 */
+export interface RenderOptions {
+  /** 相關片段的總長上限；超過時先捨去分數最低的片段。 */
+  readonly maxChars?: number
+  /**
+   * 按需披露（ADR-0002 D1）：只有分數最高的 expand 筆呈現全文，其餘只列一行索引，
+   * 由個體用 recall 工具的 ids 參數展開。省略則全部呈現全文。
+   */
+  readonly expand?: number
+}
+
+/** 索引行的要點：擷取的第一條事實，沒有就取事件文字的開頭與結尾。 */
+function gist(r: Recalled): string {
+  const fact = r.facts[0] ?? r.saidFacts[0]
+  if (fact) return clip(fact, 80)
+  return clipEnds(r.event.kind === SAID ? replyOf(r.event) : (r.event.text ?? ''), 80)
+}
+
+/** 回憶的呈現：關於對方的長期事實（若有）＋最近一次對話（若有）＋相關片段（依時間排列），各自附上事實與感受。 */
 export function renderRecall(
   life: LifeStore,
   recalled: readonly Recalled[],
   last: LastConversation | undefined,
   header: string,
   person: readonly PersonFact[] = [],
-  maxChars = 9000,
+  options: RenderOptions = {},
 ): string {
+  const maxChars = options.maxChars ?? 9000
   const lines = [header]
   if (person.length > 0) {
     lines.push('', '## 關於對方，我記得的長期事實', '（從過去的對話中擷取；舊的可能已經改變，以較新的為準。）')
@@ -249,17 +304,27 @@ export function renderRecall(
     if (last.heard) lines.push(line(last.heard, 240))
     if (last.said) lines.push(line(last.said, 300))
   }
-  const blocks = recalled.map((r) => ({ r, text: fragment(life, r) }))
+  const byScore = [...recalled].sort((a, b) => b.score - a.score)
+  const full = options.expand === undefined ? byScore : byScore.slice(0, options.expand)
+  const indexed = options.expand === undefined ? [] : byScore.slice(options.expand)
+  const blocks = full.map((r) => ({ r, text: fragment(life, r) }))
   let total = blocks.reduce((n, b) => n + b.text.length, 0)
   for (const b of [...blocks].sort((x, y) => x.r.score - y.r.score)) {
     if (total <= maxChars || blocks.length <= 1) break
     blocks.splice(blocks.indexOf(b), 1)
     total -= b.text.length
   }
+  const byTime = (a: Recalled, b: Recalled) => a.event.ts - b.event.ts || a.event.seq - b.event.seq
   if (blocks.length > 0) {
     lines.push('', '## 相關的過往片段（依時間先後）')
-    blocks.sort((a, b) => a.r.event.ts - b.r.event.ts || a.r.event.seq - b.r.event.seq)
+    blocks.sort((a, b) => byTime(a.r, b.r))
     for (const b of blocks) lines.push(b.text)
+  }
+  if (indexed.length > 0) {
+    lines.push('', '## 其他可能相關的片段（只列要點，依時間先後；需要細節時，用 recall 工具的 ids 參數展開）')
+    for (const r of [...indexed].sort(byTime)) {
+      lines.push(`- [${r.event.id}｜${formatTime(r.event.ts)}｜${KIND_LABEL[r.event.kind] ?? r.event.kind}] ${gist(r)}`)
+    }
   }
   return lines.join('\n')
 }

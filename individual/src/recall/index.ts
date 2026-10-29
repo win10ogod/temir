@@ -11,9 +11,10 @@
  * 個體自己的每則回覆也在背景擷取「我的立場與承諾」，寫成 `memory/facts`，讓之後回想得到自己說過的話。
  * DSH 關閉程序有 5 秒上限（launcher 的 PROCESS_SHUTDOWN_TIMEOUT_MS），背景擷取可能被中斷；
  * 因此每次啟動時補做尚未嘗試過的回覆，回憶前先等補做完成（有上限）。
- * 另提供主動回憶的 `recall` 工具。
+ * 另提供主動回憶的 `recall` 工具；`ids` 參數展開索引中只列出要點的片段。
  *
- * 設定（消融實驗用）：automatic＝自動回憶；expansion＝線索理解與事實擷取。
+ * 設定（消融實驗用）：automatic＝自動回憶；expansion＝線索理解與事實擷取；
+ * disclosure＝'full'（全部呈現全文）或 'progressive'（只有分數最高的 expand 筆呈現全文，其餘只列索引，ADR-0002 D1）。
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-agent'
@@ -22,7 +23,7 @@ import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '../life/index.ts'
 import { runAux, type AuxCall, type AuxPurpose, type AuxRoute } from './aux.ts'
-import { FACTS_KIND, clip, hybridRecall, lastConversation, personFacts, renderRecall, type FactsData } from './retrieve.ts'
+import { FACTS_KIND, clip, hybridRecall, lastConversation, personFacts, recalledOf, renderRecall, type FactsData } from './retrieve.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -38,8 +39,12 @@ export interface Config {
   readonly automatic?: boolean
   /** 線索理解與事實擷取的輔助模型呼叫（預設開）。 */
   readonly expansion?: boolean
-  /** 自動回憶最多帶入幾段過往片段（預設 8）。 */
+  /** 自動回憶最多帶入幾段過往片段（預設 full 8、progressive 16）。 */
   readonly limit?: number
+  /** 回憶的披露方式（預設 full）。 */
+  readonly disclosure?: 'full' | 'progressive'
+  /** progressive 時呈現全文的筆數（預設 3）。 */
+  readonly expand?: number
   /** 輔助呼叫的逾時（毫秒，預設 90000；本機模型無法關閉推理，需要較長時間）。 */
   readonly auxTimeoutMs?: number
 }
@@ -66,7 +71,9 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const life = ctx.life
   const automatic = config?.automatic ?? true
   const expansion = config?.expansion ?? true
-  const limit = config?.limit ?? 8
+  const progressive = config?.disclosure === 'progressive'
+  const limit = config?.limit ?? (progressive ? 16 : 8)
+  const render = progressive ? { expand: config?.expand ?? 3 } : {}
   const timeoutMs = config?.auxTimeoutMs ?? 90_000
   const logger = ctx.logger('temir-recall')
 
@@ -98,7 +105,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
         origin: 'self',
         session,
         model,
-        data: { purpose, ms: call.ms, input: clip(input, 4000), output: call.output, parsed: call.result ?? null },
+        data: { purpose, ms: call.ms, retried: call.retried, input: clip(input, 4000), output: call.output, parsed: call.result ?? null },
         causes,
       })
       return call
@@ -190,7 +197,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
         })
         if (recalled.length === 0 && !last && person.length === 0) return decision
         const recall = createUserMessage({
-          content: [{ type: 'text', text: renderRecall(life, recalled, last, HEADER, person) }],
+          content: [{ type: 'text', text: renderRecall(life, recalled, last, HEADER, person, render) }],
           source: { kind: 'temir-recall', form: 'recall' },
         })
         return { ...decision, messages: [recall, ...decision.messages] }
@@ -224,9 +231,10 @@ export function apply(ctx: Context, config: Config | undefined): void {
     defineTool({
       name: 'recall',
       description:
-        '在你自己的生命紀錄中搜尋過去的經歷、你說過的話、你的感受、目標與自我修訂。用自然語言描述你想找的東西；多寫幾個可能出現的詞會更容易找到。',
+        '在你自己的生命紀錄中搜尋過去的經歷、你說過的話、你的感受、目標、教訓與自我修訂。用自然語言描述你想找的東西；多寫幾個可能出現的詞會更容易找到。要展開回憶中只列出要點的片段，就把它們的 id 放進 ids。',
       parameters: {
-        query: { type: 'string', required: true, description: '要回想的內容' },
+        query: { type: 'string', description: '要回想的內容（給 ids 時可省略）' },
+        ids: { type: 'array', items: { type: 'string' }, description: '要展開細節的事件 id（回憶或索引中方括號內的 id）' },
         limit: { type: 'integer', description: '最多回傳幾筆（預設 8）' },
       },
       output: {
@@ -235,20 +243,32 @@ export function apply(ctx: Context, config: Config | undefined): void {
       },
       async execute(args, exec) {
         const session = exec.agent?.session.id
-        const recalled = hybridRecall(life, args.query, [], { limit: args.limit ?? 8 })
+        const ids = args.ids ?? []
+        if (ids.length === 0 && !args.query) return '請給 query（要回想的內容）或 ids（要展開的事件 id）。'
+        // 指名展開的片段優先於搜尋結果：字數超過上限時先捨去分數低的，所以給它們最高分。
+        const expanded = ids
+          .map((id) => recalledOf(life, id))
+          .filter((r) => r !== undefined)
+          .map((r) => ({ ...r, score: Number.MAX_SAFE_INTEGER }))
+        const missing = ids.filter((id) => !life.get(id))
+        const searched = args.query ? hybridRecall(life, args.query, [], { limit: args.limit ?? 8 }) : []
+        const seen = new Set(expanded.map((r) => r.event.id))
+        const recalled = [...expanded, ...searched.filter((r) => !seen.has(r.event.id))]
         life.append({
           kind: 'memory/recall',
           origin: 'self',
           session,
           data: {
             mode: 'voluntary',
-            cue: clip(args.query, 500),
+            cue: clip(args.query ?? '', 500),
+            ids,
             hits: recalled.map((r) => ({ id: r.event.id, reply: r.reply?.id ?? null, via: r.via, score: r.score })),
           },
           causes: [...new Set(recalled.flatMap((r) => [r.event.id, ...(r.reply ? [r.reply.id] : [])]))],
         })
-        if (recalled.length === 0) return '生命紀錄中沒有找到相關的經歷。（檢索以詞彙比對為主，換個說法或多寫幾個詞可能找得到。）'
-        return renderRecall(life, recalled, undefined, `找到 ${recalled.length} 筆相關的經歷：`)
+        const note = missing.length > 0 ? `\n（生命紀錄中沒有這些 id：${missing.join('、')}）` : ''
+        if (recalled.length === 0) return `生命紀錄中沒有找到相關的經歷。（檢索以詞彙比對為主，換個說法或多寫幾個詞可能找得到。）${note}`
+        return `${renderRecall(life, recalled, undefined, `找到 ${recalled.length} 筆相關的經歷：`, [], { maxChars: 16_000 })}${note}`
       },
     }),
   )

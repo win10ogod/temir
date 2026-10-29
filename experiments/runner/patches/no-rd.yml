@@ -1,0 +1,4 @@
+# 消融：關閉 RD 階段（行動前的思考與準備、事後比對、JitRL 經驗修正）；其他個體功能照舊。
+- id: temir-rd
+  config:
+    enabled: false

@@ -1,0 +1,4 @@
+# 消融：保留 RD 階段的思考、準備與事後比對，但不做 JitRL 經驗修正（只依口述信心選擇，也不在思考中列出過去的經驗）。
+- id: temir-rd
+  config:
+    jitrl: false

@@ -13,3 +13,7 @@
       name: ./src/self/index.ts
     - id: temir-recall
       name: ./src/recall/index.ts
+    - id: temir-rd
+      name: ./src/rd/index.ts
+    - id: temir-integrate
+      name: ./src/integrate/index.ts

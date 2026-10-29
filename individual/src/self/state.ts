@@ -31,6 +31,7 @@ export const GOAL_STATUS_LABEL: Record<GoalStatus, string> = {
 
 export const KIND = {
   selfRevision: 'self/revision',
+  narrative: 'self/narrative',
   goalChange: 'goal/change',
   appraisal: 'appraisal',
 } as const
@@ -40,6 +41,13 @@ export interface SelfRevisionData {
   readonly text: string
   readonly reason: string
   readonly trigger: Trigger
+}
+
+/** 人生敘事（hypotheses.md H-N）：個體用第一人稱寫的「我經歷了什麼、怎麼變成現在這樣」，引用經歷。 */
+export interface NarrativeData {
+  readonly version: number
+  readonly text: string
+  readonly reason: string
 }
 
 export interface GoalChangeData {
@@ -68,6 +76,12 @@ export function currentSelfModel(life: LifeStore): (SelfRevisionData & { readonl
   const event = life.latest(KIND.selfRevision)
   if (!event) return undefined
   return { ...(event.data as SelfRevisionData), ts: event.ts, eventId: event.id }
+}
+
+export function currentNarrative(life: LifeStore): (NarrativeData & { readonly ts: number; readonly eventId: string }) | undefined {
+  const event = life.latest(KIND.narrative)
+  if (!event) return undefined
+  return { ...(event.data as NarrativeData), ts: event.ts, eventId: event.id }
 }
 
 /** 依事件順序折疊出每個目標的現況與歷史。 */
@@ -126,6 +140,8 @@ export function renderSelfSnapshot(life: LifeStore): string {
   } else {
     lines.push('## 自我模型', '尚未書寫。')
   }
+  const story = currentNarrative(life)
+  lines.push('', story ? `## 我的故事（第 ${story.version} 版，${formatTime(story.ts)} 由你寫下）` : '## 我的故事', story ? story.text : '尚未書寫。')
   lines.push('', '## 目標')
   const current = goals(life).filter((g) => g.status === 'active' || g.status === 'paused')
   if (current.length === 0) lines.push('目前沒有目標。')

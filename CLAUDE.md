@@ -19,7 +19,7 @@
 5. **個體沒有預設名字、身份或人格**。系統提示只組裝處境描述（`individual/src/self/situation.ts`）；DSH 預設的角色設定（例如 headless 的「coding agent」）由 `individual/cordis.patch.yml` 取消。`卡莉歐碧` 影片只是參考資料。
 6. **生命日誌只增不改**，而且獨立於 DSH 的 session 格式。測試一律設定 `TEMIR_HOME=~/.cache/temir/test-lives/<名稱>`，不得寫進正式個體（預設 `~/.local/share/temir`）。
 7. **不 fork DSH**。用插件、patch、bundle 擴充；擴充點不足時先記錄原因再考慮最小 patch。
-8. **機密**：DeepSeek 金鑰只存在 `~/.config/temir/secrets.env`（600），以 `DEEPSEEK_API_KEY` 載入；不得寫進 repo、log、測試夾具或 commit。commit 前掃描暫存檔。
+8. **機密**：DeepSeek 與 OpenRouter 金鑰只存在 `~/.config/temir/secrets.env`（600），以 `DEEPSEEK_API_KEY`、`OPENROUTER_API_KEY` 載入；不得寫進 repo、log、測試夾具或 commit。commit 前掃描暫存檔。
 9. **參考 repo 唯讀**：`references/*` 的 HEAD 必須等於 `references/LOCK.md`；不執行其安裝腳本或 hooks。
 10. **誠實回報**：失敗、跳過、未完成都照實寫；session log 不美化。
 
@@ -36,7 +36,7 @@ TEMIR_MODEL=local scripts/dsh.sh web --no-open   # 改用本機模型、開 Web 
 
 - 個體的程式碼是 TypeScript，由 Node 24 直接剝除型別執行（只能用可擦除語法；相對 import 要寫 `.ts`）。
 - F: 只剩約 15GB：DSH 執行期、TypeScript、生命資料、DSH home 都在 `~/.cache/temir` 或 `~/.local/share/temir`。
-- 模型端點：DeepSeek（預設；`deepseek-flash`、`deepseek-v4-pro`）、本機 `http://localhost:8000/v1`（sglang `EVE-27B`，`dsh/local-model.patch.yml`）。
+- 模型端點：DeepSeek（預設；`deepseek-flash`、`deepseek-v4-pro`）、本機 `http://localhost:8000/v1`（sglang `EVE-27B`，`dsh/local-model.patch.yml`）、OpenRouter NVIDIA Nemotron（免費 `nvidia/nemotron-3.5-super-vl:free`，`dsh/openrouter-model.patch.yml`；付費 bf16 經代理固定供應商，先啟動 `node experiments/runner/openrouter-pin.ts`，再用 `dsh/openrouter-bf16.patch.yml`）。
 
 ## 目錄
 

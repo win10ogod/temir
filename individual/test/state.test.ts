@@ -211,3 +211,26 @@ test('the snapshot ends with the present moment, so the individual can feel time
     rmSync(home, { recursive: true, force: true })
   }
 })
+
+test('silent turn: reasoning only with nothing said gets one nudge; turns with text or a final tool call do not', async () => {
+  const { SilenceWatch, voiceOf } = await import('../src/self/silence.ts')
+  assert.deepEqual(voiceOf([{ type: 'reasoning', text: '我想…' }, { type: 'text', text: '  ' }]), { text: false, tool: false })
+  const w = new SilenceWatch()
+  const s = {}
+  const say = (turn: number, content: readonly { type: string; text?: string }[]) => w.observe(s, { type: 'assistant/message', data: { turn, message: { content } } })
+  w.observe(s, { type: 'turn/start', data: { turn: 1 } })
+  assert.equal(w.claim(s, 1), false, 'no assistant message yet')
+  say(1, [{ type: 'reasoning', text: '她問海鮮料理…' }])
+  assert.equal(w.claim(s, 1), true)
+  assert.equal(w.claim(s, 1), false, 'only once per turn')
+  w.observe(s, { type: 'turn/start', data: { turn: 2 } })
+  say(2, [{ type: 'reasoning', text: '…' }, { type: 'tool-call' }])
+  assert.equal(w.claim(s, 2), false, 'a tool call is still running the turn')
+  say(2, [{ type: 'text', text: '查好了。' }])
+  assert.equal(w.claim(s, 2), false)
+  w.observe(s, { type: 'turn/start', data: { turn: 3 } })
+  say(3, [{ type: 'text', text: '先說一句。' }, { type: 'tool-call' }])
+  say(3, [{ type: 'reasoning', text: '…' }])
+  assert.equal(w.claim(s, 3), false, 'something was already said in this turn')
+  assert.equal(w.claim({}, 3), false, 'unknown session')
+})

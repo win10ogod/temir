@@ -6,8 +6,12 @@
  *   這是 PC → 決策 的通道（hypotheses.md H2）。
  * - 工具 self_revise／narrate／goal／appraise：經驗 → PC 的通道；全部是新增事件，舊版本保留。
  *   narrate 是人生敘事（hypotheses.md H-N）：自我模型說「我現在是誰」，敘事說「我怎麼變成這樣」。
+ * - 沉默的回合（silence.ts）：整個回合只有推理、沒有說出話就要結束時，提醒一次。
  */
 import type { Context } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-agent'
+import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { randomBytes } from 'node:crypto'
@@ -16,6 +20,7 @@ import { readFileSync } from 'node:fs'
 import { resolveIds } from '../recall/retrieve.ts'
 import { renderThoughts } from '../thought/thought.ts'
 import { renderPotential } from './energy.ts'
+import { SILENCE_KIND, SILENCE_NOTE, SilenceWatch } from './silence.ts'
 import { situation } from './situation.ts'
 import {
   GOAL_STATUS,
@@ -38,6 +43,12 @@ import {
   type PersonaData,
   type SelfRevisionData,
 } from './state.ts'
+
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    'temir-self': { readonly kind: 'temir-self' }
+  }
+}
 
 export const name = 'temir-self'
 export const inject = ['life', 'systemPrompt', 'tools']
@@ -96,6 +107,19 @@ export function apply(ctx: Context, config: Config | undefined): void {
     else if (!life.latest(KIND.persona)) logger.warn('initial persona not applied: the individual has already revised itself')
   }
   ctx.systemPrompt.section({ name: 'temir:situation', order: 1, text: situation(life.latest(KIND.persona) !== undefined) })
+
+  // 沉默的回合：整個回合只有推理、沒有說出話就要結束時，steer 一次讓回合多跑一步（silence.ts）。
+  const silence = new SilenceWatch()
+  ctx.on('session/event', (session: Session, event: SessionEvent) => silence.observe(session, event))
+  ctx.on('agent/turn-stopping', ({ agent, turn, signal }) => {
+    if (signal.aborted || !silence.claim(agent.session, turn)) return
+    try {
+      if (life.isOpen) life.append({ kind: SILENCE_KIND, origin: 'body', session: agent.session.id, data: { turn } })
+      agent.steer(createUserMessage({ content: [{ type: 'text', text: SILENCE_NOTE }], source: { kind: 'temir-self' } }))
+    } catch (error) {
+      logger.warn('silence nudge failed: %s', error)
+    }
+  })
   if (config?.snapshot ?? true) {
     ctx.systemPrompt.context({
       name: 'temir:self',

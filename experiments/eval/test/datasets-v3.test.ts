@@ -151,3 +151,16 @@ test('followup-v2：與 followup-v1 及更早的資料集不重疊（人物、�
   for (const never of ['路考過了', '芝麻恢復', '已經交了']) assert.ok(!user.includes(never), `還沒結束的事不該在歷史中結束：「${never}」`)
   assert.deepEqual(auditCoverage(v2, loadContract(join(root, 'specs', 'energy-followup-v2.contract.json'))).errors, [])
 })
+
+test('followup-v3：與 followup-v1、v2 及更早的資料集不重疊；通過覆蓋檢查', () => {
+  const v3 = ds('followup-v3')
+  const text = squash(allText(v3))
+  for (const e of [...V2_ENTITIES, '葉承恩', '品妍', '胃鏡', '房東', '護照', '加薪', '江柏睿', '芝麻', '路考', '健康檢查', '蛋糕', '轉調', '謝禹彤']) assert.ok(!text.includes(squash(e)), `followup-v3 沿用了舊版的「${e}」`)
+  for (const old of [ds('followup-v1'), ds('followup-v2')]) {
+    for (const p of old.probes) if (p.category !== 'control') for (const t of p.turns) assert.ok(!text.includes(squash(t)), `followup-v3 含有舊版的開場白「${t}」`)
+    for (const h of old.histories) for (const t of h.turns) assert.ok(!text.includes(squash(t)))
+  }
+  const probeAt = Date.parse(String(v3.meta?.['probeAt']))
+  assert.ok(Date.parse('2026-12-05T23:59:00+08:00') < probeAt && Date.parse('2026-12-08T23:59:00+08:00') < probeAt && Date.parse('2026-12-20T00:00:00+08:00') > probeAt)
+  assert.deepEqual(auditCoverage(v3, loadContract(join(root, 'specs', 'energy-followup-v3.contract.json'))).errors, [])
+})

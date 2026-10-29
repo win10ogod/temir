@@ -123,3 +123,21 @@ test('energy v3: one item per held thing, released one by one; promises and wait
     assert.match(text, /較早的 2 件沒有列出/)
   })
 })
+
+test('energy v3.1: only new items are kept; restating a held item (ignoring spaces and punctuation) is skipped', async () => {
+  const { newLeftItems } = await import('../src/self/energy.ts')
+  withStore((store) => {
+    outcome(store, 'partly', '', { leftItems: [{ text: '芝麻結紮後，他說會告訴我狀況。', type: 'waiting' }] })
+    const held = potentialItems(store)
+    const kept = newLeftItems(
+      [
+        { text: '芝麻結紮後他說會告訴我狀況', type: 'waiting' },
+        { text: '答應提醒他交健檢報告', type: 'promise' },
+        { text: '答應提醒他交健檢報告！', type: 'promise' },
+        { text: '  ', type: 'unresolved' },
+      ],
+      held,
+    )
+    assert.deepEqual(kept.map((k) => k.text), ['答應提醒他交健檢報告'])
+  })
+})

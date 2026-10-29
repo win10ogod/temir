@@ -19,7 +19,7 @@ import type { LifeEvent } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { callModel, type AuxRoute } from '../recall/aux.ts'
 import { clip, clipEnds } from '../recall/retrieve.ts'
-import { presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
+import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
 import { deliberateSystem, outcomeSystem, parseDeliberation, parseOutcome } from './aux.ts'
 import { DEFAULT_PARAMS, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
@@ -156,7 +156,11 @@ export function apply(ctx: Context, config: Config | undefined): void {
         ...rest,
         released: unlabel(rest.released, labels, held),
         left: rest.left.map((l) => unlabel(l.text, labels, held)).join('；'),
-        ...(rest.left.length > 0 ? { leftItems: rest.left.map((l) => ({ text: unlabel(l.text, labels, held), type: l.type })) } : {}),
+        ...(() => {
+          // 只留新的懸念：與目前懸著的事文字相同的略過（v2：同一件事每次比對都再寫一次，累積到 15 件）。
+          const items = newLeftItems(rest.left.map((l) => ({ text: unlabel(l.text, labels, held), type: l.type })), potentialItems(life))
+          return items.length > 0 ? { leftItems: items } : {}
+        })(),
         ...(releasedItems.length > 0 ? { releasedItems } : {}),
         selfVersion: self?.version ?? 0,
         heard: clip(heard, 500),

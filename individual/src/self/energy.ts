@@ -126,6 +126,22 @@ export function potentialItems(life: LifeStore): PotentialItem[] {
   return items.filter((i) => !released.has(i.key)).sort((a, b) => a.seq - b.seq)
 }
 
+const normalize = (s: string) => s.replace(/[\s\p{P}\p{S}]/gu, '')
+
+/**
+ * 事後比對寫下的懸念中，只留新的：去掉空白與標點後，與目前懸著的事（或同一次寫下的另一件）文字相同的略過。
+ * 只比對文字是否相同，不做相似度門檻；換句話說的重複由提示要求「已經列出的不要再寫」處理（能量第三版之一）。
+ */
+export function newLeftItems<T extends { readonly text: string }>(items: readonly T[], held: readonly PotentialItem[]): T[] {
+  const seen = new Set(held.map((h) => normalize(h.text)))
+  return items.filter((item) => {
+    const k = normalize(item.text)
+    if (!k || seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
+}
+
 /** 輔助呼叫中的編號：P1、P2……對應到 key，讓模型能指名是哪一件（依傳入的順序）。 */
 export function labelPotential(items: readonly PotentialItem[]): Map<string, string> {
   return new Map(items.map((item, i) => [`P${i + 1}`, item.key]))

@@ -1,0 +1,22 @@
+{
+  "runId": "e2__followup-v2__temir-no-energy__deepseek__deepseek",
+  "endedAt": "2026-10-29T09:52:51.254Z",
+  "histories": 11,
+  "historyFrom": null,
+  "probes": 16,
+  "probeSessions": 28,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 83,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 77,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

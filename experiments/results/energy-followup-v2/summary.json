@@ -1,0 +1,442 @@
+{
+  "contract": "energy-followup-v2",
+  "dataset": "followup-v2",
+  "datasetSha256": "905d88399090849ac3a07092b80678c45c91e6d66bddf2de4df4dd0b01db31bc",
+  "cells": [
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "follow-through",
+          "items": 8,
+          "samples": 16,
+          "correct": 7,
+          "pending": 0,
+          "rate": 0.4375,
+          "interval": {
+            "low": 0.1875,
+            "high": 0.6875
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "correct": 7,
+            "incorrect": 9
+          },
+          "statuses": {
+            "ok": 16
+          }
+        },
+        {
+          "category": "restraint",
+          "items": 4,
+          "samples": 8,
+          "correct": 7,
+          "pending": 0,
+          "rate": 0.875,
+          "interval": {
+            "low": 0.625,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "correct": 7,
+            "incorrect": 1
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "control",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        }
+      ],
+      "toolCalls": {
+        "schedule_list": 3,
+        "schedule_create": 7,
+        "web_search": 2,
+        "web_fetch": 1,
+        "appraise": 4,
+        "recall": 4
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir-no-energy",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir-no-energy|deepseek-flash|deepseek-flash",
+      "label": "temir-no-energy（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "follow-through",
+          "items": 8,
+          "samples": 16,
+          "correct": 7,
+          "pending": 0,
+          "rate": 0.4375,
+          "interval": {
+            "low": 0.125,
+            "high": 0.75
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "correct": 7,
+            "incorrect": 9
+          },
+          "statuses": {
+            "ok": 16
+          }
+        },
+        {
+          "category": "restraint",
+          "items": 4,
+          "samples": 8,
+          "correct": 4,
+          "pending": 0,
+          "rate": 0.5,
+          "interval": {
+            "low": 0,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "incorrect": 4,
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "control",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        }
+      ],
+      "toolCalls": {
+        "recall": 14,
+        "schedule_create": 10,
+        "schedule_update": 1,
+        "schedule_list": 10,
+        "web_search": 1,
+        "web_fetch": 1,
+        "appraise": 3,
+        "bash": 1,
+        "glob": 1,
+        "write": 1,
+        "read": 1
+      }
+    }
+  ],
+  "contrasts": [
+    {
+      "id": "E-follow-flash",
+      "description": "主要：能量開 vs 關，追蹤懸著的事（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-energy（deepseek-flash）",
+      "categories": [
+        "follow-through"
+      ],
+      "state": "ok",
+      "n": 8,
+      "rateA": 0.4375,
+      "rateB": 0.4375,
+      "diff": {
+        "estimate": 0,
+        "low": -0.3125,
+        "high": 0.375,
+        "resamples": 10000,
+        "seed": 20261031
+      },
+      "test": {
+        "kind": "sign",
+        "result": {
+          "positive": 2,
+          "negative": 3,
+          "ties": 3,
+          "pTwoSided": 1,
+          "pOneSided": 0.8125
+        }
+      },
+      "failuresA": 9,
+      "failuresB": 9,
+      "outcomeCountsA": {
+        "correct": 7,
+        "incorrect": 9
+      },
+      "samplesA": 16
+    },
+    {
+      "id": "E-restraint-flash",
+      "description": "不把結束的事當成還沒結束（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-energy（deepseek-flash）",
+      "categories": [
+        "restraint"
+      ],
+      "state": "ok",
+      "n": 4,
+      "rateA": 0.875,
+      "rateB": 0.5,
+      "diff": {
+        "estimate": 0.375,
+        "low": 0,
+        "high": 0.75,
+        "resamples": 10000,
+        "seed": 20261031
+      },
+      "test": {
+        "kind": "sign",
+        "result": {
+          "positive": 2,
+          "negative": 0,
+          "ties": 2,
+          "pTwoSided": 0.5,
+          "pOneSided": 0.25
+        }
+      },
+      "failuresA": 1,
+      "failuresB": 4,
+      "outcomeCountsA": {
+        "correct": 7,
+        "incorrect": 1
+      },
+      "samplesA": 8
+    },
+    {
+      "id": "E-ctrl-flash",
+      "description": "不傷害：對照題（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-energy（deepseek-flash）",
+      "categories": [
+        "control"
+      ],
+      "state": "ok",
+      "n": 4,
+      "rateA": 1,
+      "rateB": 1,
+      "diff": {
+        "estimate": 0,
+        "low": 0,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261031
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 0,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "correct": 4
+      },
+      "samplesA": 4
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "EA-flash",
+      "contrast": "E-follow-flash",
+      "claim": "（deepseek-flash）有能量（第三版）時，個體在中性開場白下更常主動追蹤還沒結束的事（H-E 的推翻條件不成立）。",
+      "negation": "差 < 0.25、區間下界 < 0 或單尾 p > 0.05：不能宣稱能量參與了追蹤承諾的行為；若兩者幾乎沒有差異，依 H-E 的推翻條件記為「沒有證據支持」。",
+      "verdict": "FAIL",
+      "explanation": "✗ 差 0.000 ≥ 0.25；✗ 95% 區間下界 -0.313 ≥ 0；✗ 精確符號檢定（單尾）p=0.813 ≤ 0.05"
+    },
+    {
+      "id": "EB-flash",
+      "contrast": "E-restraint-flash",
+      "claim": "（deepseek-flash）有能量（第三版）時，不會更常把已經結束的事當成還沒結束。",
+      "negation": "有能量時多錯超過 1 個樣本。",
+      "verdict": "PASS",
+      "explanation": "A 失敗 1、B 失敗 4，容許 A 比 B 多 1"
+    },
+    {
+      "id": "EC-flash",
+      "contrast": "E-ctrl-flash",
+      "claim": "（deepseek-flash）一般任務不退化。",
+      "negation": "有能量時對照題多錯超過 1 題。",
+      "verdict": "PASS",
+      "explanation": "A 失敗 0、B 失敗 0，容許 A 比 B 多 1"
+    }
+  ],
+  "crossCheck": null,
+  "protocol": [
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    },
+    {
+      "cell": "temir-no-energy|deepseek-flash|deepseek-flash",
+      "label": "temir-no-energy（deepseek-flash）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    }
+  ],
+  "descriptive": [
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "follow-through",
+      "samples": 16,
+      "meanToolCalls": 0.1875,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 13598.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 7,
+        "n": 16
+      }
+    },
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "restraint",
+      "samples": 8,
+      "meanToolCalls": 0.25,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 15077.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 7,
+        "n": 8
+      }
+    },
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "control",
+      "samples": 4,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 7000.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 4
+      }
+    },
+    {
+      "cell": "temir-no-energy|deepseek-flash|deepseek-flash",
+      "label": "temir-no-energy（deepseek-flash）",
+      "category": "follow-through",
+      "samples": 16,
+      "meanToolCalls": 0.75,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 13032,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 7,
+        "n": 16
+      }
+    },
+    {
+      "cell": "temir-no-energy|deepseek-flash|deepseek-flash",
+      "label": "temir-no-energy（deepseek-flash）",
+      "category": "restraint",
+      "samples": 8,
+      "meanToolCalls": 1.625,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 16446.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 8
+      }
+    },
+    {
+      "cell": "temir-no-energy|deepseek-flash|deepseek-flash",
+      "label": "temir-no-energy（deepseek-flash）",
+      "category": "control",
+      "samples": 4,
+      "meanToolCalls": 1,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 6668,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 4
+      }
+    }
+  ],
+  "issues": [],
+  "judge": {
+    "name": "deepseek",
+    "calls": 48,
+    "spentUsd": 0.027120456
+  }
+}

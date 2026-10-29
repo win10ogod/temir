@@ -196,7 +196,7 @@ export function preparedSituation(situation: string): string {
 }
 
 /** 準備訊息：處境、候選（含經驗修正）、選擇與相關經驗。放在對方的話之後，主模型據此行動。 */
-export function renderPreparation(delib: Deliberation, correction: Correction, near: readonly Neighbor[]): string {
+export function renderPreparation(delib: Deliberation, correction: Correction, near: readonly Neighbor[], subtraction = true): string {
   const lines = [
     '（準備：這是你在回應之前的思考與行動準備，不是對方說的話，對方看不到。準備只是方向；回應的內容以回憶與對話為準，不要只用這裡提到的細節。）',
     `處境：${preparedSituation(delib.situation)}`,
@@ -210,7 +210,7 @@ export function renderPreparation(delib: Deliberation, correction: Correction, n
     lines.push(`${i + 1}. ${c.action}（${c.kind}）——預期：${c.prediction}｜你的傾向 ${Math.round(c.confidence)}%${adjust}${subtracted}`)
   })
   const chosen = correction.scored[correction.chosen]
-  if (chosen) lines.push(`你準備：第 ${correction.chosen + 1} 個做法（扣除不做的之後剩下的）。你預期：${chosen.prediction}`)
+  if (chosen) lines.push(`你準備：第 ${correction.chosen + 1} 個做法${subtraction ? '（扣除不做的之後剩下的）' : ''}。你預期：${chosen.prediction}`)
   const shown = near.slice(0, 3)
   if (shown.length > 0) {
     lines.push('過去類似處境的經驗：')

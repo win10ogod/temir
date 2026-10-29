@@ -18,8 +18,9 @@ export const KINDS = ['回答', '提問', '建議', '拒絕', '使用工具', '�
 /**
  * 思考的提示。energy＝能量（H-E）的欄位：drive（動能）與 activated（被觸發的勢能）。
  * 消融實驗（experiments/runner/patches/no-energy.yml）關閉時，提示中不出現這兩個欄位，其餘完全相同。
+ * subtraction＝RD 的扣除（H0「−」，ADR-0002 D15）；消融（patches/no-subtraction.yml）關閉時見 withoutSubtraction。
  */
-export function deliberateSystem(energy = true): string {
+export function deliberateSystem(energy = true, subtraction = true): string {
   const prompt = `你是一個人工個體，在回應之前先思考與準備：理解眼前的處境，想出幾個可能的做法，預測各自的後果；再依預測、過去類似處境的結果與你在乎的事，扣除不該做的做法，剩下的才會成為行動。依你自己的價值、目標與經驗判斷；你可以照對方的要求做，也可以提問、表達不同意或拒絕。只輸出一個 JSON 物件，不要任何其他文字：
 {"situation": "...", "drive": "...", "activated": [], "similar": [], "candidates": [{"action": "...", "kind": "...", "prediction": "...", "confidence": 50, "sameAs": [], "excluded": false, "reason": ""}]}
 - situation：用固定的格式描述眼前的處境，讓日後相似的處境寫出來也相似：「對方：…｜對方的意圖：…｜對方的情緒：…｜話題：…｜相關的記憶：…」。只寫事實，不寫建議；不要寫你自己的紀錄有多少、有沒有自我模型這類與處境無關的事。
@@ -35,7 +36,8 @@ export function deliberateSystem(energy = true): string {
   - excluded：想過這個做法的預期後果、過去類似處境的結果，以及你在乎的事之後，是否要把它扣除、不做：true 或 false。至少保留一個不扣除的做法。
   - reason：扣除的理由，一句話；沒有扣除就給空字串。
 - 一律使用原文的語言與字體：原文是繁體中文就寫繁體中文，不要轉成簡體。`
-  return energy ? prompt : withoutEnergy(prompt, ['drive', 'activated'])
+  const withEnergy = energy ? prompt : withoutEnergy(prompt, ['drive', 'activated'])
+  return subtraction ? withEnergy : withoutSubtraction(withEnergy)
 }
 
 /**
@@ -74,6 +76,21 @@ function withoutEnergy(prompt: string, fields: readonly string[]): string {
       .join('\n')
   }
   return out
+}
+
+/** 拿掉 RD 的扣除：「扣除不該做的做法」那一句與 excluded、reason 兩個欄位，回到 D15 之前的寫法；其餘完全相同。 */
+function withoutSubtraction(prompt: string): string {
+  return prompt
+    .replace('；再依預測、過去類似處境的結果與你在乎的事，扣除不該做的做法，剩下的才會成為行動。', '，再決定傾向哪一個。')
+    .replace(', "excluded": false, "reason": ""', '')
+    .split('\n')
+    .filter((line) => !line.startsWith('  - excluded：') && !line.startsWith('  - reason：'))
+    .join('\n')
+}
+
+/** 消融：關閉扣除時丟掉模型仍可能寫出的扣除，選擇回到全部候選中分數最高的。 */
+export function withoutExclusions(d: Deliberation): Deliberation {
+  return { ...d, candidates: d.candidates.map((c) => ({ action: c.action, kind: c.kind, prediction: c.prediction, confidence: c.confidence, sameAs: c.sameAs })) }
 }
 
 export const DELIBERATE_SYSTEM = deliberateSystem(true)

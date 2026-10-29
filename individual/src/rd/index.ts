@@ -21,7 +21,7 @@ import { callModel, type AuxRoute } from '../recall/aux.ts'
 import { clip, clipEnds } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
-import { deliberateSystem, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText } from './aux.ts'
+import { deliberateSystem, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, withoutExclusions } from './aux.ts'
 import { DEFAULT_PARAMS, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
 import {
   DECISION_KIND,
@@ -59,6 +59,11 @@ export interface Config {
    * 事後比對不寫 released 與 left。其餘的 RD 與 JitRL 完全相同。
    */
   readonly energy?: boolean
+  /**
+   * RD 的扣除（H0「−」，ADR-0002 D15，預設開）。關閉時（消融）：思考不寫 excluded 與理由，
+   * 選擇回到全部候選中分數最高的，準備訊息不提扣除。其餘完全相同。
+   */
+  readonly subtraction?: boolean
 }
 
 function textOf(content: readonly { readonly type: string; readonly text?: string }[]): string {
@@ -75,6 +80,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const params: Params = { ...DEFAULT_PARAMS, ...config?.params }
   const timeoutMs = config?.timeoutMs ?? 90_000
   const energy = config?.energy ?? true
+  const subtraction = config?.subtraction ?? true
   const logger = ctx.logger('temir-rd')
 
   /** 背景的事後比對；卸載前等它們完成。 */
@@ -240,12 +246,12 @@ export function apply(ctx: Context, config: Config | undefined): void {
           '## 對方剛說的話',
           clip(cue, 3000),
         ].join('\n')
-        const output = await call('deliberate', route, deliberateSystem(energy), input, session, [], payload.signal)
+        const output = await call('deliberate', route, deliberateSystem(energy, subtraction), input, session, [], payload.signal)
         const parsed = output === undefined ? undefined : parseDeliberation(output, labels)
         if (!parsed) return decision
         // 處境、drive、候選與扣除理由都會進入準備訊息與紀錄：把編號換成那件事的描述（編號只在這次思考的輸入中有意義）。
         // dev5：處境寫著「她欠我回覆的：…（P1」，主模型的推理跟著寫「不該再讓 P1、P2 無限懸著」。
-        const deliberation = mapDeliberationText(parsed, (s) => unlabel(s, potentialLabels, heldNow))
+        const deliberation = mapDeliberationText(subtraction ? parsed : withoutExclusions(parsed), (s) => unlabel(s, potentialLabels, heldNow))
 
         const near = jitrl ? neighbors(deliberation.situation, memory, params, deliberation.similar) : []
         const correction = jitrl ? correct(deliberation.candidates, near, params) : uncorrected(deliberation.candidates)
@@ -278,7 +284,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
           causes: near.map((n) => n.experience.id),
         })
         const preparation = createUserMessage({
-          content: [{ type: 'text', text: renderPreparation(deliberation, correction, near) }],
+          content: [{ type: 'text', text: renderPreparation(deliberation, correction, near, subtraction) }],
           source: { kind: 'temir-rd', form: 'notice', summary: `行動準備：${clip(chosen?.action ?? '', 60)}` },
         })
         return { ...decision, messages: [...decision.messages, preparation] }

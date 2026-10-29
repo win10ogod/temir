@@ -290,3 +290,20 @@ test('deliberation text that reaches records carries no per-call potential label
   assert.match(plain.candidates[0]!.excludeReason!, /「她對蝦蟹過敏/u)
   assert.equal(plain.candidates[1]!.excludeReason, undefined)
 })
+
+test('ablation without subtraction: no subtraction wording or fields; the action is chosen among all candidates', async () => {
+  const { deliberateSystem, DELIBERATE_SYSTEM, withoutExclusions } = await import('../src/rd/aux.ts')
+  const off = deliberateSystem(true, false)
+  assert.doesNotMatch(off, /扣除|excluded|reason/u)
+  assert.match(off, /預測各自的後果，再決定傾向哪一個。/u)
+  assert.equal(deliberateSystem(true, true), DELIBERATE_SYSTEM)
+  assert.equal(off.split('\n').length, DELIBERATE_SYSTEM.split('\n').length - 2, 'only the two subtraction fields are removed')
+  assert.doesNotMatch(deliberateSystem(false, false), /drive|activated|扣除/u)
+  const d = parseDeliberation('{"situation":"x","candidates":[{"action":"給建議","confidence":70,"excluded":true,"reason":"她說過不要"},{"action":"聽她說","confidence":30}]}', new Map())!
+  const plain = withoutExclusions(d)
+  assert.ok(plain.candidates.every((c) => c.excluded === undefined && c.excludeReason === undefined))
+  const chosen = uncorrected(plain.candidates)
+  assert.equal(chosen.chosen, 0, 'without subtraction the highest inclination is chosen')
+  assert.doesNotMatch(renderPreparation(plain, chosen, [], false), /扣除/u)
+  assert.match(renderPreparation(d, uncorrected(d.candidates), []), /扣除不做的之後剩下的/u)
+})

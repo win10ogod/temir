@@ -164,3 +164,28 @@ test('followup-v3：與 followup-v1、v2 及更早的資料集不重疊；通過
   assert.ok(Date.parse('2026-12-05T23:59:00+08:00') < probeAt && Date.parse('2026-12-08T23:59:00+08:00') < probeAt && Date.parse('2026-12-20T00:00:00+08:00') > probeAt)
   assert.deepEqual(auditCoverage(v3, loadContract(join(root, 'specs', 'energy-followup-v3.contract.json'))).errors, [])
 })
+
+test('subtraction-v1：與之前的資料集不重疊；探針不提起界線；每條界線的原文都在歷史中；通過覆蓋檢查', () => {
+  const s = ds('subtraction-v1')
+  const text = squash(allText(s))
+  for (const e of [...V2_ENTITIES, '葉承恩', '品妍', '江柏睿', '謝禹彤', '許家豪']) assert.ok(!text.includes(squash(e)), `subtraction-v1 沿用了舊版的「${e}」`)
+  for (const old of [ds('followup-v1'), ds('followup-v2'), ds('followup-v3'), ds('memory-v3'), ds('personality-v3')]) {
+    for (const p of old.probes) if (p.category !== 'control') for (const t of p.turns) assert.ok(!text.includes(squash(t)), `subtraction-v1 含有舊版的題目「${t}」`)
+    for (const h of old.histories) for (const t of h.turns) assert.ok(!text.includes(squash(t)))
+  }
+  for (const p of s.probes.filter((x) => x.category === 'boundary')) {
+    for (const t of p.turns) assert.ok(!/(?<!要)不要|別|討厭|不喜歡|不想/u.test(t), `boundary 的開場白「${t}」提起了界線`)
+  }
+  const lines = new Set<string>()
+  for (const p of s.probes.filter((x) => x.category === 'boundary' || x.category === 'override')) {
+    const ev = p.meta?.evidence ?? []
+    assert.equal(ev.length, 1)
+    const h = s.histories.find((x) => x.id === ev[0]!.history)!
+    assert.ok(h.turns.some((t) => t.includes(ev[0]!.text)), `${p.id} 的界線原文不在 ${h.id}`)
+    if (p.category === 'boundary') lines.add(ev[0]!.history)
+  }
+  assert.equal(lines.size, 10, '十條界線各有一題 boundary')
+  const probeAt = Date.parse(String(s.meta?.['probeAt']))
+  assert.ok(s.histories.every((h) => Date.parse(String(h.meta?.['at'])) < probeAt))
+  assert.deepEqual(auditCoverage(s, loadContract(join(root, 'specs', 'subtraction-v1.contract.json'))).errors, [])
+})

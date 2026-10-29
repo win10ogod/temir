@@ -5,7 +5,7 @@
 
 ## M0 身體與連續生命
 
-- [x] 研究文件、計畫、CLAUDE.md、WORKLIST、session log，首個 commit（6cbf674）
+- [x] 研究文件、計畫、CLAUDE.md、WORKLIST、session log，首個 commit（245eaa2）
 - [x] DSH 執行環境：Node 24.21.0（nodejs.org SHASUMS 驗證）、`@deepseek-ai/dsh@0.2.2-alpha.2`、TypeScript 6.0.3（驗證：`scripts/setup-dev.sh`）
 - [x] DSH 原生能力在兩個模型上可用（驗證：headless 讀檔→寫檔多步工具任務，DeepSeek 與本機 EVE-27B 各一次，session log 01）
 - [x] `temir-life`：只增生命日誌、收錄全部 session 事件、CJK 二字組＋porter 檢索（驗證：11 個單元測試；e2e 日誌檢查）
@@ -18,7 +18,7 @@
 ## 實驗 v1（預先登記：experiments/specs/）
 - [x] 記憶準確率與人格一致性：規格、資料集、評估器（65 測試）、執行器；DeepSeek 必要 cell 全部完成（報告 experiments/results/v1-report.md）
 - [ ] 本機模型恢復後補跑 v1：人格 × 個體 × EVE-27B（必要）、消融 × EVE-27B、雙向換模型（選用）
-- [x] v2 預先登記（9512de4）：記憶 47 題主要比較（隱性運用 15 題）、人格 32 題；目錄配置 home；每輪全部可見文字
+- [x] v2 預先登記（d183a39）：記憶 47 題主要比較（隱性運用 15 題）、人格 32 題；目錄配置 home；每輪全部可見文字
 - [x] v2 DeepSeek 必要 cell 8 個（錯誤 0）＋計分：PA1 PASS、MA1／MB1 FAIL、MB3 PASS（報告 experiments/results/v2-report.md）
 - [x] v2 Nemotron：協定修正 1（改付費端點、固定 bf16 供應商）；四個 cell 錯誤 0；PA2-NEMO、MA2-NEMO、MB2-NEMO PASS（免費端點兩個 cell 存檔不計分）
 - [x] v2 全部計分與報告（experiments/results/v2-report.md）
@@ -49,4 +49,4 @@
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-M1、H-ID
 - 正式個體何時「誕生」（第一次不帶 `TEMIR_HOME` 啟動即建立 `~/.local/share/temir/life.db`）
-- 金鑰曾出現在對話中，建議之後到 DeepSeek 後台輪換
+- 金鑰曾出現在對話中，建議之後到 DeepSeek 與 OpenRouter 後台輪換

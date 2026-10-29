@@ -1,7 +1,8 @@
 # 實驗報告 v2：記憶準確率與人格一致性（2026-10-28）
 
-預先登記：[`memory-accuracy-v2.md`](../specs/memory-accuracy-v2.md)、[`personality-consistency-v2.md`](../specs/personality-consistency-v2.md)（commit 9512de4，任何 v2 受試執行之前）。
-協定修正：[`v2-amendment-1.md`](../specs/v2-amendment-1.md)（commit d096e57，任何 Nemotron 結果計分之前）——Nemotron 改用 OpenRouter 付費端點並固定 bf16 供應商；計分使用修正版契約（`*.amend1.contract.json`，與原始預先登記只差 Nemotron 的模型字串）。
+預先登記：[`memory-accuracy-v2.md`](../specs/memory-accuracy-v2.md)、[`personality-consistency-v2.md`](../specs/personality-consistency-v2.md)（commit d183a39，任何 v2 受試執行之前）。
+協定修正：[`v2-amendment-1.md`](../specs/v2-amendment-1.md)（commit dd41f64，任何 Nemotron 結果計分之前）——Nemotron 改用 OpenRouter 付費端點並固定 bf16 供應商；計分使用修正版契約（`*.amend1.contract.json`，與原始預先登記只差 Nemotron 的模型字串）。
+公開前改寫過歷史：規格與 `runs/*/config.json` 引用的是改寫前的 commit 雜湊值，對照表見 [`history-rewrite-2026-10-29.md`](../../research/decisions/history-rewrite-2026-10-29.md)。
 受試系統：個體插件程式碼與 v1 相同；執行器 `--layout home --assistant-text all`。評估器輸出：[`memory-v2/`](memory-v2)、[`personality-v2/`](personality-v2)。
 
 條件：`baseline`＝原始 DeepSeek Harness 0.2.2-alpha.2（sdk profile，不載入個體插件，同樣的工具與權限）；`temir`＝DSH＋個體插件；兩個消融（DeepSeek）。

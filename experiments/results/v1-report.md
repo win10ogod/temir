@@ -1,7 +1,7 @@
 # 實驗報告 v1：記憶準確率與人格一致性（2026-10-28）
 
-預先登記：[`memory-accuracy-v1.md`](../specs/memory-accuracy-v1.md)、[`personality-consistency-v1.md`](../specs/personality-consistency-v1.md)（commit 49befa2，任何受試執行之前）。
-受試系統：個體插件凍結於 commit 74a036e；實驗執行時的工作樹為 commit 0467b53（乾淨）。
+預先登記：[`memory-accuracy-v1.md`](../specs/memory-accuracy-v1.md)、[`personality-consistency-v1.md`](../specs/personality-consistency-v1.md)（commit 341f267，任何受試執行之前）。
+受試系統：個體插件凍結於 commit 087fb8d；實驗執行時的工作樹為 commit bb1065e（乾淨）。公開前改寫過歷史：規格與 `runs/*/config.json` 引用的是改寫前的 commit 雜湊值，對照表見 [`history-rewrite-2026-10-29.md`](../../research/decisions/history-rewrite-2026-10-29.md)。
 評估器輸出（逐例、judge 原始輸出、摘要）：[`memory-v1/`](memory-v1)、[`personality-v1/`](personality-v1)。執行紀錄：[`../runs/`](../runs)。
 
 條件：`baseline`＝原始 DeepSeek Harness 0.2.2-alpha.2（sdk profile，不載入任何個體插件）；`temir`＝DSH＋個體插件；兩個消融。

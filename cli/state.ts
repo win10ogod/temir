@@ -34,6 +34,8 @@ function renderCycle(life: LifeStore, c: Cycle): string[] {
     const d = c.decision.data as DecisionData
     const chosen = d.candidates[d.chosen]
     lines.push(`    ST  ${clipEnds(d.situation, 160)}${d.drive ? `｜動能：${clipEnds(d.drive, 100)}` : ''}${d.activated?.length ? `（觸發：${describeKeys(life, d.activated).join('、')}）` : ''}`)
+    const subtracted = d.candidates.filter((c) => c.excluded)
+    if (subtracted.length > 0) lines.push(`    −RD 扣除：${subtracted.map((c) => `${clipEnds(c.action, 40)}${c.excludeReason ? `（${clipEnds(c.excludeReason, 40)}）` : ''}`).join('；')}`)
     lines.push(`    RD  準備：${clipEnds(chosen?.action ?? '', 100)}｜預期：${clipEnds(chosen?.prediction ?? '', 100)}${d.value === null ? '' : `｜V̂ ${d.value.toFixed(2)}，${d.neighbors.length} 個相似經驗`}`)
   }
   const said = c.replies.map((e) => replyOf(e)).join(' ')

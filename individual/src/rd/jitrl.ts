@@ -53,6 +53,12 @@ export interface Candidate {
   readonly confidence: number
   /** 模型判定為同一做法的過去經驗（rd/decision 事件 id）。 */
   readonly sameAs: readonly string[]
+  /**
+   * RD 扣除了這個做法（PC＝ST＋E−RD＝A；使用者 2026-10-29：「−」是扣除，ST＋E 減掉 RD 才進入 A）。
+   * 由個體自己判斷：想過預期後果、過去類似處境的結果與自己在乎的事之後，不做這個。舊紀錄沒有這個欄位。
+   */
+  readonly excluded?: boolean
+  readonly excludeReason?: string
 }
 
 /** 一個有回報的過去決定 (s, a, G)。 */
@@ -155,7 +161,7 @@ export interface Correction {
   readonly scored: readonly Scored[]
   /** V̂(s)；沒有鄰居時為 null。 */
   readonly value: number | null
-  /** 修正後分數最高的候選（同分取模型原本的順序）。 */
+  /** 沒有被 RD 扣除的候選中，修正後分數最高的（同分取模型原本的順序）。 */
   readonly chosen: number
 }
 
@@ -169,11 +175,21 @@ function argmax(values: readonly number[]): number {
   return best
 }
 
+/**
+ * 在沒有被 RD 扣除的候選中，取分數最高的（本專案的延伸：論文在全部候選中選擇）。
+ * 全部都被扣除時，扣除照實保留在紀錄中，選擇退回全部候選，讓個體仍有一個準備好的做法。
+ */
+export function chooseAmong(values: readonly number[], candidates: readonly Candidate[]): number {
+  const allowed = values.map((_, i) => i).filter((i) => !candidates[i]?.excluded)
+  if (allowed.length === 0) return argmax(values)
+  return allowed.reduce((best, i) => (values[i]! > values[best]! ? i : best), allowed[0]!)
+}
+
 /** 只用口述信心的選擇（關閉經驗修正，或沒有鄰居時）。 */
 export function uncorrected(candidates: readonly Candidate[]): Correction {
   const z = baseLogits(candidates)
   const scored = candidates.map((c, i) => ({ ...c, z: z[i]!, q: null, support: 0, optimistic: null, advantage: 0, normalized: 0, zPrime: z[i]! }))
-  return { scored, value: null, chosen: argmax(z) }
+  return { scored, value: null, chosen: chooseAmong(z, candidates) }
 }
 
 function baseLogits(candidates: readonly Candidate[]): number[] {
@@ -210,5 +226,5 @@ export function correct(
     const normalized = advantages[i]! / scale
     return { ...c, z: z[i]!, ...estimates[i]!, advantage: advantages[i]!, normalized, zPrime: z[i]! + params.beta * normalized }
   })
-  return { scored, value, chosen: argmax(scored.map((s) => s.zPrime)) }
+  return { scored, value, chosen: chooseAmong(scored.map((s) => s.zPrime), candidates) }
 }

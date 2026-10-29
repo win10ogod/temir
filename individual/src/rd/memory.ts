@@ -206,10 +206,11 @@ export function renderPreparation(delib: Deliberation, correction: Correction, n
   correction.scored.forEach((c, i) => {
     const basis = c.support > 0 ? `${c.support} 個相符的經驗` : c.optimistic ? '沒有相符的經驗，傾向嘗試' : '沒有相符的經驗'
     const adjust = c.q === null ? '' : `｜經驗修正 ${c.normalized >= 0 ? '+' : ''}${c.normalized.toFixed(2)}（${basis}）`
-    lines.push(`${i + 1}. ${c.action}（${c.kind}）——預期：${c.prediction}｜你的傾向 ${Math.round(c.confidence)}%${adjust}`)
+    const subtracted = c.excluded ? `｜你扣除了這個做法${c.excludeReason ? `：${c.excludeReason}` : ''}` : ''
+    lines.push(`${i + 1}. ${c.action}（${c.kind}）——預期：${c.prediction}｜你的傾向 ${Math.round(c.confidence)}%${adjust}${subtracted}`)
   })
   const chosen = correction.scored[correction.chosen]
-  if (chosen) lines.push(`你準備：第 ${correction.chosen + 1} 個做法。你預期：${chosen.prediction}`)
+  if (chosen) lines.push(`你準備：第 ${correction.chosen + 1} 個做法（扣除不做的之後剩下的）。你預期：${chosen.prediction}`)
   const shown = near.slice(0, 3)
   if (shown.length > 0) {
     lines.push('過去類似處境的經驗：')

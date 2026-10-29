@@ -20,8 +20,8 @@ export const KINDS = ['回答', '提問', '建議', '拒絕', '使用工具', '�
  * 消融實驗（experiments/runner/patches/no-energy.yml）關閉時，提示中不出現這兩個欄位，其餘完全相同。
  */
 export function deliberateSystem(energy = true): string {
-  const prompt = `你是一個人工個體，在回應之前先思考與準備：理解眼前的處境，想出幾個可能的做法，預測各自的後果，再決定傾向哪一個。依你自己的價值、目標與經驗判斷；你可以照對方的要求做，也可以提問、表達不同意或拒絕。只輸出一個 JSON 物件，不要任何其他文字：
-{"situation": "...", "drive": "...", "activated": [], "similar": [], "candidates": [{"action": "...", "kind": "...", "prediction": "...", "confidence": 50, "sameAs": []}]}
+  const prompt = `你是一個人工個體，在回應之前先思考與準備：理解眼前的處境，想出幾個可能的做法，預測各自的後果；再依預測、過去類似處境的結果與你在乎的事，扣除不該做的做法，剩下的才會成為行動。依你自己的價值、目標與經驗判斷；你可以照對方的要求做，也可以提問、表達不同意或拒絕。只輸出一個 JSON 物件，不要任何其他文字：
+{"situation": "...", "drive": "...", "activated": [], "similar": [], "candidates": [{"action": "...", "kind": "...", "prediction": "...", "confidence": 50, "sameAs": [], "excluded": false, "reason": ""}]}
 - situation：用固定的格式描述眼前的處境，讓日後相似的處境寫出來也相似：「對方：…｜對方的意圖：…｜對方的情緒：…｜話題：…｜相關的記憶：…」。只寫事實，不寫建議；不要寫你自己的紀錄有多少、有沒有自我模型這類與處境無關的事。
 - drive：此刻推動你行動的是什麼：對方的話裡的什麼，以及你的目標或「懸著的事」中被這個處境觸發的那幾件。一句話，用文字說明是哪一件，不要寫編號（編號寫在 activated）；寫的是動機，不是做法。
 - activated：被這個處境觸發的「懸著的事」的編號（例如 "P2"）或目標的 id（例如 "g:3fa1c2d4"）；只是同一個話題但沒有推動你，不算；沒有就給空陣列。
@@ -32,6 +32,8 @@ export function deliberateSystem(energy = true): string {
   - prediction：預期對方或結果會怎樣。
   - confidence：0 到 100 的整數，代表你有多傾向這樣做，三個加總為 100。
   - sameAs：「過去類似處境的經驗」中，當時採取的做法與這個做法實質上相同的經驗編號（例如 "E2"）。只是處境相似、或做法相反，都不算；沒有就給空陣列。
+  - excluded：想過這個做法的預期後果、過去類似處境的結果，以及你在乎的事之後，是否要把它扣除、不做：true 或 false。至少保留一個不扣除的做法。
+  - reason：扣除的理由，一句話；沒有扣除就給空字串。
 - 一律使用原文的語言與字體：原文是繁體中文就寫繁體中文，不要轉成簡體。`
   return energy ? prompt : withoutEnergy(prompt, ['drive', 'activated'])
 }
@@ -115,7 +117,15 @@ export function parseDeliberation(output: string, labels: ReadonlyMap<string, st
     const action = text(c['action'], 200)
     if (!action) continue
     const confidence = typeof c['confidence'] === 'number' && Number.isFinite(c['confidence']) ? Math.min(Math.max(c['confidence'], 0), 100) : 0
-    candidates.push({ action, kind: kindOf(c['kind']), prediction: text(c['prediction'], 300), confidence, sameAs: ids(c['sameAs']) })
+    const excluded = c['excluded'] === true
+    candidates.push({
+      action,
+      kind: kindOf(c['kind']),
+      prediction: text(c['prediction'], 300),
+      confidence,
+      sameAs: ids(c['sameAs']),
+      ...(excluded ? { excluded, excludeReason: text(c['reason'], 200) } : {}),
+    })
     if (candidates.length >= 4) break
   }
   if (candidates.length < 2) return undefined

@@ -252,3 +252,21 @@ test('energy v3: what an action leaves is recorded item by item, each with its k
   ])
   assert.deepEqual(parseOutcome('{"reward":0,"left":[]}')?.left, [])
 })
+
+test('PC = ST + E − RD = A: RD subtracts candidates the individual rules out; the action is chosen from what remains', async () => {
+  const { chooseAmong } = await import('../src/rd/jitrl.ts')
+  const d = parseDeliberation(
+    '{"situation":"x","candidates":[{"action":"直接給建議","confidence":70,"excluded":true,"reason":"上次對方說只想抒發"},{"action":"先聽對方說完","confidence":20},{"action":"轉移話題","confidence":10,"excluded":"true","reason":"字串不算"}]}',
+    new Map(),
+  )!
+  assert.deepEqual(d.candidates.map((c) => [c.excluded ?? false, c.excludeReason ?? '']), [[true, '上次對方說只想抒發'], [false, ''], [false, '']], 'only the boolean true subtracts')
+  const plain = uncorrected(d.candidates)
+  assert.equal(plain.chosen, 1, 'the highest inclination was subtracted, so the action comes from what remains')
+  const text = renderPreparation(d, plain, [])
+  assert.match(text, /1\. 直接給建議.*你扣除了這個做法：上次對方說只想抒發/)
+  assert.match(text, /你準備：第 2 個做法（扣除不做的之後剩下的）/)
+  // 全部都被扣除時，扣除照實保留，選擇退回全部候選。
+  const all = [candidate('a', 60), candidate('b', 40)].map((c) => ({ ...c, excluded: true }))
+  assert.equal(chooseAmong([0.1, 0.9], all), 1)
+  assert.equal(chooseAmong([0.9, 0.1], [{ ...candidate('a', 60), excluded: true }, candidate('b', 40)]), 1)
+})

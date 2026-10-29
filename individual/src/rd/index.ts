@@ -9,6 +9,8 @@
  * 3. 準備訊息（source.kind=temir-rd；ingest 不為 temir 來源建立回憶索引）放在對方的話之後，主模型據此行動，
  *    也可以在行動時改變主意，事後比對會記下實際做了什麼。
  * 監聽器以 prepend 註冊在最外層：等內層（temir-recall）放入回憶訊息後才思考，所以思考看得到回憶。
+ * 對方沉默（silenceMinutes 沒有新事件）時，最後一個決定先以「對方沒有再說話」做暫時的比對：
+ * 這一回合答應的事成為懸著的事，閒置時的念頭與主動開口才看得到它（對方之後回話時再正式比對）。
  *
  * 設定（消融實驗用）：enabled＝整個 RD 階段；jitrl＝經驗修正（關閉時只依口述信心選擇）。
  */
@@ -17,6 +19,7 @@ import type {} from '@deepseek-ai/dsh-agent'
 import { createUserMessage, type ContextFormed } from '@deepseek-ai/dsh-llm'
 import type { LifeEvent } from '../life/store.ts'
 import type {} from '../life/index.ts'
+import { latestRoute } from '../integrate/index.ts'
 import { callModel, type AuxRoute } from '../recall/aux.ts'
 import { clip, clipEnds } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
@@ -42,6 +45,9 @@ declare module '@deepseek-ai/dsh-llm' {
   }
 }
 
+/** 暫時的比對中「對方接著說了什麼」。 */
+const SILENT_OTHER = '（對方到現在都沒有再說話。）'
+
 export const name = 'temir-rd'
 export const inject = ['life', 'llm', 'tools']
 
@@ -59,6 +65,8 @@ export interface Config {
    * 事後比對不寫 released 與 left。其餘的 RD 與 JitRL 完全相同。
    */
   readonly energy?: boolean
+  /** 對方在我回覆後沉默多久（分鐘），就先做一次暫時的事後比對（預設 10；0＝關閉）。 */
+  readonly silenceMinutes?: number
   /**
    * RD 的扣除（H0「−」，ADR-0002 D15，預設開）。關閉時（消融）：思考不寫 excluded 與理由，
    * 選擇回到全部候選中分數最高的，準備訊息不提扣除。其餘完全相同。
@@ -81,6 +89,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const timeoutMs = config?.timeoutMs ?? 90_000
   const energy = config?.energy ?? true
   const subtraction = config?.subtraction ?? true
+  const silenceMs = (config?.silenceMinutes ?? 10) * 60_000
   const logger = ctx.logger('temir-rd')
 
   /** 背景的事後比對；卸載前等它們完成。 */
@@ -116,8 +125,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
     }
   }
 
-  /** 事後比對：上一個決定的預測 vs 實際。 */
-  function evaluate(decision: LifeEvent, heard: string, route: AuxRoute): void {
+  /** 事後比對：上一個決定的預測 vs 實際。provisional＝對方還沒有回話（暫時的比對）。 */
+  function evaluate(decision: LifeEvent, heard: string, route: AuxRoute, provisional = false): void {
     if (evaluating.has(decision.id)) return
     evaluating.add(decision.id)
     const task = (async () => {
@@ -170,13 +179,14 @@ export function apply(ctx: Context, config: Config | undefined): void {
         ...(releasedItems.length > 0 ? { releasedItems } : {}),
         selfVersion: self?.version ?? 0,
         heard: clip(heard, 500),
+        ...(provisional ? { provisional: true } : {}),
       }
       const recorded = life.append({
         kind: OUTCOME_KIND,
         origin: 'self',
         session: decision.session ?? undefined,
         data: outcome,
-        text: [`預測：${planned?.prediction ?? ''}`, `實際：${judged.actual}`, judged.lesson && `教訓：${judged.lesson}`].filter(Boolean).join('\n'),
+        text: [provisional && '（暫時的比對：對方還沒有回話）', `預測：${planned?.prediction ?? ''}`, `實際：${judged.actual}`, judged.lesson && `教訓：${judged.lesson}`].filter(Boolean).join('\n'),
         causes: [decision.id],
       })
       // 行動後果留下的感受（性質 2：經驗評價受 PC 影響；H-M1：情感是被記住的感受）。日常的感受只留在比對紀錄裡；
@@ -197,6 +207,26 @@ export function apply(ctx: Context, config: Config | undefined): void {
       .finally(() => evaluating.delete(decision.id))
     background.add(task)
     void task.finally(() => background.delete(task))
+  }
+
+  // 對方沉默：最後一個決定先做暫時的比對（計時器不讓程序多留，一次性的執行與實驗不會觸發）。
+  if (silenceMs > 0) {
+    const timer = setInterval(() => {
+      try {
+        if (!life.isOpen) return
+        const last = life.recent(1)[0]
+        if (!last || Date.now() - last.ts < silenceMs) return
+        const session = life.latest(DECISION_KIND)?.session
+        const decision = session ? openDecision(life, session) : undefined
+        if (!decision || life.referencing(decision.id, OUTCOME_KIND).length > 0) return
+        const route = latestRoute(life)
+        if (route) evaluate(decision, SILENT_OTHER, route, true)
+      } catch (error) {
+        logger.error('silence check failed: %s', error)
+      }
+    }, Math.min(silenceMs, 60_000))
+    timer.unref()
+    ctx.effect(() => () => clearInterval(timer), 'temir-rd: stop silence check')
   }
 
   ctx.on(

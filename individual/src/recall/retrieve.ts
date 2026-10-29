@@ -273,6 +273,9 @@ const KIND_LABEL: Record<string, string> = {
   'goal/change': '目標',
   'self/opinion': '看法',
   'self/thought': '念頭',
+  'self/initiative': '主動開口',
+  'skill/decision': '技能',
+  'skill/proposal': '技能提案',
   appraisal: '感受',
 }
 

@@ -307,3 +307,22 @@ test('ablation without subtraction: no subtraction wording or fields; the action
   assert.doesNotMatch(renderPreparation(plain, chosen, [], false), /扣除/u)
   assert.match(renderPreparation(d, uncorrected(d.candidates), []), /扣除不做的之後剩下的/u)
 })
+
+test('a provisional outcome (the other went silent) keeps the decision open for the real comparison when the other replies', () => {
+  const home = mkdtempSync(join(tmpdir(), 'temir-rd-silent-'))
+  const store = LifeStore.open(home)
+  try {
+    const d = store.append({ kind: DECISION_KIND, origin: 'self', session: 's1', data: { cue: '想好名字再告訴我', situation: 'x', candidates: [], chosen: 0, value: null, neighbors: [], shown: {}, jitrl: true, params: DEFAULT_PARAMS, selfVersion: 0 }, text: '處境：對方請我想好名字再告訴他' })
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 's1', data: {}, text: '對方說：想好名字再告訴我' })
+    assert.equal(openDecision(store, 's1')?.id, d.id)
+    const base = { decision: d.id, didAction: 'a', didKind: '回答', actual: '對方沒有再說話', matched: 'partly', error: '', reward: 0, reason: '', lesson: '', selfVersion: 0, heard: '' }
+    store.append({ kind: OUTCOME_KIND, origin: 'self', session: 's1', data: { ...base, provisional: true }, causes: [d.id] })
+    assert.equal(openDecision(store, 's1')?.id, d.id, 'only a provisional comparison so far')
+    store.append({ kind: OUTCOME_KIND, origin: 'self', session: 's1', data: { ...base, actual: '對方說謝謝', reward: 0.5 }, causes: [d.id] })
+    assert.equal(openDecision(store, 's1'), undefined)
+    assert.equal(experiences(store, 0.5).find((e) => e.id === d.id)?.ret, 0.5, 'the latest comparison wins')
+  } finally {
+    store.close()
+    rmSync(home, { recursive: true, force: true })
+  }
+})

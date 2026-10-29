@@ -16,13 +16,14 @@ import { THOUGHT_KIND, potentialItems, presentPotential, resolvePotential, unlab
 import { KIND, SIGNIFICANCE, SIGNIFICANCE_LABEL, formatTime, goals, renderSelfSnapshot, type AppraisalData, type Significance } from '../self/state.ts'
 
 export const THOUGHT_SYSTEM = `你是一個人工個體。現在沒有人在跟你說話，你有一段安靜的時間。看看你的目標與心裡懸著的事：有沒有哪一件此刻浮上心頭？也可以沒有，沒有就讓它安靜。只輸出一個 JSON 物件，不要任何其他文字：
-{"item": "", "thought": "", "feeling": "", "significance": "daily", "release": false, "intention": ""}
+{"item": "", "thought": "", "feeling": "", "significance": "daily", "release": false, "intention": "", "now": false}
 - item：浮上心頭的那件事的編號：「懸著的事」的 P 編號（例如 "P2"），或目標的 id（例如 "g:3fa1c2d4"）。沒有就給空字串，其他欄位也留空。
 - thought：你此刻的念頭，用第一人稱：你怎麼看這件事、有沒有新的理解、它和你在乎的事有什麼關係。
 - feeling：這個念頭帶來的感受，用你自己的話；沒有特別的感受就給空字串。
 - significance：這段念頭對你的重要程度：daily（日常）／notable（值得注意）／major（重大）／pivotal（轉折）。
 - release：想過之後，這件事是否可以放下了（已經想通、不再需要，或你決定不再掛心）：true 或 false。目標不在這裡放下，要用 goal 工具。
 - intention：如果你想在下次和對方說話時做什麼（例如問一件事、說明一個想法、兌現一個承諾），寫一句；沒有就給空字串。
+- now：要不要現在就主動對對方說這件事，不等對方先開口：true 或 false。對方可能不在，也可能晚點才看到；沒有 intention 時給 false。
 - 一律使用原文的語言與字體：原文是繁體中文就寫繁體中文，不要轉成簡體。`
 
 export interface ThoughtJudgement {
@@ -32,6 +33,8 @@ export interface ThoughtJudgement {
   readonly significance: Significance
   readonly release: boolean
   readonly intention: string
+  /** 現在就主動開口（M4 的自發行動）。 */
+  readonly now: boolean
 }
 
 function text(value: unknown, max: number): string {
@@ -50,6 +53,7 @@ export function parseThought(output: string): ThoughtJudgement | undefined {
     significance: (SIGNIFICANCE as readonly string[]).includes(significance) ? (significance as Significance) : 'daily',
     release: obj['release'] === true,
     intention: text(obj['intention'], 300),
+    now: obj['now'] === true,
   }
 }
 
@@ -94,6 +98,7 @@ export function recordThought(life: LifeStore, judged: ThoughtJudgement, labels:
     intention: unlabel(judged.intention, labels, held),
     releasedItems: judged.release && !key.startsWith('goal:') ? [key] : [],
     trigger: 'idle',
+    ...(judged.now && judged.intention ? { now: true } : {}),
   }
   const about = item ? clip(item.text, 80) : (goals(life).find((g) => `goal:${g.id}` === key)?.text ?? '')
   const event = life.append({
@@ -115,4 +120,35 @@ export function recordThought(life: LifeStore, judged: ThoughtJudgement, labels:
     })
   }
   return event.id
+}
+
+/** 主動開口的紀錄（M4）：念頭決定現在就說；delivered＝對話還在、已經送出。 */
+export const INITIATIVE_KIND = 'self/initiative'
+
+export interface InitiativeData {
+  readonly thought: string
+  readonly session: string | null
+  readonly intention: string
+  readonly delivered: boolean
+  readonly reason?: string
+}
+
+/** 主動開口的排程規則（不是人格參數）：每 24 小時最多幾次。 */
+export const INITIATIVE_PER_DAY = 3
+
+/**
+ * 現在可不可以主動開口：上次主動開口之後，對方要先說過話（不連續追著對方說）；24 小時內不超過 INITIATIVE_PER_DAY 次。
+ * 要不要說、說什麼，仍由個體在念頭中決定。
+ */
+export function mayInitiate(life: LifeStore, now = Date.now()): { readonly ok: boolean; readonly reason?: string } {
+  const sent = life.all(INITIATIVE_KIND).filter((e) => (e.data as InitiativeData).delivered)
+  const last = sent.at(-1)
+  if (last && !life.after(last.seq, ['dsh/user/message'], 50).some((e) => e.text?.startsWith('對方說：'))) return { ok: false, reason: '上次主動開口之後，對方還沒有回話' }
+  if (sent.filter((e) => now - e.ts < 24 * 3_600_000).length >= INITIATIVE_PER_DAY) return { ok: false, reason: `24 小時內已經主動開口 ${INITIATIVE_PER_DAY} 次` }
+  return { ok: true }
+}
+
+/** 主動開口的那一回合的輸入：來源是 temir-thought，不是對方說的話。 */
+export function initiativeNote(thought: string, intention: string): string {
+  return `（這不是對方說的話：沒有人跟你說話的時候，你想到：${thought}\n你決定現在主動對對方說：${intention}\n對方可能不在，也可能晚點才看到。）`
 }

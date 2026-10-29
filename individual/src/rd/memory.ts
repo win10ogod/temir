@@ -60,6 +60,11 @@ export interface OutcomeData {
   readonly leftItems?: readonly { readonly text: string; readonly type: LeftType }[]
   readonly selfVersion: number
   readonly heard: string
+  /**
+   * 暫時的比對：對方在我回覆之後沉默了一段時間，先以「對方沒有再說話」比對，讓這一回合答應的事也成為懸著的事。
+   * 對方之後回話時會再正式比對一次；同一個決定以最新的比對為準（experiences）。舊紀錄沒有這個欄位。
+   */
+  readonly provisional?: boolean
 }
 
 export interface RevaluationData {
@@ -131,7 +136,8 @@ export function experiences(life: LifeStore, gamma: number): Experience[] {
  */
 export function openDecision(life: LifeStore, session: string): LifeEvent | undefined {
   const last = life.inSession(session, DECISION_KIND, 'desc', 1)[0]
-  if (!last || life.referencing(last.id, OUTCOME_KIND).length > 0) return undefined
+  // 只有暫時的比對時，對方回話後仍要正式比對一次。
+  if (!last || life.referencing(last.id, OUTCOME_KIND).some((o) => !(o.data as OutcomeData).provisional)) return undefined
   const heard = life.following(session, ['dsh/user/message'], last.seq, 10).filter(isHeard)
   return heard.length === 1 ? last : undefined
 }

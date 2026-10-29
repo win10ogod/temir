@@ -64,6 +64,8 @@ export interface ThoughtData {
   readonly intention: string
   readonly releasedItems: readonly string[]
   readonly trigger: 'idle'
+  /** 念頭決定現在就主動開口（M4）；舊紀錄沒有這個欄位。 */
+  readonly now?: boolean
 }
 
 const KIND_LABEL: Record<PotentialKind, string> = {

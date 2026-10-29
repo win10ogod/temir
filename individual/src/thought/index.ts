@@ -6,14 +6,28 @@
  * 每段閒置最多一次：念頭本身也是新的事件，之後要等到有新的經歷、再度閒置，才會有下一次。
  * 計時器不讓程序多留（unref），所以一次性的 headless 執行與實驗的探針不會觸發。
  *
- * 設定：automatic（預設開）、checkMinutes（預設 5）、idleMinutes（預設 15）、timeoutMs（預設 90000）。
+ * 自發行動（plan v2 M4）：念頭留下打算、而且個體決定現在就說（now）時，在最近一段對話中主動開口：
+ * 以 DSH 的 `agent.followup`（dsh-tool-jobs 叫醒閒置 agent 的同一種方式）開始一個由念頭發起的回合。
+ * 排程規則（mayInitiate）：上次主動開口之後對方要先說過話；24 小時內最多 INITIATIVE_PER_DAY 次。
+ * 對話已經不在或正在進行時不開口，照實記下。
+ *
+ * 設定：automatic（預設開）、checkMinutes（預設 5）、idleMinutes（預設 15）、timeoutMs（預設 90000）、spontaneous（預設開）。
  */
 import type { Context } from '@deepseek-ai/cordis'
+import type { Agent } from '@deepseek-ai/dsh-agent'
+import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type {} from '../life/index.ts'
 import { latestRoute } from '../integrate/index.ts'
 import { callModel } from '../recall/aux.ts'
 import { clip } from '../recall/retrieve.ts'
-import { THOUGHT_SYSTEM, hasPotential, parseThought, recordThought, thoughtInput } from './thought.ts'
+import type { ThoughtData } from '../self/energy.ts'
+import { INITIATIVE_KIND, THOUGHT_SYSTEM, hasPotential, initiativeNote, mayInitiate, parseThought, recordThought, thoughtInput, type InitiativeData } from './thought.ts'
+
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    'temir-thought': { readonly kind: 'temir-thought' }
+  }
+}
 
 export const name = 'temir-thought'
 export const inject = ['life', 'llm']
@@ -23,6 +37,33 @@ export interface Config {
   readonly checkMinutes?: number
   readonly idleMinutes?: number
   readonly timeoutMs?: number
+  /** 念頭決定現在就說時主動開口（M4，預設開）。 */
+  readonly spontaneous?: boolean
+}
+
+/**
+ * 主動開口：在最近一段對話中，以念頭發起一個回合；照實記下送出與否（self/initiative）。
+ * agent 以 session id 取得、閒置時才 followup（與 dsh-tool-jobs 叫醒 agent 的方式相同）。
+ */
+export function deliverInitiative(ctx: Context, thoughtId: string): InitiativeData | undefined {
+  const life = ctx.life
+  const t = life.get(thoughtId)?.data as ThoughtData | undefined
+  if (!t?.now || !t.intention) return undefined
+  const session = life.latest('dsh/user/message')?.session ?? null
+  const record = (delivered: boolean, reason?: string): InitiativeData => {
+    const data: InitiativeData = { thought: thoughtId, session, intention: t.intention, delivered, ...(reason ? { reason } : {}) }
+    life.append({ kind: INITIATIVE_KIND, origin: 'self', session: session ?? undefined, data, ...(delivered ? { text: `我決定主動開口：${t.intention}` } : {}), causes: [thoughtId] })
+    return data
+  }
+  const pace = mayInitiate(life)
+  if (!pace.ok) return record(false, pace.reason)
+  const agent = session ? (ctx.get('agents') as { get(id: string): Agent | undefined } | undefined)?.get(session) : undefined
+  if (!agent) return record(false, '最近的對話已經不在，沒有地方可以開口')
+  if (agent.status !== 'idle') return record(false, '對話正在進行中')
+  const data = record(true)
+  agent.followup(createUserMessage({ content: [{ type: 'text', text: initiativeNote(t.thought, t.intention) }], source: { kind: 'temir-thought' } }))
+  ctx.logger('temir-thought').info('initiative in session %s: %s', session, t.intention)
+  return data
 }
 
 export function apply(ctx: Context, config: Config | undefined): void {
@@ -46,7 +87,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
       if (!life.isOpen) return
       life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'thought', ms: call.ms, retried: call.retried, input: clip(input, 8000), output: call.output } })
       const judged = parseThought(call.output)
-      if (judged) life.transaction(() => recordThought(life, judged, labels, model))
+      const id = judged ? life.transaction(() => recordThought(life, judged, labels, model)) : undefined
+      if (id && judged?.now && (config?.spontaneous ?? true)) deliverInitiative(ctx, id)
     } catch (error) {
       if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'thought', error: String(error), input: clip(input, 8000) } })
       logger.warn('thought failed: %s', error)

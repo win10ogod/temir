@@ -26,6 +26,9 @@ import { clip, isHeard } from '../recall/retrieve.ts'
 import { KIND, type AppraisalData } from '../self/state.ts'
 import { INTEGRATION_KIND, collect, integrationStart, renderEvidence, type IntegrationTrigger } from './evidence.ts'
 import { DEEP_SYSTEM, INTEGRATE_SYSTEM, applyProposal, parseProposal, validate } from './proposal.ts'
+import { DEFAULT_PARAMS } from '../rd/jitrl.ts'
+import { replayCases } from '../rd/memory.ts'
+import { REPLAY_KIND, adoptedParams, replay } from '../rd/replay.ts'
 
 export const name = 'temir-integrate'
 export const inject = ['life', 'llm', 'tools']
@@ -45,6 +48,8 @@ export interface Config {
   readonly pivotalDelaySeconds?: number
   /** 能量（H-E，預設開）：證據中的「懸著的事」與 release。消融實驗可關閉。 */
   readonly energy?: boolean
+  /** 整合之後的日誌重播（M2，預設開；rd/replay.ts）。 */
+  readonly replay?: boolean
 }
 
 /** 個體最近使用的模型路由（生命日誌中最後一則回覆的 provider/model）。 */
@@ -101,6 +106,15 @@ export function apply(ctx: Context, config: Config | undefined): void {
     if (!proposal) return '整合的輸出無法解析，這次沒有修改任何紀錄。'
     const { accepted, rejected, deferred } = validate(life, ev, proposal)
     const result = life.transaction(() => applyProposal(life, ev, accepted, rejected, deferred, { trigger, deep, model, output }))
+    if (config?.replay ?? true) {
+      // 日誌重播（M2，ADR-0002 D16）：整合之後，在已記錄的決定上評估 JitRL 經驗估計的參數；純計算，不呼叫模型。
+      try {
+        const replayed = replay(replayCases(life, DEFAULT_PARAMS.gamma), { ...DEFAULT_PARAMS, ...adoptedParams(life.all(REPLAY_KIND)) })
+        if (replayed) life.append({ kind: REPLAY_KIND, origin: 'self', data: replayed, causes: [result.integration] })
+      } catch (error) {
+        logger.warn('replay failed: %s', error)
+      }
+    }
     const parts = [
       `${deep ? '深度' : ''}整合完成（${result.integration}）：`,
       `教訓 ${accepted.lessons.length}、重新評價 ${accepted.reappraisals.length}、自我模型${accepted.selfRevision ? '已修訂' : '未修訂'}、人生敘事${accepted.story ? '已改寫' : '未改寫'}、目標變更 ${accepted.goals.length}、過時事實 ${accepted.outdated.length}；`,

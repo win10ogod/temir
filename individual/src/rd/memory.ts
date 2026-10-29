@@ -6,6 +6,7 @@
  * JitRL 的記憶 (s, a, G) 從這兩種事件推導，不另外保存，所以回報可以在之後重新評估。
  */
 import type { LifeEvent, LifeStore } from '../life/store.ts'
+import type { ReplayCase } from './replay.ts'
 import { clip, clipEnds, isHeard, replyOf } from '../recall/retrieve.ts'
 import { formatDay, type Significance } from '../self/state.ts'
 import type { Deliberation } from './aux.ts'
@@ -227,4 +228,12 @@ export function renderPreparation(delib: Deliberation, correction: Correction, n
   }
   lines.push('（這只是準備；實際怎麼做，由你在回應時決定。）')
   return lines.join('\n')
+}
+
+/** 日誌重播的輸入（rd/replay.ts）：每個有回報的決定，連同思考時模型判定的同類處境與相同做法。 */
+export function replayCases(life: LifeStore, gamma: number): ReplayCase[] {
+  return experiences(life, gamma).map((experience) => {
+    const d = life.get(experience.id)?.data as DecisionData | undefined
+    return { experience, judged: (d?.neighbors ?? []).filter((n) => n.judged).map((n) => n.id), sameAs: d?.candidates[d.chosen]?.sameAs ?? [] }
+  })
 }

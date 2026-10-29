@@ -15,6 +15,7 @@ import { recentCycles, type Cycle } from '../individual/src/self/cycle.ts'
 import { describeKeys, renderPotential, type ThoughtData } from '../individual/src/self/energy.ts'
 import { renderThoughts } from '../individual/src/thought/thought.ts'
 import { SKILL_KIND, renderLedger, renderOwnSkills } from '../individual/src/skill/skill.ts'
+import { REPLAY_KIND, type ReplayData } from '../individual/src/rd/replay.ts'
 import { formatTime, renderSelfSnapshot } from '../individual/src/self/state.ts'
 
 function renderCycle(life: LifeStore, c: Cycle): string[] {
@@ -79,6 +80,12 @@ function main(): void {
       )
       if (d.change) lines.push(`改變：${d.change}`)
       for (const c of d.contradictions ?? []) lines.push(`未解的矛盾：${c}`)
+    }
+    const replayed = life.latest(REPLAY_KIND)
+    if (replayed) {
+      const r = replayed.data as ReplayData
+      const p = (x: ReplayData['current']) => `k=${x.k}、處境門檻 ${x.stateThreshold}、行動門檻 ${x.actionThreshold}（較新決定的預測誤差 ${x.testMse.toFixed(3)}）`
+      lines.push('', '## 日誌重播（JitRL 經驗估計的參數；只在已記錄的決定上）', `${formatTime(replayed.ts)}｜${r.n} 個決定｜現行：${p(r.current)}｜最好：${p(r.best)}｜${r.adopted ? '採用' : '不採用'}：${r.reason}（減少 ${r.gain.toFixed(3)}，雜訊帶 ${r.noise.toFixed(3)}）`)
     }
     const proposals = life.all(PROPOSAL_KIND)
     if (proposals.length > 0) lines.push('', `未採用的修訂提案：${proposals.length} 項（最近：${clipEnds(proposals.at(-1)?.text ?? '', 120)}）`)

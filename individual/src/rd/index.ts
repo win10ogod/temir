@@ -26,6 +26,7 @@ import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlab
 import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
 import { deliberateSystem, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, withoutExclusions } from './aux.ts'
 import { DEFAULT_PARAMS, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
+import { REPLAY_KIND, adoptedParams } from './replay.ts'
 import {
   DECISION_KIND,
   OUTCOME_KIND,
@@ -85,7 +86,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
   if (config?.enabled === false) return
   const life = ctx.life
   const jitrl = config?.jitrl ?? true
-  const params: Params = { ...DEFAULT_PARAMS, ...config?.params }
+  // 參數：預設 ⊕ 日誌重播採用的（rd/replay.ts；整合期之後）⊕ 設定檔（實驗與消融固定參數）。每次思考時重新決定。
+  const paramsNow = (): Params => ({ ...DEFAULT_PARAMS, ...adoptedParams(life.all(REPLAY_KIND)), ...config?.params })
   const timeoutMs = config?.timeoutMs ?? 90_000
   const energy = config?.energy ?? true
   const subtraction = config?.subtraction ?? true
@@ -246,6 +248,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
         const previous = openDecision(life, session)
         if (previous) evaluate(previous, cue, route)
 
+        const params = paramsNow()
         const memory = jitrl ? experiences(life, params.gamma) : []
         const shown = relevantExperiences(cue, memory, 5)
         const labels = new Map(shown.map((e, i) => [`E${i + 1}`, e.id]))

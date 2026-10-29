@@ -12,7 +12,7 @@
  *   這兩點是本專案的延伸：v2 實驗中只截取開頭，模型看到的多半是推理的前幾句，看不到自己最後的選擇。
  * - 新 session 開頭另附「關於對方，我記得的長期事實」，見 personFacts（hypotheses.md H-M2）。
  */
-import type { LifeEvent, LifeStore } from '../life/store.ts'
+import { indexTerms, type LifeEvent, type LifeStore } from '../life/store.ts'
 import { SIGNIFICANCE_LABEL, formatDay, formatTime, type AppraisalData } from '../self/state.ts'
 
 /**
@@ -209,10 +209,10 @@ export interface PersonFact {
 /**
  * 關於對方，我記得的長期事實：從對方的話擷取、標為長期的事實（hypotheses.md H-M2）。
  * Hindsight（arXiv:2512.12818）§4〈The Observation Paradigm〉以模型把某個實體的全部事實摘要成 observation；
- * 這裡不做摘要，只列出原本擷取的句子：同一句只保留最新一次，較新的優先放進 budget（字元數），再依時間排列。
- * 摘要、合併與淘汰過時的事實留給之後的整合期。目前假設對話的對方是同一個人。
+ * 這裡不做摘要，只列出原本擷取的句子：同一句只保留最新一次，依最後一次聽到的時間排列。
+ * 淘汰過時的事實由整合期標記（memory/outdated）。目前假設對話的對方是同一個人。
  */
-export function personFacts(life: LifeStore, budget = 2400): PersonFact[] {
+export function knownFacts(life: LifeStore): PersonFact[] {
   const latest = new Map<string, PersonFact>()
   for (const event of life.all(FACTS_KIND)) {
     const data = event.data as FactsData
@@ -227,14 +227,39 @@ export function personFacts(life: LifeStore, budget = 2400): PersonFact[] {
     const fact = latest.get((event.data as OutdatedData).fact)
     if (fact && fact.ts <= event.ts) latest.delete(fact.text)
   }
-  const chosen: PersonFact[] = []
+  return [...latest.values()]
+}
+
+/**
+ * 每次都附上的事實要有上限，否則生命越長，這一節就越大（按需披露，ADR-0002 D1）。
+ * budget（字元數）的前一半先給與目前線索有共同檢索詞的事實（共同詞多的優先），其餘依新到舊補滿，最後依時間排列。
+ * 沒放進去的由呈現端告訴個體還有幾條，需要時用 recall 找。沒有線索時就是單純的新到舊。
+ */
+export function selectFacts(facts: readonly PersonFact[], budget: number, cue = ''): PersonFact[] {
+  const cost = (f: PersonFact) => f.text.length + 14
+  const cueTerms = new Set(indexTerms(cue))
+  const chosen = new Set<PersonFact>()
   let used = 0
-  for (const fact of [...latest.values()].reverse()) {
-    used += fact.text.length + 14
-    if (used > budget) break
-    chosen.push(fact)
+  const relevant = facts
+    .map((f, i) => ({ f, i, shared: cueTerms.size === 0 ? 0 : new Set(indexTerms(f.text).filter((t) => cueTerms.has(t))).size }))
+    .filter((x) => x.shared > 0)
+    .sort((a, b) => b.shared - a.shared || b.i - a.i)
+  for (const { f } of relevant) {
+    if (used + cost(f) > budget / 2) continue
+    chosen.add(f)
+    used += cost(f)
   }
-  return chosen.reverse()
+  for (const f of [...facts].reverse()) {
+    if (chosen.has(f)) continue
+    if (used + cost(f) > budget) break
+    chosen.add(f)
+    used += cost(f)
+  }
+  return facts.filter((f) => chosen.has(f))
+}
+
+export function personFacts(life: LifeStore, budget = 2400, cue = ''): PersonFact[] {
+  return selectFacts(knownFacts(life), budget, cue)
 }
 
 const KIND_LABEL: Record<string, string> = {
@@ -247,6 +272,22 @@ const KIND_LABEL: Record<string, string> = {
   'memory/lesson': '教訓',
   'goal/change': '目標',
   appraisal: '感受',
+}
+
+/**
+ * 顯示用的短 id：`session-<uuid>#<seq>` → `<uuid 前 8 碼>#<seq>`，`l:<uuid>` → `l:<前 8 碼>`；其他原樣。
+ * dev2 中每次回憶約有 980 字花在完整的 id 上（佔 15%），而個體幾乎不用 id 展開（63 題中 1 次）。LifeStore.resolveId 可以解析回來。
+ */
+export function shortId(id: string): string {
+  const session = /^session-([0-9a-f]{8})[0-9a-f-]*#(\d+)$/.exec(id)
+  if (session) return `${session[1]}#${session[2]}`
+  const life = /^l:([0-9a-f]{8})[0-9a-f-]*$/.exec(id)
+  return life ? `l:${life[1]}` : id
+}
+
+/** 解析一組模型寫的 id；解析不到的保留原字串，讓呼叫端照原規則判斷為不存在。 */
+export function resolveIds(life: LifeStore, refs: readonly string[]): string[] {
+  return refs.map((ref) => life.resolveId(ref) ?? ref)
 }
 
 export function clip(text: string, max: number): string {
@@ -264,7 +305,7 @@ export function clipEnds(text: string, max: number): string {
 
 function line(event: LifeEvent, max: number): string {
   const body = event.kind === SAID ? `我說：${replyOf(event) || '（沒有說出口的話）'}` : (event.text ?? '')
-  return `- [${event.id}｜${formatTime(event.ts)}｜${KIND_LABEL[event.kind] ?? event.kind}] ${clipEnds(body, max)}`
+  return `- [${shortId(event.id)}｜${formatTime(event.ts)}｜${KIND_LABEL[event.kind] ?? event.kind}] ${clipEnds(body, max)}`
 }
 
 export interface RenderOptions {
@@ -275,6 +316,8 @@ export interface RenderOptions {
    * 由個體用 recall 工具的 ids 參數展開。省略則全部呈現全文。
    */
   readonly expand?: number
+  /** 長期事實中因為上限而沒有列出的條數（見 selectFacts）。 */
+  readonly omittedFacts?: number
 }
 
 /** 索引行的要點：擷取的第一條事實，沒有就取事件文字的開頭與結尾。 */
@@ -296,8 +339,14 @@ export function renderRecall(
   const maxChars = options.maxChars ?? 9000
   const lines = [header]
   if (person.length > 0) {
-    lines.push('', '## 關於對方，我記得的長期事實', '（從過去的對話中擷取；舊的可能已經改變，以較新的為準。）')
-    for (const fact of person) lines.push(`- ${formatDay(fact.ts)}｜${fact.text}`)
+    lines.push('', '## 關於對方，我記得的長期事實', '（從過去的對話中擷取，依聽到的日期分組；舊的可能已經改變，以較新的為準。）')
+    // 同一天聽到的事實共用一個日期標題（dev2：每行重複日期約佔這一節的兩成）。
+    let day = ''
+    for (const fact of person) {
+      if (formatDay(fact.ts) !== day) lines.push(`（${(day = formatDay(fact.ts))}）`)
+      lines.push(`- ${fact.text}`)
+    }
+    if (options.omittedFacts) lines.push(`（另有 ${options.omittedFacts} 條較早、和現在的話題比較無關的事實沒有列出；需要時用 recall 找。）`)
   }
   if (last && (last.heard || last.said)) {
     lines.push('', '## 最近一次對話')
@@ -305,9 +354,12 @@ export function renderRecall(
     if (last.said) lines.push(line(last.said, 300))
   }
   const byScore = [...recalled].sort((a, b) => b.score - a.score)
-  const full = options.expand === undefined ? byScore : byScore.slice(0, options.expand)
-  const indexed = options.expand === undefined ? [] : byScore.slice(options.expand)
-  const blocks = full.map((r) => ({ r, text: fragment(life, r) }))
+  const progressive = options.expand !== undefined
+  const full = progressive ? byScore.slice(0, options.expand) : byScore
+  // 索引不再重複「關於對方」已經列出的事實（dev2：索引行常常就是那些事實）。
+  const known = new Set(person.map((f) => f.text))
+  const indexed = progressive ? byScore.slice(options.expand).filter((r) => !known.has(gist(r))) : []
+  const blocks = full.map((r) => ({ r, text: fragment(life, r, progressive) }))
   let total = blocks.reduce((n, b) => n + b.text.length, 0)
   for (const b of [...blocks].sort((x, y) => x.r.score - y.r.score)) {
     if (total <= maxChars || blocks.length <= 1) break
@@ -323,18 +375,23 @@ export function renderRecall(
   if (indexed.length > 0) {
     lines.push('', '## 其他可能相關的片段（只列要點，依時間先後；需要細節時，用 recall 工具的 ids 參數展開）')
     for (const r of [...indexed].sort(byTime)) {
-      lines.push(`- [${r.event.id}｜${formatTime(r.event.ts)}｜${KIND_LABEL[r.event.kind] ?? r.event.kind}] ${gist(r)}`)
+      lines.push(`- [${shortId(r.event.id)}｜${formatTime(r.event.ts)}｜${KIND_LABEL[r.event.kind] ?? r.event.kind}] ${gist(r)}`)
     }
   }
   return lines.join('\n')
 }
 
-/** 一個回憶片段：事件本身（對話回合附上我當時的回答）、擷取的要點與感受。 */
-function fragment(life: LifeStore, r: Recalled): string {
+/**
+ * 一個回憶片段：事件本身（對話回合附上我當時的回答）、擷取的要點與感受。
+ * 按需披露時，「我當時表達的立場與承諾」只留第一條：擷取時規定先寫結論，其餘多半與回答本身重複（dev2）。
+ */
+function fragment(life: LifeStore, r: Recalled, concise = false): string {
   const lines = [line(r.event, r.event.kind === SAID ? 360 : 300)]
   if (r.facts.length > 0) lines.push(`    ↳ 當時記下的要點：${clipEnds(r.facts.join('；'), 300)}`)
-  if (r.reply && r.reply.id !== r.event.id) lines.push(`    ↳ [${r.reply.id}] 我當時的回答：${clipEnds(replyOf(r.reply), 360)}`)
-  if (r.saidFacts.length > 0) lines.push(`    ↳ 我當時表達的立場與承諾：${clipEnds(r.saidFacts.join('；'), 300)}`)
+  if (r.reply && r.reply.id !== r.event.id) lines.push(`    ↳ [${shortId(r.reply.id)}] 我當時的回答：${clipEnds(replyOf(r.reply), 360)}`)
+  if (r.saidFacts.length > 0) {
+    lines.push(concise ? `    ↳ 我當時的結論：${clip(r.saidFacts[0]!, 200)}` : `    ↳ 我當時表達的立場與承諾：${clipEnds(r.saidFacts.join('；'), 300)}`)
+  }
   for (const id of new Set([r.event.id, ...(r.reply ? [r.reply.id] : [])])) {
     for (const appraisal of life.referencing(id, 'appraisal').slice(-2)) {
       const a = appraisal.data as AppraisalData

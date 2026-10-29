@@ -29,6 +29,8 @@ export interface DecisionData {
   /** 思考當時的自我模型與人生敘事版本（PC 的狀態）。 */
   readonly selfVersion: number
   readonly narrativeVersion?: number
+  /** 動能：此刻推動這次行動的是什麼（H-E），個體自己寫的；舊紀錄沒有這個欄位。 */
+  readonly drive?: string
 }
 
 export interface OutcomeData {
@@ -43,6 +45,9 @@ export interface OutcomeData {
   readonly lesson: string
   readonly feeling?: string
   readonly significance?: Significance
+  /** H-E：這次行動釋放了哪件懸著的事、留下了什麼新的懸念（個體自己寫的）；舊紀錄沒有這兩個欄位。 */
+  readonly released?: string
+  readonly left?: string
   readonly selfVersion: number
   readonly heard: string
 }
@@ -164,6 +169,7 @@ export function renderPreparation(delib: Deliberation, correction: Correction, n
   const lines = [
     '（準備：這是你在回應之前的思考與行動準備，不是對方說的話，對方看不到。準備只是方向；回應的內容以回憶與對話為準，不要只用這裡提到的細節。）',
     `處境：${preparedSituation(delib.situation)}`,
+    ...(delib.drive ? [`推動你的：${delib.drive}`] : []),
     '你考慮過的做法：',
   ]
   correction.scored.forEach((c, i) => {

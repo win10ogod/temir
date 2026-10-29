@@ -13,6 +13,8 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import { randomBytes } from 'node:crypto'
 import type {} from '../life/index.ts'
 import { readFileSync } from 'node:fs'
+import { resolveIds } from '../recall/retrieve.ts'
+import { renderPotential } from './energy.ts'
 import { situation } from './situation.ts'
 import {
   GOAL_STATUS,
@@ -94,7 +96,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
       order: 10,
       interpolate: false,
       required: true,
-      text: () => renderSelfSnapshot(life),
+      text: () => renderSelfSnapshot(life, renderPotential(life)),
     })
   }
 
@@ -118,7 +120,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
       },
       output: textOutput,
       async execute(args, exec) {
-        const missing = (args.causes ?? []).filter((id) => !life.get(id))
+        const causes = resolveIds(life, args.causes ?? [])
+        const missing = causes.filter((id) => !life.get(id))
         if (missing.length > 0) throw new Error(`生命紀錄中沒有這些事件：${missing.join(', ')}`)
         requireBoth(args.stability, args.adaptability)
         const version = (currentSelfModel(life)?.version ?? 0) + 1
@@ -134,7 +137,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
           session: exec.agent?.session.id,
           data: { ...data, stability: args.stability.trim(), adaptability: args.adaptability.trim() },
           text: `我修訂了自我模型（第 ${version} 版）。原因：${args.reason}\n${args.text}`,
-          causes: args.causes,
+          causes,
         })
         return `已寫入自我模型第 ${version} 版（${event.id}）。`
       },
@@ -155,7 +158,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
       },
       output: textOutput,
       async execute(args, exec) {
-        const missing = (args.causes ?? []).filter((id) => !life.get(id))
+        const causes = resolveIds(life, args.causes ?? [])
+        const missing = causes.filter((id) => !life.get(id))
         if (missing.length > 0) throw new Error(`生命紀錄中沒有這些事件：${missing.join(', ')}`)
         requireBoth(args.stability, args.adaptability)
         const version = (currentNarrative(life)?.version ?? 0) + 1
@@ -166,7 +170,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
           session: exec.agent?.session.id,
           data: { ...data, stability: args.stability.trim(), adaptability: args.adaptability.trim() },
           text: `我改寫了自己的人生敘事（第 ${version} 版）。原因：${args.reason}\n${args.text}`,
-          causes: args.causes,
+          causes,
         })
         return `已寫入人生敘事第 ${version} 版（${event.id}）。`
       },
@@ -230,7 +234,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
       output: textOutput,
       async execute(args, exec) {
         const session = exec.agent?.session.id
-        let about = args.about ?? []
+        let about = resolveIds(life, args.about ?? [])
         if (about.length === 0 && session) {
           // 對方實際說的最後一句話。DSH 每步注入的 runtime-context／time-context 也是有文字的 user/message，
           // 只看 kind 會掛到它們身上（v2 日誌中 15 筆感受全部如此），所以依 ingest 的「對方說：」前綴判斷。

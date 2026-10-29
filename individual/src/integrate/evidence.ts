@@ -86,6 +86,8 @@ export interface Evidence {
   readonly goalChanges: readonly LifeEvent[]
   readonly person: readonly PersonFact[]
   readonly lessons: readonly LifeEvent[]
+  /** 上次整合留下的未解矛盾與保留的提案。 */
+  readonly carried: ReturnType<typeof carriedOver>
   readonly pivotal: boolean
   /** 提示中列出、proposal 可以引用的事件 id。 */
   readonly ids: ReadonlySet<string>
@@ -99,6 +101,17 @@ export interface Limits {
 }
 
 const DEFAULT_LIMITS: Limits = { rounds: 40, appraisals: 30, outcomes: 40, lessons: 30 }
+
+/**
+ * 最近一次整合留下、還沒有處理的：未解的矛盾與保留下來的修訂提案（H-E 的勢能之一，見 self/energy.ts）。
+ * 下一次整合會在證據中看到它們，可以解開、重新提出或放下。
+ */
+export function carriedOver(life: LifeStore): { readonly integration: LifeEvent | undefined; readonly contradictions: readonly string[]; readonly proposals: readonly LifeEvent[] } {
+  const integration = life.latest(INTEGRATION_KIND)
+  const contradictions = (integration?.data as { contradictions?: readonly string[] } | undefined)?.contradictions ?? []
+  const proposals = (integration?.causes ?? []).map((id) => life.get(id)).filter((e): e is LifeEvent => e?.kind === PROPOSAL_KIND)
+  return { integration, contradictions, proposals }
+}
 
 /** 上次完成的整合涵蓋到哪個 seq（從未整合為 0）。 */
 export function integrationStart(life: LifeStore): number {
@@ -130,14 +143,16 @@ export function collect(life: LifeStore, from: number, limits: Limits = DEFAULT_
   const person = personFacts(life, 3000)
   const lessons = life.recent(limits.lessons, [LESSON_KIND]).reverse()
   const pivotal = appraisals.some((e) => (e.data as AppraisalData).significance === 'pivotal')
+  const carried = carriedOver(life)
   const ids = new Set<string>([
+    ...carried.proposals.map((e) => e.id),
     ...rounds.map((r) => r.id),
     ...appraisals.map((e) => e.id),
     ...outcomes.map((e) => e.id),
     ...goalChanges.map((e) => e.id),
     ...lessons.map((e) => e.id),
   ])
-  return { from, to, rounds, omittedRounds: heard.length - kept.length, appraisals, outcomes, goalChanges, person, lessons, pivotal, ids }
+  return { from, to, rounds, omittedRounds: heard.length - kept.length, appraisals, outcomes, goalChanges, person, lessons, carried, pivotal, ids }
 }
 
 /** 整合提示的輸入：目前的自我、上次整合以後的經歷與比對，每一項都附上可引用的 id。 */
@@ -151,6 +166,11 @@ export function renderEvidence(life: LifeStore, ev: Evidence): string {
   const current = goals(life).filter((g) => g.status === 'active' || g.status === 'paused')
   if (current.length === 0) lines.push('目前沒有目標。')
   for (const g of current) lines.push(`- [${g.id}] ${GOAL_STATUS_LABEL[g.status]}：${g.text}`)
+  if (ev.carried.contradictions.length + ev.carried.proposals.length > 0) {
+    lines.push('', '## 上次整合留下的（還懸著的矛盾與沒有採用的修訂）')
+    for (const c of ev.carried.contradictions) lines.push(`- 未解的矛盾：${clip(c, 300)}`)
+    for (const e of ev.carried.proposals) lines.push(`- [${e.id}] ${clip(e.text ?? '', 400)}`)
+  }
   lines.push('', '## 關於對方的長期事實')
   if (ev.person.length === 0) lines.push('（沒有）')
   for (const f of ev.person) lines.push(`- ${f.text}`)
@@ -170,7 +190,10 @@ export function renderEvidence(life: LifeStore, ev: Evidence): string {
   for (const e of ev.outcomes) {
     const o = e.data as OutcomeData
     const matched = o.matched === 'yes' ? '符合' : o.matched === 'partly' ? '部分符合' : '不符'
-    lines.push(`- [${e.id}] 我做了：${clip(o.didAction, 100)}｜實際：${clip(o.actual, 160)}｜${matched}${o.error ? `：${clip(o.error, 120)}` : ''}｜回報 ${o.reward.toFixed(2)}${o.lesson ? `｜教訓：${clip(o.lesson, 120)}` : ''}`)
+    lines.push(
+      `- [${e.id}] 我做了：${clip(o.didAction, 100)}｜實際：${clip(o.actual, 160)}｜${matched}${o.error ? `：${clip(o.error, 120)}` : ''}｜回報 ${o.reward.toFixed(2)}` +
+        `${o.lesson ? `｜教訓：${clip(o.lesson, 120)}` : ''}${o.released ? `｜釋放：${clip(o.released, 120)}` : ''}${o.left ? `｜留下：${clip(o.left, 120)}` : ''}`,
+    )
   }
   lines.push('', '## 這段期間的目標變化')
   if (ev.goalChanges.length === 0) lines.push('（沒有）')

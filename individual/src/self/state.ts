@@ -181,6 +181,13 @@ export function formatDay(ts: number): string {
   return dayFormat.format(new Date(ts))
 }
 
+const weekdayFormat = new Intl.DateTimeFormat('zh-TW', { weekday: 'long' })
+
+/** 「2026/07/31 20:30（星期五）」。 */
+export function formatNow(ts: number): string {
+  return `${formatTime(ts)}（${weekdayFormat.format(new Date(ts))}）`
+}
+
 /** 這個版本是誰寫的：源自初始人設（創造者給予），或個體自己寫下。 */
 function authorship(life: LifeStore, eventId: string): string {
   const fromPersona = life.get(eventId)?.causes.some((id) => life.get(id)?.kind === KIND.persona)
@@ -188,7 +195,12 @@ function authorship(life: LifeStore, eventId: string): string {
 }
 
 /** 每一步都附在對話中的自我狀態快照。 */
-export function renderSelfSnapshot(life: LifeStore): string {
+/**
+ * extra：附在快照最後、生命紀錄統計之前的其他小節（例如 self/energy.ts 的「懸著的事」）。
+ * 最後一行是「現在」：記憶都有時間，個體卻不知道現在幾點，就無法感覺時間的經過。
+ * e2e（2026-10-29）中，被問到今天的日期時，個體的思考寫著「我手上沒有可信的當前時間來源」，只能去執行 date。
+ */
+export function renderSelfSnapshot(life: LifeStore, extra: readonly string[] = [], now = Date.now()): string {
   const lines: string[] = ['（以下是你的生命紀錄中目前的自我狀態，由系統自動附上。）', '']
   const self = currentSelfModel(life)
   if (self) {
@@ -216,7 +228,8 @@ export function renderSelfSnapshot(life: LifeStore): string {
       lines.push(`- [${event.id}] ${formatTime(event.ts)}｜${SIGNIFICANCE_LABEL[a.significance]}${a.reappraisal ? '｜重新評價' : ''}：${a.feeling}`)
     }
   }
+  lines.push(...extra)
   const born = life.all('life/born')[0]
-  lines.push('', `生命紀錄：共 ${life.count()} 個事件${born ? `，始於 ${formatTime(born.ts)}` : ''}。`)
+  lines.push('', `生命紀錄：共 ${life.count()} 個事件${born ? `，始於 ${formatTime(born.ts)}` : ''}。現在是 ${formatNow(now)}。`)
   return lines.join('\n')
 }

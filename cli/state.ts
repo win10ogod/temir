@@ -12,6 +12,7 @@ import { INTEGRATION_KIND, LESSON_KIND, PROPOSAL_KIND, type IntegrationData, typ
 import type { DecisionData, OutcomeData } from '../individual/src/rd/memory.ts'
 import { clipEnds, replyOf } from '../individual/src/recall/retrieve.ts'
 import { recentCycles, type Cycle } from '../individual/src/self/cycle.ts'
+import { renderPotential } from '../individual/src/self/energy.ts'
 import { formatTime, renderSelfSnapshot } from '../individual/src/self/state.ts'
 
 function renderCycle(c: Cycle): string[] {
@@ -21,7 +22,7 @@ function renderCycle(c: Cycle): string[] {
   if (c.decision) {
     const d = c.decision.data as DecisionData
     const chosen = d.candidates[d.chosen]
-    lines.push(`    ST  ${clipEnds(d.situation, 160)}`)
+    lines.push(`    ST  ${clipEnds(d.situation, 160)}${d.drive ? `｜動能：${clipEnds(d.drive, 100)}` : ''}`)
     lines.push(`    RD  準備：${clipEnds(chosen?.action ?? '', 100)}｜預期：${clipEnds(chosen?.prediction ?? '', 100)}${d.value === null ? '' : `｜V̂ ${d.value.toFixed(2)}，${d.neighbors.length} 個相似經驗`}`)
   }
   const said = c.replies.map((e) => replyOf(e)).join(' ')
@@ -29,7 +30,10 @@ function renderCycle(c: Cycle): string[] {
   if (c.outcome) {
     const o = c.outcome.data as OutcomeData
     const matched = o.matched === 'yes' ? '符合' : o.matched === 'partly' ? '部分符合' : '不符'
-    lines.push(`    回饋 ${matched}｜回報 ${o.reward.toFixed(2)}${o.lesson ? `｜教訓：${clipEnds(o.lesson, 100)}` : ''}${o.feeling ? `｜感受：${clipEnds(o.feeling, 80)}` : ''}`)
+    lines.push(
+      `    回饋 ${matched}｜回報 ${o.reward.toFixed(2)}${o.lesson ? `｜教訓：${clipEnds(o.lesson, 100)}` : ''}${o.feeling ? `｜感受：${clipEnds(o.feeling, 80)}` : ''}` +
+        `${o.released ? `｜釋放：${clipEnds(o.released, 80)}` : ''}${o.left ? `｜留下：${clipEnds(o.left, 80)}` : ''}`,
+    )
   }
   return lines
 }
@@ -43,7 +47,7 @@ function main(): void {
     return
   }
   try {
-    const lines = [`個體 ${life.individualId}（${life.path}）`, '', renderSelfSnapshot(life).replace(/^（以下是你的生命紀錄中目前的自我狀態，由系統自動附上。）\n\n/, '')]
+    const lines = [`個體 ${life.individualId}（${life.path}）`, '', renderSelfSnapshot(life, renderPotential(life)).replace(/^（以下是你的生命紀錄中目前的自我狀態，由系統自動附上。）\n\n/, '')]
     const lessons = life.recent(5, [LESSON_KIND]).reverse()
     lines.push('', '## 教訓（最近）')
     if (lessons.length === 0) lines.push('還沒有。')

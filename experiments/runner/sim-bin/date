@@ -1,0 +1,8 @@
+#!/bin/sh
+# 實驗用：讓 date 與模擬時鐘一致（見 ../clock.ts）。沒有指定時間來源（-d、-r、-f、-s）時，以模擬的現在執行 /usr/bin/date。
+for a in "$@"; do
+  case "$a" in
+    -d|--date|--date=*|-r|--reference|--reference=*|-f|--file|--file=*|-s|--set|--set=*) exec /usr/bin/date "$@" ;;
+  esac
+done
+exec /usr/bin/date -d "@$(( $(/usr/bin/date +%s) + ${TEMIR_SIM_OFFSET_MS:-0} / 1000 ))" "$@"

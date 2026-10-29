@@ -14,6 +14,7 @@ import { loadContract } from '../eval/lib/contract.ts'
 import { sha256, type Dataset } from '../eval/lib/dataset.ts'
 import { memoryV1 } from './memory-v1.source.ts'
 import { memoryV2 } from './memory-v2.source.ts'
+import { memoryV3 } from './memory-v3.source.ts'
 import { personalityV1 } from './personality-v1.source.ts'
 import { personalityV2 } from './personality-v2.source.ts'
 
@@ -25,6 +26,7 @@ export const TARGETS: readonly { readonly dataset: Dataset; readonly file: strin
   { dataset: personalityV1, file: join(here, 'personality-v1.json'), contract: join(specs, 'personality-consistency-v1.contract.json') },
   { dataset: memoryV2, file: join(here, 'memory-v2.json'), contract: join(specs, 'memory-accuracy-v2.contract.json') },
   { dataset: personalityV2, file: join(here, 'personality-v2.json'), contract: join(specs, 'personality-consistency-v2.contract.json') },
+  { dataset: memoryV3, file: join(here, 'memory-v3.json'), contract: join(specs, 'memory-accuracy-v3.contract.json') },
 ]
 
 export function serialize(dataset: Dataset): string {

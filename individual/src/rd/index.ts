@@ -19,7 +19,8 @@ import type { LifeEvent } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { callModel, type AuxRoute } from '../recall/aux.ts'
 import { clip, clipEnds } from '../recall/retrieve.ts'
-import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
+import { renderPotential } from '../self/energy.ts'
+import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
 import { DELIBERATE_SYSTEM, OUTCOME_SYSTEM, parseDeliberation, parseOutcome } from './aux.ts'
 import { DEFAULT_PARAMS, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
 import {
@@ -112,12 +113,19 @@ export function apply(ctx: Context, config: Config | undefined): void {
       const planned = data.candidates[data.chosen]
       const self = currentSelfModel(life)
       const turn = decisionTurn(life, decision)
+      const held = renderPotential(life)
+      const active = goals(life).filter((g) => g.status === 'active')
       const input = [
         '## 你目前的自我模型',
         self ? self.text : '（尚未書寫）',
         '',
+        '## 你的目標與懸著的事',
+        ...(active.length > 0 ? active.map((g) => `- 目標：${g.text}`) : ['（沒有進行中的目標）']),
+        ...held.slice(2),
+        '',
         '## 你當時對處境的判斷',
         data.situation,
+        ...(data.drive ? ['', '## 當時推動你的', data.drive] : []),
         '',
         '## 你當時準備的做法與預測',
         planned ? `做法：${planned.action}（${planned.kind}）\n預測：${planned.prediction}` : '（沒有）',
@@ -188,7 +196,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
         const tools = ctx.tools.definitions(payload.agent).map((t) => t.name)
         const input = [
           '## 你目前的自我狀態',
-          renderSelfSnapshot(life),
+          renderSelfSnapshot(life, renderPotential(life)),
           '',
           '## 你現在可以使用的工具',
           tools.length > 0 ? tools.join('、') : '（沒有）',
@@ -212,6 +220,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
         const data: DecisionData = {
           cue: clip(cue, 500),
           situation: deliberation.situation,
+          ...(deliberation.drive ? { drive: deliberation.drive } : {}),
           candidates: correction.scored,
           chosen: correction.chosen,
           value: correction.value,

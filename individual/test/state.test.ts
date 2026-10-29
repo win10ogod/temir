@@ -192,3 +192,22 @@ test('revising oneself directly also needs both stability and adaptability (prop
   assert.throws(() => requireBoth('延續', '  '), /兩者缺一不可.*adaptability/)
   assert.throws(() => requireBoth(undefined, undefined), /stability（穩定性）、adaptability（適應性）/)
 })
+
+test('the snapshot ends with the present moment, so the individual can feel time passing', async () => {
+  const { renderSelfSnapshot, formatNow } = await import('../src/self/state.ts')
+  const { LifeStore } = await import('../src/life/store.ts')
+  const { mkdtempSync, rmSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const home = mkdtempSync(join(tmpdir(), 'temir-now-'))
+  const store = LifeStore.open(home)
+  try {
+    const at = new Date(2026, 6, 31, 20, 30).getTime()
+    // Intl 在日期與時間之間用細空格（U+2009）。
+    assert.match(formatNow(at), /^2026\/07\/31\s20:30（星期五）$/)
+    assert.match(renderSelfSnapshot(store, [], at), /現在是 2026\/07\/31\s20:30（星期五）。$/)
+  } finally {
+    store.close()
+    rmSync(home, { recursive: true, force: true })
+  }
+})

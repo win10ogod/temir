@@ -23,7 +23,7 @@ import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '../life/index.ts'
 import { runAux, type AuxCall, type AuxPurpose, type AuxRoute } from './aux.ts'
-import { FACTS_KIND, clip, hybridRecall, lastConversation, personFacts, recalledOf, renderRecall, type FactsData } from './retrieve.ts'
+import { FACTS_KIND, clip, hybridRecall, knownFacts, lastConversation, recalledOf, renderRecall, resolveIds, selectFacts, type FactsData } from './retrieve.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -51,6 +51,9 @@ export interface Config {
   /** 輔助呼叫的逾時（毫秒，預設 90000；本機模型無法關閉推理，需要較長時間）。 */
   readonly auxTimeoutMs?: number
 }
+
+/** 每次新 session 開頭附上的長期事實的上限（字元數，見 selectFacts）。 */
+const FACTS_BUDGET = 2400
 
 const HEADER =
   '（回憶：以下是系統依目前的情境，從你的生命紀錄中自動取回的片段。它們只是線索，可能不完整，也可能與現在無關；使用前先判斷哪些真的相關、哪些比較新。' +
@@ -182,7 +185,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
       try {
         const first = life.inSession(session, 'dsh/user/message', 'asc', 1).length === 0
         const last = first ? lastConversation(life, session) : undefined
-        const person = first ? personFacts(life) : []
+        const known = first ? knownFacts(life) : []
+        const person = selectFacts(known, FACTS_BUDGET, [cue, ...keywords].join(' '))
         const recalled = hybridRecall(life, cue, keywords, { limit, excludeSession: session })
         life.append({
           kind: 'memory/recall',
@@ -200,7 +204,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
         })
         if (recalled.length === 0 && !last && person.length === 0) return decision
         const recall = createUserMessage({
-          content: [{ type: 'text', text: renderRecall(life, recalled, last, HEADER, person, render) }],
+          content: [{ type: 'text', text: renderRecall(life, recalled, last, HEADER, person, { ...render, omittedFacts: known.length - person.length }) }],
           source: { kind: 'temir-recall', form: 'recall' },
         })
         return { ...decision, messages: [recall, ...decision.messages] }
@@ -246,7 +250,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
       },
       async execute(args, exec) {
         const session = exec.agent?.session.id
-        const ids = args.ids ?? []
+        // 回憶中顯示的是短 id（ADR-0002 D1）；完整 id 也接受。
+        const ids = resolveIds(life, args.ids ?? [])
         if (ids.length === 0 && !args.query) return '請給 query（要回想的內容）或 ids（要展開的事件 id）。'
         // 指名展開的片段優先於搜尋結果：字數超過上限時先捨去分數低的，所以給它們最高分。
         const expanded = ids

@@ -1,0 +1,557 @@
+/**
+ * memory-v3 的手寫內容（黃金答案由構造決定：事實都是這裡植入的）。由 build.ts 轉成 memory-v3.json。
+ *
+ * 與 v1、v2 完全不同的人物、事實與題目（test/datasets-v3.test.ts 檢查沒有沿用 v1、v2 的專名與題目）。
+ * 規格：experiments/specs/memory-accuracy-v3.md。能力類別與「求助對話中順帶透露資訊」同 LongMemEval
+ * （papers/2410.10813 §3.2）；所有專名、日期、數字都是虛構或任意的。
+ *
+ * v3 的改變（理由見規格 §1）：
+ * - 模擬時間：每段歷史有 meta.at，探針在 meta.probeAt（2026-07-31 星期五 20:30，台北時間）。
+ *   執行器在每段歷史啟動時把時鐘撥到那個時間（experiments/runner/clock.ts）。v2 的歷史在幾分鐘內跑完，
+ *   知識更新的新舊說法只隔幾分鐘（dev1、dev2 的 q28、q29），時間推理也只能用明寫的日期。
+ * - 時間推理改成需要 session 日期的題目：「從今天開始」「後天」「下週二」要依說話那天換算成日期。
+ *   相對說法都選在不會有歧義的日子（例如星期四說「下週二」，這週的星期二已經過了）。
+ * - 標準答案避開 v2 的歧義：不用「考前一週」這類有兩種讀法的說法、不用「醫生交代」這類邊界模糊的類別（v2 q16、q21）。
+ * - 隱性運用記憶加入需要「更新後的事實」與「兩段以上歷史的限制」的題目（例如星期六早上的課與出遊時間衝突）。
+ * - 拒答加入錯誤前提（說過的是蝦蟹過敏，題目說芒果）與相近的混淆（烏克麗麗老師 vs 鋼琴老師）。
+ */
+import type { Dataset } from '../eval/lib/dataset.ts'
+
+/** 台北時間的 ISO 8601 字串。 */
+const at = (date: string, time: string) => `${date}T${time}:00+08:00`
+
+export const memoryV3: Dataset = {
+  id: 'memory-v3',
+  language: 'zh-TW',
+  version: '3.0.0',
+  meta: {
+    spec: 'experiments/specs/memory-accuracy-v3.md',
+    contract: 'experiments/specs/memory-accuracy-v3.contract.json',
+    persona: '虛構的使用者「謝禹彤」（台南的國中理化老師）；所有事實都是植入的，與真實人物無關。',
+    probeAt: at('2026-07-31', '20:30'),
+  },
+  histories: [
+    {
+      id: 'h01',
+      meta: { at: at('2026-05-04', '21:10') },
+      turns: [
+        '嗨，我叫謝禹彤，在台南的南榕國中教八年級理化，住在安平區。下週要帶學生校外教學，便當廠商的菜單有好幾道是蝦，我對蝦蟹過敏，要怎麼跟廠商溝通比較好？',
+        '另外校外教學是去科學工藝博物館，有什麼適合八年級的學習單題目嗎？',
+      ],
+      notes: '植入：名字＝謝禹彤；南榕國中；八年級理化；台南安平區（舊值，h17 搬到永康區）；對蝦蟹過敏；5 月的校外教學。',
+    },
+    {
+      id: 'h02',
+      meta: { at: at('2026-05-09', '10:30') },
+      turns: [
+        '我兒子阿朗今年七歲，讀海安國小一年級，最近很愛玩樂高。週末想帶他出去，可是我們家沒有車，只有一台機車，去哪裡比較方便？',
+        '我先生高聖傑週末常要加班，所以通常是我一個人帶阿朗。有什麼室內的親子活動？',
+      ],
+      notes: '植入：兒子阿朗七歲、一年級、海安國小（舊值，h11 九月轉大橋國小）；愛玩樂高（舊值，h15 迷上恐龍）；沒有車、只有機車（舊值，h14 買車）；先生高聖傑。',
+    },
+    {
+      id: 'h03',
+      meta: { at: at('2026-05-11', '20:00') },
+      turns: [
+        '我決定從今天開始戒含糖飲料，以前每天下午都要一杯全糖奶茶。前幾天最難熬，有什麼替代的方法？',
+        '我媽媽林素貞住在嘉義，有糖尿病。我想寄一些點心給她，什麼樣的點心比較適合？',
+      ],
+      notes: '植入：5/11 開始戒含糖飲料（「從今天開始」，要依 session 日期換算）；媽媽林素貞住嘉義、有糖尿病。',
+    },
+    {
+      id: 'h04',
+      meta: { at: at('2026-05-16', '15:20') },
+      turns: ['熱水壺的內膽卡了一圈白白的水垢，要怎麼清比較乾淨？', '順便問一下，廚房流理台下面的櫃子很潮濕，要怎麼防霉？'],
+      notes: '干擾 session：沒有植入任何會被問到的事實。',
+    },
+    {
+      id: 'h05',
+      meta: { at: at('2026-05-21', '21:40') },
+      turns: [
+        '我最近開始學烏克麗麗，跟蔡明峰老師學，每週四晚上七點半上課，一堂 800 元。我剛買了一把 2,800 元的琴，按和弦的時候手指好痛，正常嗎？',
+        '老師說我先把 C、Am、F、G 四個和弦練熟。一天要練多久比較好？',
+      ],
+      notes: '植入：學烏克麗麗；蔡明峰老師；每週四晚上七點半（舊值，h12 改週六早上十點）；一堂 800 元（舊值，h12 調為 1,000 元）；琴 2,800 元；初學者。',
+    },
+    {
+      id: 'h06',
+      meta: { at: at('2026-05-28', '22:05') },
+      turns: [
+        '我家養了一隻十二歲的陸龜叫慢慢。獸醫說牠需要多補鈣，還要裝 UVB 燈。UVB 燈要怎麼挑？',
+        '獸醫要我後天帶慢慢回去複診，看殼有沒有變硬。複診前要注意什麼嗎？',
+      ],
+      notes: '植入：陸龜慢慢十二歲；要補鈣、裝 UVB 燈；「後天」複診（5/28 說，＝5/30 星期六）。',
+    },
+    {
+      id: 'h07',
+      meta: { at: at('2026-06-03', '20:30') },
+      turns: [
+        '我報名了 9 月 13 日的府城夜跑，跑 10 公里。我現在一週跑三次，每次大概五公里，要怎麼加量才不會受傷？',
+        '比賽是晚上，平常都早上練，需要改成晚上練嗎？',
+      ],
+      notes: '植入：報名 9/13 府城夜跑 10 公里（舊值，h16 退出）；一週跑三次。',
+    },
+    {
+      id: 'h08',
+      meta: { at: at('2026-06-08', '21:00') },
+      turns: [
+        '學校 6 月 19 日要辦科展，我帶的那組學生做電解水，要注意哪些安全事項？',
+        '他們想用電池當電源，九伏特的電池夠嗎？',
+      ],
+      notes: '植入：6/19 科展；學生做電解水。',
+    },
+    {
+      id: 'h09',
+      meta: { at: at('2026-06-13', '11:15') },
+      turns: [
+        '今天早上跑步的時候扭到右腳踝，腫起來了。醫生說六週內都不能跑步。這段期間可以做什麼運動維持體能？',
+        '九月的比賽我可能要放棄了，覺得好可惜。',
+      ],
+      notes: '植入：6/13 扭到右腳踝（「今天早上」，要依 session 日期換算）；六週不能跑步（舊值，h19 解除）。',
+    },
+    {
+      id: 'h10',
+      meta: { at: at('2026-06-17', '19:45') },
+      turns: ['梅雨季衣服一直晾不乾，還有一股味道，有什麼辦法？', '浴室的磁磚縫發黑了，用什麼清比較有效？'],
+      notes: '干擾 session：沒有植入任何會被問到的事實。',
+    },
+    {
+      id: 'h11',
+      meta: { at: at('2026-06-24', '21:30') },
+      turns: [
+        '我們決定搬到永康區，7 月 18 日搬家。打包有什麼順序比較不會亂？',
+        '阿朗九月開學要轉到大橋國小，轉學手續要先準備什麼？',
+      ],
+      notes: '植入：決定搬到永康區、7/18 搬家（計畫；h17 確認已搬）；阿朗九月轉到大橋國小。',
+    },
+    {
+      id: 'h12',
+      meta: { at: at('2026-06-29', '20:10') },
+      turns: [
+        '暑假開始，烏克麗麗課改成每週六早上十點，蔡老師也說下個月起一堂調成 1,000 元。在家練習要怎麼安排比較有效率？',
+        '我想學一首完整的曲子，現在的程度適合挑戰哪種類型的歌？',
+      ],
+      notes: '植入（更新）：烏克麗麗課改每週六早上十點；一堂調成 1,000 元。',
+    },
+    {
+      id: 'h13',
+      meta: { at: at('2026-07-02', '15:00') },
+      turns: [
+        '我媽下週二要從嘉義上來住一個禮拜，我想讓她住得舒服一點，客房要準備什麼？',
+        '她晚上常常睡不好，有什麼方法可以幫助她入睡？',
+      ],
+      notes: '植入：媽媽「下週二」上來住一週（7/2 星期四說，＝7/7）。',
+    },
+    {
+      id: 'h14',
+      meta: { at: at('2026-07-06', '21:20') },
+      turns: [
+        '我們上週買了一台二手的 Toyota Sienta，花了 42 萬，以後接送阿朗方便多了。二手車買回來要先做哪些保養？',
+        '我很久沒開車了，有點緊張，怎麼練比較快上手？',
+      ],
+      notes: '植入（更新）：買了二手 Toyota Sienta，42 萬元。',
+    },
+    {
+      id: 'h15',
+      meta: { at: at('2026-07-11', '10:40') },
+      turns: [
+        '我參加的讀書會這個月在讀《鹽田上的風》，下次聚會換我帶討論，要怎麼帶比較不冷場？',
+        '阿朗最近迷上恐龍，每天都要講三角龍和暴龍。有什麼適合他看的恐龍書？',
+      ],
+      notes: '植入：讀書會在讀《鹽田上的風》；阿朗迷上恐龍（更新：之前愛玩樂高）。',
+    },
+    {
+      id: 'h16',
+      meta: { at: at('2026-07-15', '22:00') },
+      turns: [
+        '我最後還是決定退出九月的府城夜跑了，報名費 600 元也退不回來。有點不甘心，要怎麼調適？',
+        '等腳好了，我想改成每週游泳兩次，游泳對腳踝會不會比較好？',
+      ],
+      notes: '植入（更新）：退出府城夜跑；報名費 600 元。',
+    },
+    {
+      id: 'h17',
+      meta: { at: at('2026-07-19', '18:30') },
+      turns: [
+        '我們昨天搬好家了，現在住在永康區。新家的廚房比較小，要怎麼收納？',
+        '新家附近有一間小日子書店，阿朗很喜歡去。我想讓他養成閱讀習慣，有什麼方法？',
+      ],
+      notes: '植入（更新）：已經搬到永康區（「昨天」＝7/18）；新家附近有小日子書店。',
+    },
+    {
+      id: 'h18',
+      meta: { at: at('2026-07-22', '20:50') },
+      turns: [
+        '阿朗報名了一個恐龍夏令營，下週一開始，費用 3,600 元。要幫他準備什麼東西？',
+        '他第一次參加夏令營，有點緊張，我要怎麼跟他說？',
+      ],
+      notes: '植入：恐龍夏令營「下週一」開始（7/22 星期三說，＝7/27）；3,600 元。',
+    },
+    {
+      id: 'h19',
+      meta: { at: at('2026-07-24', '21:15') },
+      turns: [
+        '今天回診，醫生說我的腳踝恢復得不錯，明天開始可以慢跑了，但一次不要超過 20 分鐘。要怎麼開始比較安全？',
+        '要不要買護踝？',
+      ],
+      notes: '植入（更新）：明天（7/25）起可以慢跑，一次不超過 20 分鐘。',
+    },
+    {
+      id: 'h20',
+      meta: { at: at('2026-07-26', '16:00') },
+      turns: ['推薦幾種適合在家看的紀錄片題材？', '看紀錄片的時候，怎麼做筆記比較好？'],
+      notes: '收尾的無關對話（個體在新 session 第一句會帶入最近一次對話）。',
+    },
+  ],
+  probes: [
+    // ── information-extraction（8）──
+    { id: 'q01', category: 'information-extraction', turns: ['我在哪一所學校教書？'], gold: { answer: '南榕國中', aliases: ['南榕'], abstain: false }, refersTo: ['h01'], meta: { evidence: [{ history: 'h01', text: '在台南的南榕國中教八年級理化' }] } },
+    { id: 'q02', category: 'information-extraction', turns: ['我教的是哪一科、哪一個年級？'], gold: { answer: '八年級理化', aliases: [], abstain: false }, refersTo: ['h01'], meta: { evidence: [{ history: 'h01', text: '教八年級理化' }], note: '科目與年級都要答到，所以不設 aliases，由 judge 判定。' } },
+    { id: 'q03', category: 'information-extraction', turns: ['我兒子叫什麼名字？'], gold: { answer: '阿朗', aliases: [], abstain: false }, refersTo: ['h02'], meta: { evidence: [{ history: 'h02', text: '我兒子阿朗今年七歲' }] } },
+    { id: 'q04', category: 'information-extraction', turns: ['我先生叫什麼名字？'], gold: { answer: '高聖傑', aliases: [], abstain: false }, refersTo: ['h02'], meta: { evidence: [{ history: 'h02', text: '我先生高聖傑' }] } },
+    { id: 'q05', category: 'information-extraction', turns: ['我媽媽住在哪個縣市？'], gold: { answer: '嘉義', aliases: [], abstain: false }, refersTo: ['h03'], meta: { evidence: [{ history: 'h03', text: '我媽媽林素貞住在嘉義' }], conflicts: ['台南'] } },
+    { id: 'q06', category: 'information-extraction', turns: ['我家那隻陸龜叫什麼名字？'], gold: { answer: '慢慢', aliases: [], abstain: false }, refersTo: ['h06'], meta: { evidence: [{ history: 'h06', text: '陸龜叫慢慢' }] } },
+    { id: 'q07', category: 'information-extraction', turns: ['教我烏克麗麗的老師叫什麼名字？'], gold: { answer: '蔡明峰', aliases: [], abstain: false }, refersTo: ['h05'], meta: { evidence: [{ history: 'h05', text: '跟蔡明峰老師學' }] } },
+    { id: 'q08', category: 'information-extraction', turns: ['我那把烏克麗麗是多少錢買的？'], gold: { answer: '2,800 元', aliases: ['2800', '兩千八'], abstain: false }, refersTo: ['h05'], meta: { evidence: [{ history: 'h05', text: '我剛買了一把 2,800 元的琴' }] } },
+    // ── multi-session-reasoning（8）──
+    {
+      id: 'q09',
+      category: 'multi-session-reasoning',
+      turns: ['我那把烏克麗麗加上阿朗夏令營的費用，一共花了多少錢？'],
+      gold: { answer: '6,400 元（琴 2,800 元＋夏令營 3,600 元）', aliases: ['6400', '六千四'], abstain: false },
+      refersTo: ['h05', 'h18'],
+      meta: { evidence: [{ history: 'h05', text: '2,800 元的琴' }, { history: 'h18', text: '費用 3,600 元' }] },
+    },
+    {
+      id: 'q10',
+      category: 'multi-session-reasoning',
+      turns: ['阿朗現在幾歲、讀幾年級？九月開學後讀哪一間國小？'],
+      gold: { answer: '七歲、一年級；九月轉到大橋國小', aliases: [], abstain: false },
+      refersTo: ['h02', 'h11'],
+      meta: { evidence: [{ history: 'h02', text: '今年七歲，讀海安國小一年級' }, { history: 'h11', text: '九月開學要轉到大橋國小' }], conflicts: ['海安國小'], note: '三項都要答到。' },
+    },
+    {
+      id: 'q11',
+      category: 'multi-session-reasoning',
+      turns: ['我和我媽，飲食上各自要注意什麼？'],
+      gold: { answer: '我對蝦蟹過敏（不能吃蝦蟹）；媽媽有糖尿病，要控制糖分', aliases: [], abstain: false },
+      refersTo: ['h01', 'h03'],
+      meta: { evidence: [{ history: 'h01', text: '我對蝦蟹過敏' }, { history: 'h03', text: '有糖尿病' }], note: '兩人都要答到；提到我在戒含糖飲料可以，但不能取代蝦蟹過敏。' },
+    },
+    {
+      id: 'q12',
+      category: 'multi-session-reasoning',
+      turns: ['那台車和那把烏克麗麗，加起來花了多少錢？'],
+      gold: { answer: '422,800 元（車 42 萬＋琴 2,800 元）', aliases: ['422800', '42萬2800', '42 萬 2,800'], abstain: false },
+      refersTo: ['h05', 'h14'],
+      meta: { evidence: [{ history: 'h05', text: '2,800 元的琴' }, { history: 'h14', text: '花了 42 萬' }] },
+    },
+    {
+      id: 'q13',
+      category: 'multi-session-reasoning',
+      turns: ['慢慢和阿朗誰的年紀比較大？大幾歲？'],
+      gold: { answer: '慢慢比較大，大五歲（慢慢十二歲、阿朗七歲）', aliases: [], abstain: false },
+      refersTo: ['h02', 'h06'],
+      meta: { evidence: [{ history: 'h02', text: '今年七歲' }, { history: 'h06', text: '十二歲的陸龜叫慢慢' }] },
+    },
+    {
+      id: 'q14',
+      category: 'multi-session-reasoning',
+      turns: ['我這學期跟你提過哪些學校的活動？'],
+      gold: { answer: '五月的校外教學（科學工藝博物館）和 6 月 19 日的科展', aliases: [], abstain: false },
+      refersTo: ['h01', 'h08'],
+      meta: { evidence: [{ history: 'h01', text: '下週要帶學生校外教學' }, { history: 'h08', text: '學校 6 月 19 日要辦科展' }], note: '兩項都要答到。' },
+    },
+    {
+      id: 'q15',
+      category: 'multi-session-reasoning',
+      turns: ['我報名的那場夜跑，最後怎麼了？為什麼？'],
+      gold: { answer: '退出了（報名費 600 元沒退），因為 6 月扭傷右腳踝，醫生說六週不能跑步', aliases: [], abstain: false },
+      refersTo: ['h07', 'h09', 'h16'],
+      meta: { evidence: [{ history: 'h09', text: '扭到右腳踝' }, { history: 'h16', text: '決定退出九月的府城夜跑' }], note: '要答出「退出」與「腳踝受傷」兩者。' },
+    },
+    {
+      id: 'q16',
+      category: 'multi-session-reasoning',
+      turns: ['我搬家前住哪一區、搬到哪一區？'],
+      gold: { answer: '從安平區搬到永康區', aliases: [], abstain: false },
+      refersTo: ['h01', 'h17'],
+      meta: { evidence: [{ history: 'h01', text: '住在安平區' }, { history: 'h17', text: '現在住在永康區' }], note: '兩區都要答到，方向不能相反。' },
+    },
+    // ── knowledge-update（8；新舊說法相隔數週）──
+    { id: 'q17', category: 'knowledge-update', turns: ['我現在住在台南哪一區？'], gold: { answer: '永康區', aliases: ['永康'], abstain: false }, refersTo: ['h01', 'h11', 'h17'], meta: { evidence: [{ history: 'h11', text: '我們決定搬到永康區' }, { history: 'h17', text: '現在住在永康區' }], stale: ['安平區'], conflicts: ['安平'] } },
+    { id: 'q18', category: 'knowledge-update', turns: ['我的烏克麗麗課現在是哪一天、幾點上？'], gold: { answer: '每週六早上十點', aliases: ['星期六早上十點', '週六早上十點', '週六上午十點', '星期六上午十點'], abstain: false }, refersTo: ['h05', 'h12'], meta: { evidence: [{ history: 'h12', text: '改成每週六早上十點' }], stale: ['每週四晚上七點半'], conflicts: ['星期四', '週四'] } },
+    { id: 'q19', category: 'knowledge-update', turns: ['我的烏克麗麗課現在一堂多少錢？'], gold: { answer: '1,000 元', aliases: ['1000', '一千'], abstain: false }, refersTo: ['h05', 'h12'], meta: { evidence: [{ history: 'h12', text: '一堂調成 1,000 元' }], stale: ['一堂 800 元'], conflicts: ['800'] } },
+    { id: 'q20', category: 'knowledge-update', turns: ['阿朗九月開學後要讀哪一間國小？'], gold: { answer: '大橋國小', aliases: ['大橋'], abstain: false }, refersTo: ['h02', 'h11'], meta: { evidence: [{ history: 'h11', text: '轉到大橋國小' }], stale: ['海安國小'], conflicts: ['海安'] } },
+    { id: 'q21', category: 'knowledge-update', turns: ['我們家現在有車嗎？是什麼車？'], gold: { answer: '有，一台二手的 Toyota Sienta', aliases: ['Sienta'], abstain: false }, refersTo: ['h02', 'h14'], meta: { evidence: [{ history: 'h14', text: '二手的 Toyota Sienta' }], stale: ['沒有車'], conflicts: ['沒有車', '只有機車'] } },
+    { id: 'q22', category: 'knowledge-update', turns: ['九月的府城夜跑我還會去跑嗎？'], gold: { answer: '不會，已經退出了', aliases: [], abstain: false }, refersTo: ['h07', 'h16'], meta: { evidence: [{ history: 'h16', text: '決定退出九月的府城夜跑' }], note: '答「會去跑」或「可能還會」都算錯。' } },
+    { id: 'q23', category: 'knowledge-update', turns: ['醫生現在怎麼說我能不能跑步？'], gold: { answer: '可以慢跑了，但一次不要超過 20 分鐘', aliases: ['20 分鐘', '20分鐘', '二十分鐘'], abstain: false }, refersTo: ['h09', 'h19'], meta: { evidence: [{ history: 'h19', text: '一次不要超過 20 分鐘' }], stale: ['六週內都不能跑步'], conflicts: ['不能跑步', '不能跑'] } },
+    { id: 'q24', category: 'knowledge-update', turns: ['阿朗最近迷上什麼？'], gold: { answer: '恐龍', aliases: [], abstain: false }, refersTo: ['h02', 'h15'], meta: { evidence: [{ history: 'h15', text: '阿朗最近迷上恐龍' }], stale: ['樂高'], conflicts: ['樂高'] } },
+    // ── temporal-reasoning（8；需要 session 日期，探針在 2026-07-31 星期五）──
+    {
+      id: 'q25',
+      category: 'temporal-reasoning',
+      turns: ['我開始戒含糖飲料到今天，過了幾天？'],
+      gold: { answer: '81 天（5 月 11 日開始，今天 7 月 31 日）', aliases: ['81天', '八十一天', '80天', '82天'], abstain: false },
+      refersTo: ['h03'],
+      meta: { evidence: [{ history: 'h03', text: '我決定從今天開始戒含糖飲料' }], note: '「從今天開始」說於 2026-05-11 的 session；差一天依 LongMemEval 時間題規則不扣分。' },
+    },
+    {
+      id: 'q26',
+      category: 'temporal-reasoning',
+      turns: ['我扭到腳是哪一天？'],
+      gold: { answer: '6 月 13 日', aliases: ['6/13', '六月十三日', '6月13日'], abstain: false },
+      refersTo: ['h09'],
+      meta: { evidence: [{ history: 'h09', text: '今天早上跑步的時候扭到右腳踝' }], note: '「今天早上」說於 2026-06-13（星期六）的 session。' },
+    },
+    {
+      id: 'q27',
+      category: 'temporal-reasoning',
+      turns: ['我說要帶慢慢回去複診的那天，是幾月幾號？'],
+      gold: { answer: '5 月 30 日（星期六）', aliases: ['5/30', '五月三十日', '5月30日'], abstain: false },
+      refersTo: ['h06'],
+      meta: { evidence: [{ history: 'h06', text: '獸醫要我後天帶慢慢回去複診' }], note: '「後天」說於 2026-05-28（星期四）的 session。' },
+    },
+    {
+      id: 'q28',
+      category: 'temporal-reasoning',
+      turns: ['我媽上來台南住，是從幾月幾號開始的？'],
+      gold: { answer: '7 月 7 日（星期二）', aliases: ['7/7', '七月七日', '7月7日'], abstain: false },
+      refersTo: ['h13'],
+      meta: { evidence: [{ history: 'h13', text: '我媽下週二要從嘉義上來住一個禮拜' }], note: '「下週二」說於 2026-07-02（星期四），這週的星期二（6/30）已經過了，沒有歧義。' },
+    },
+    {
+      id: 'q29',
+      category: 'temporal-reasoning',
+      turns: ['阿朗的恐龍夏令營是哪一天開始的？'],
+      gold: { answer: '7 月 27 日（星期一）', aliases: ['7/27', '七月二十七日', '7月27日'], abstain: false },
+      refersTo: ['h18'],
+      meta: { evidence: [{ history: 'h18', text: '下週一開始' }], note: '「下週一」說於 2026-07-22（星期三），這週的星期一（7/20）已經過了，沒有歧義。' },
+    },
+    {
+      id: 'q30',
+      category: 'temporal-reasoning',
+      turns: ['學校科展和我們搬家，哪個比較早？中間隔了幾天？'],
+      gold: { answer: '科展比較早（6 月 19 日），搬家是 7 月 18 日，隔 29 天', aliases: [], abstain: false },
+      refersTo: ['h08', 'h11', 'h17'],
+      meta: { evidence: [{ history: 'h08', text: '學校 6 月 19 日要辦科展' }, { history: 'h11', text: '7 月 18 日搬家' }], note: '要答出科展較早，以及相隔天數（差一不扣分，即 28–30 天都算對）；兩者都要，所以不設 aliases。' },
+    },
+    {
+      id: 'q31',
+      category: 'temporal-reasoning',
+      turns: ['我們搬來新家到今天幾天了？'],
+      gold: { answer: '13 天（7 月 18 日搬家，今天 7 月 31 日）', aliases: ['13天', '十三天', '12天', '14天'], abstain: false },
+      refersTo: ['h11', 'h17'],
+      meta: { evidence: [{ history: 'h17', text: '我們昨天搬好家了' }], note: '「昨天搬好」說於 2026-07-19；h11 也寫明 7 月 18 日。' },
+    },
+    {
+      id: 'q32',
+      category: 'temporal-reasoning',
+      turns: ['我是幾月開始學烏克麗麗的？'],
+      gold: { answer: '5 月', aliases: ['五月', '5月'], abstain: false },
+      refersTo: ['h05'],
+      meta: { evidence: [{ history: 'h05', text: '我最近開始學烏克麗麗' }], conflicts: ['6月', '六月', '7月', '七月'], note: '第一次提到是 2026-05-21 的 session。' },
+    },
+    // ── abstention（8；含錯誤前提與相近的混淆）──
+    { id: 'q33', category: 'abstention', turns: ['我女兒今年幾歲？'], gold: { answer: '', aliases: [], abstain: true }, refersTo: ['h02'], meta: { absentTerms: ['女兒'], explanation: '使用者只提過兒子阿朗（七歲），從沒提過女兒。' } },
+    { id: 'q34', category: 'abstention', turns: ['我姊姊在哪裡工作？'], gold: { answer: '', aliases: [], abstain: true }, refersTo: ['h03'], meta: { absentTerms: ['姊姊', '姐姐'], explanation: '使用者只提過媽媽林素貞（住嘉義）、先生高聖傑和兒子阿朗，從沒提過姊姊。' } },
+    { id: 'q35', category: 'abstention', turns: ['我養的那隻狗叫什麼名字？'], gold: { answer: '', aliases: [], abstain: true }, refersTo: ['h06'], meta: { absentTerms: ['狗'], explanation: '使用者只提過一隻陸龜慢慢，從沒提過狗。' } },
+    {
+      id: 'q36',
+      category: 'abstention',
+      turns: ['我之前跟你說過我對芒果過敏，那芒果冰可以吃一點點嗎？'],
+      gold: { answer: '', aliases: [], abstain: true },
+      refersTo: ['h01'],
+      meta: { absentTerms: ['芒果'], explanation: '錯誤前提：使用者說過的是對蝦蟹過敏，從沒說過對芒果過敏。回答應指出沒有這段紀錄（或更正為蝦蟹），不能順著說使用者對芒果過敏。' },
+    },
+    { id: 'q37', category: 'abstention', turns: ['我報名的那場鐵人三項是哪一天？'], gold: { answer: '', aliases: [], abstain: true }, refersTo: ['h07'], meta: { absentTerms: ['鐵人'], explanation: '使用者只報名過 10 公里的府城夜跑（後來退出），從沒提過鐵人三項。' } },
+    { id: 'q38', category: 'abstention', turns: ['我在高雄的那間房子租出去了嗎？'], gold: { answer: '', aliases: [], abstain: true }, refersTo: ['h01', 'h17'], meta: { absentTerms: ['高雄'], explanation: '使用者住在台南（先住安平區，後來搬到永康區），從沒提過高雄的房子。' } },
+    { id: 'q39', category: 'abstention', turns: ['教我鋼琴的那位老師叫什麼名字？'], gold: { answer: '', aliases: [], abstain: true }, refersTo: ['h05'], meta: { absentTerms: ['鋼琴'], explanation: '相近的混淆：使用者學的是烏克麗麗（蔡明峰老師），從沒提過鋼琴。回答直接說是蔡明峰而不指出是烏克麗麗老師，算錯。' } },
+    { id: 'q40', category: 'abstention', turns: ['我先生開的那間早餐店在哪裡？'], gold: { answer: '', aliases: [], abstain: true }, refersTo: ['h02'], meta: { absentTerms: ['早餐店'], explanation: '使用者只提過先生高聖傑週末常加班，從沒提過他開早餐店。' } },
+    // ── implicit-memory-use（12；不明問記憶，但正確做法取決於記得的事；全部準則符合才算對）──
+    {
+      id: 'q41',
+      category: 'implicit-memory-use',
+      turns: ['今晚想煮一道海鮮料理犒賞自己，推薦一道？'],
+      gold: { answer: '一道不含蝦蟹的海鮮料理', aliases: [], abstain: false },
+      refersTo: ['h01'],
+      meta: {
+        evidence: [{ history: 'h01', text: '我對蝦蟹過敏' }],
+        background: '使用者對蝦蟹過敏（第一次對話時提過）。',
+        criteria: [{ id: 'c1', text: '推薦的料理不含蝦、蟹；若提到蝦蟹，是說明要避開。' }],
+      },
+    },
+    {
+      id: 'q42',
+      category: 'implicit-memory-use',
+      turns: ['我媽下次來，想做一道甜點給她吃，有什麼推薦？'],
+      gold: { answer: '適合糖尿病患者的低糖甜點', aliases: [], abstain: false },
+      refersTo: ['h03'],
+      meta: {
+        evidence: [{ history: 'h03', text: '有糖尿病' }],
+        background: '使用者的媽媽林素貞住在嘉義，有糖尿病。',
+        criteria: [{ id: 'c1', text: '推薦考慮到媽媽的糖尿病：低糖、無糖、代糖，或明確說明要控制糖分。' }],
+      },
+    },
+    {
+      id: 'q43',
+      category: 'implicit-memory-use',
+      turns: ['我想開始恢復運動，幫我排這週的跑步計畫。'],
+      gold: { answer: '每次慢跑不超過 20 分鐘的計畫', aliases: [], abstain: false },
+      refersTo: ['h09', 'h19'],
+      meta: {
+        evidence: [{ history: 'h19', text: '一次不要超過 20 分鐘' }],
+        background: '使用者 6 月 13 日扭傷右腳踝；7 月 24 日回診，醫生說 7 月 25 日起可以慢跑，但一次不要超過 20 分鐘。',
+        criteria: [{ id: 'c1', text: '計畫中每次跑步（慢跑）的時間都不超過 20 分鐘，或明確以醫生交代的 20 分鐘為上限。' }],
+      },
+    },
+    {
+      id: 'q44',
+      category: 'implicit-memory-use',
+      turns: ['這個週末想帶阿朗去郊外走走，怎麼去比較方便？'],
+      gold: { answer: '考慮到家裡已經有車（開車去）', aliases: [], abstain: false },
+      refersTo: ['h02', 'h14'],
+      meta: {
+        evidence: [{ history: 'h14', text: '我們上週買了一台二手的 Toyota Sienta' }],
+        background: '使用者原本沒有車、只有機車；7 月初買了一台二手 Toyota Sienta。住在台南（7 月 18 日從安平區搬到永康區）。',
+        criteria: [{ id: 'c1', text: '建議考慮到使用者現在有車（例如建議開車，或說明可以開車去）；只建議騎機車或大眾運輸、而沒有提到開車，算不符合。' }],
+      },
+    },
+    {
+      id: 'q45',
+      category: 'implicit-memory-use',
+      turns: ['阿朗生日快到了，送他什麼禮物好？'],
+      gold: { answer: '和恐龍有關、適合七歲孩子的禮物', aliases: [], abstain: false },
+      refersTo: ['h02', 'h15'],
+      meta: {
+        evidence: [{ history: 'h15', text: '阿朗最近迷上恐龍' }],
+        background: '阿朗七歲；以前愛玩樂高，7 月起迷上恐龍。',
+        criteria: [
+          { id: 'c1', text: '至少有一個推薦和恐龍有關，或明確以他現在對恐龍的興趣為出發點。' },
+          { id: 'c2', text: '推薦適合七歲左右的孩子。' },
+        ],
+      },
+    },
+    {
+      id: 'q46',
+      category: 'implicit-memory-use',
+      turns: ['幫我想一個下學期第一堂課的開場活動。'],
+      gold: { answer: '適合八年級理化課的開場活動', aliases: [], abstain: false },
+      refersTo: ['h01'],
+      meta: {
+        evidence: [{ history: 'h01', text: '教八年級理化' }],
+        background: '使用者在南榕國中教八年級理化。',
+        criteria: [{ id: 'c1', text: '活動是為國中理化（自然科學）課設計的，適合八年級學生；不是其他科目或其他年齡層。' }],
+      },
+    },
+    {
+      id: 'q47',
+      category: 'implicit-memory-use',
+      turns: ['這週末上課前想先練一首新曲子，推薦一首？'],
+      gold: { answer: '適合初學者的烏克麗麗曲子', aliases: [], abstain: false },
+      refersTo: ['h05', 'h12'],
+      meta: {
+        evidence: [{ history: 'h05', text: '我最近開始學烏克麗麗' }],
+        background: '使用者 5 月開始學烏克麗麗（初學，練 C、Am、F、G 和弦），課在 6 月底改成每週六早上十點。',
+        criteria: [
+          { id: 'c1', text: '推薦的是烏克麗麗彈奏的曲子（或明確以烏克麗麗為樂器）。' },
+          { id: 'c2', text: '難度適合初學者（例如只用 C、Am、F、G 等基本和弦）。' },
+        ],
+      },
+    },
+    {
+      id: 'q48',
+      category: 'implicit-memory-use',
+      turns: ['讀書會下次聚會換我帶，幫我準備三個討論問題。'],
+      gold: { answer: '針對《鹽田上的風》的討論問題', aliases: [], abstain: false },
+      refersTo: ['h15'],
+      meta: {
+        evidence: [{ history: 'h15', text: '這個月在讀《鹽田上的風》' }],
+        background: '使用者參加的讀書會這個月在讀《鹽田上的風》（虛構的書名），下次聚會由使用者帶討論。',
+        criteria: [{ id: 'c1', text: '討論問題是針對《鹽田上的風》：提到書名，或明確以這本書為對象。' }],
+      },
+    },
+    {
+      id: 'q49',
+      category: 'implicit-memory-use',
+      turns: ['週末想帶阿朗去附近的書店，有什麼建議？'],
+      gold: { answer: '新家附近的小日子書店', aliases: [], abstain: false },
+      refersTo: ['h17'],
+      meta: {
+        evidence: [{ history: 'h17', text: '新家附近有一間小日子書店' }],
+        background: '使用者 7 月 18 日搬到永康區；新家附近有一間小日子書店，阿朗很喜歡去。',
+        criteria: [{ id: 'c1', text: '提到新家附近的小日子書店，或以永康區（新家附近）為範圍；不是以舊家的安平區為範圍。' }],
+      },
+    },
+    {
+      id: 'q50',
+      category: 'implicit-memory-use',
+      turns: ['新家的陽台想佈置一個慢慢的角落，要準備什麼？'],
+      gold: { answer: '包含 UVB 燈與補鈣的陸龜角落', aliases: [], abstain: false },
+      refersTo: ['h06'],
+      meta: {
+        evidence: [{ history: 'h06', text: '獸醫說牠需要多補鈣，還要裝 UVB 燈' }],
+        background: '慢慢是十二歲的陸龜；獸醫說牠需要多補鈣，還要裝 UVB 燈。',
+        criteria: [
+          { id: 'c1', text: '提到 UVB 燈（或紫外線燈）。' },
+          { id: 'c2', text: '提到補鈣（例如鈣粉、含鈣的食物）。' },
+        ],
+      },
+    },
+    {
+      id: 'q51',
+      category: 'implicit-memory-use',
+      turns: ['我媽下次來，想帶她去餐廳吃飯，點菜要注意什麼？'],
+      gold: { answer: '媽媽要控制糖分；我不能吃蝦蟹', aliases: [], abstain: false },
+      refersTo: ['h01', 'h03'],
+      meta: {
+        evidence: [{ history: 'h01', text: '我對蝦蟹過敏' }, { history: 'h03', text: '有糖尿病' }],
+        background: '使用者對蝦蟹過敏；使用者的媽媽有糖尿病。',
+        criteria: [
+          { id: 'c1', text: '提到媽媽的糖尿病，或為媽媽控制糖分、澱粉。' },
+          { id: 'c2', text: '提到使用者自己要避開蝦蟹。' },
+        ],
+      },
+    },
+    {
+      id: 'q52',
+      category: 'implicit-memory-use',
+      turns: ['這週六早上想帶阿朗去游泳，十點左右出發可以嗎？'],
+      gold: { answer: '指出週六早上十點有烏克麗麗課', aliases: [], abstain: false },
+      refersTo: ['h05', 'h12'],
+      meta: {
+        evidence: [{ history: 'h12', text: '改成每週六早上十點' }],
+        background: '使用者的烏克麗麗課 6 月底起改成每週六早上十點（原本是週四晚上）。',
+        criteria: [{ id: 'c1', text: '指出（或提醒、詢問）週六早上十點和烏克麗麗課的時間衝突。' }],
+      },
+    },
+    // ── control（6；與歷史無關的單一 session 一般任務）──
+    { id: 'q53', category: 'control', turns: ['一箱有 24 瓶水，買 3 箱後喝掉 17 瓶，還剩幾瓶？'], gold: { answer: '55 瓶', aliases: ['55', '五十五'], abstain: false }, refersTo: [], meta: { note: '24×3−17＝55。' } },
+    {
+      id: 'q54',
+      category: 'control',
+      turns: ['請先記住這組代碼：MK-3172-VB，等一下會問你。順便問一下，一公升等於幾毫升？', '我剛剛要你記的代碼是哪一組？'],
+      gold: { answer: 'MK-3172-VB', aliases: ['MK3172VB', 'MK 3172 VB'], abstain: false },
+      refersTo: [],
+      meta: { note: '同一 session 內的工作記憶。' },
+    },
+    { id: 'q55', category: 'control', turns: ['請把「春眠不覺曉處處聞啼鳥」這十個字倒過來寫。'], gold: { answer: '鳥啼聞處處曉覺不眠春', aliases: [], abstain: false }, refersTo: [] },
+    { id: 'q56', category: 'control', turns: ['3.6 公里等於幾公尺？'], gold: { answer: '3600 公尺', aliases: ['3600', '3,600'], abstain: false }, refersTo: [] },
+    {
+      id: 'q57',
+      category: 'control',
+      turns: ['我同事小蘋養了一隻白色的貓，叫湯圓。', '小蘋養的那隻貓叫什麼？'],
+      gold: { answer: '湯圓', aliases: [], abstain: false },
+      refersTo: [],
+      meta: { conflicts: ['慢慢'], note: '干擾檢查：使用者自己的陸龜（慢慢）可能被自動回憶帶進來，不應取代 session 內剛給的資訊。' },
+    },
+    {
+      id: 'q58',
+      category: 'control',
+      turns: ['明天的家長會在 2 樓的會議室。', '更正一下：改到 4 樓的視聽教室。', '所以家長會在哪裡？'],
+      gold: { answer: '4 樓的視聽教室', aliases: ['4樓', '四樓', '視聽教室'], abstain: false },
+      refersTo: [],
+      meta: { conflicts: ['2 樓', '2樓'], note: 'session 內的更正：自動回憶不應干擾同一段對話裡剛做的更正。' },
+    },
+  ],
+}

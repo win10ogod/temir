@@ -416,6 +416,21 @@ export class LifeStore {
     return row ? toEvent(row) : undefined
   }
 
+  /**
+   * 把模型寫的事件 id 解析成完整 id：完整 id 原樣回傳；短 id（見 shortId）只有在恰好對應一個事件時才回傳。
+   * 回憶與證據中顯示短 id 以節省字數（ADR-0002 D1），所有接受 id 的地方都先經過這裡。
+   */
+  resolveId(ref: string): string | undefined {
+    const text = ref.trim()
+    if (this.get(text)) return text
+    const session = /^([0-9a-f]{8})#(\d+)$/.exec(text)
+    const life = /^l:([0-9a-f]{8})$/.exec(text)
+    const pattern = session ? `session-${session[1]}%#${session[2]}` : life ? `l:${life[1]}%` : undefined
+    if (!pattern) return undefined
+    const rows = this.#db.prepare(`SELECT id FROM events WHERE id LIKE ? LIMIT 2`).all(pattern) as { id: string }[]
+    return rows.length === 1 ? rows[0]!.id : undefined
+  }
+
   /** 除了 `exclude` 之外，最近一次有指定 kind 事件的 session。 */
   latestOtherSession(kind: string, exclude: string | undefined): string | undefined {
     const row = this.#db

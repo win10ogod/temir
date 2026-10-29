@@ -173,10 +173,11 @@ test('turnReply finds what I actually said after the decision, skipping injected
 
 test('the preparation lists candidates, the experience correction, the choice and past outcomes', () => {
   const near = neighbors('對方腳踝受傷想出門', [experience('good', '對方腳踝受傷想出門', '推薦可以坐著的活動', 1)], DEFAULT_PARAMS)
-  const delib = { situation: '對方腳踝受傷想出門', similar: [], candidates: [candidate('推薦爬山', 70), candidate('推薦可以坐著的活動', 30)] }
+  const delib = { situation: '對方腳踝受傷想出門', drive: '對方想出門，我在乎對方的腳傷', similar: [], candidates: [candidate('推薦爬山', 70), candidate('推薦可以坐著的活動', 30)] }
   const correction = correct(delib.candidates, near, DEFAULT_PARAMS, () => 0.99)
   const text = renderPreparation(delib, correction, near)
   assert.match(text, /不是對方說的話/)
+  assert.match(text, /推動你的：對方想出門，我在乎對方的腳傷/, 'the kinetic energy the individual named (H-E)')
   // V̂ = 1：與經驗相符的做法 Q̂ = V̂（優勢 0）；未見過的做法依 1−λ 給 Q = 0，優勢 −1，所以被壓下去。
   assert.match(text, /推薦爬山（建議）.*經驗修正 -1\.00（沒有相符的經驗）/)
   assert.match(text, /推薦可以坐著的活動（建議）.*經驗修正 \+0\.00（1 個相符的經驗）/)
@@ -202,8 +203,18 @@ test('the preparation leaves out the summarized memory, so the reply uses the fu
   const { preparedSituation } = await import('../src/rd/memory.ts')
   const s = '對方：子珩｜對方的意圖：想知道醫囑｜對方的情緒：平靜｜話題：醫囑｜相關的記憶：只記得膝傷'
   assert.equal(preparedSituation(s), '對方：子珩｜對方的意圖：想知道醫囑｜對方的情緒：平靜｜話題：醫囑')
-  const delib = { situation: s, similar: [], candidates: [candidate('完整列出我記得的所有醫囑', 60), candidate('先問膝蓋', 40)] }
+  const delib = { situation: s, drive: '', similar: [], candidates: [candidate('完整列出我記得的所有醫囑', 60), candidate('先問膝蓋', 40)] }
   const text = renderPreparation(delib, uncorrected(delib.candidates), [])
   assert.doesNotMatch(text, /只記得膝傷/)
   assert.match(text, /回應的內容以回憶與對話為準/)
+  assert.doesNotMatch(text, /推動你的/, 'no drive line when the individual did not name one')
+})
+
+test('the deliberation and the outcome carry kinetic energy and the release or creation of potential (H-E)', () => {
+  const d = parseDeliberation('{"situation":"x","drive":"對方又在抒發；我懸著的「先分清楚要建議還是傾聽」被觸發","candidates":[{"action":"先聽","confidence":60},{"action":"給建議","confidence":40}]}', new Map())
+  assert.equal(d?.drive, '對方又在抒發；我懸著的「先分清楚要建議還是傾聽」被觸發')
+  assert.equal(parseDeliberation('{"situation":"x","candidates":[{"action":"a"},{"action":"b"}]}', new Map())?.drive, '', 'older outputs without a drive still parse')
+  const o = parseOutcome('{"didAction":"先聽","actual":"對方說謝謝","matched":"yes","reward":0.6,"reason":"r","released":"先分清楚對方要什麼的目標有了進展","left":"答應下次問對方想不想聽建議"}')
+  assert.deepEqual([o?.released, o?.left], ['先分清楚對方要什麼的目標有了進展', '答應下次問對方想不想聽建議'])
+  assert.deepEqual([parseOutcome('{"reward":0}')?.released, parseOutcome('{"reward":0}')?.left], ['', ''])
 })

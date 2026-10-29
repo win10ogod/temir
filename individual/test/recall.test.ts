@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { LifeStore } from '../src/life/store.ts'
 import { parseAux } from '../src/recall/aux.ts'
-import { FACTS_KIND, clipEnds, fuse, hybridRecall, lastConversation, personFacts, recalledOf, renderRecall, replyOf } from '../src/recall/retrieve.ts'
+import { FACTS_KIND, clipEnds, fuse, hybridRecall, knownFacts, lastConversation, personFacts, recalledOf, renderRecall, replyOf, selectFacts, shortId } from '../src/recall/retrieve.ts'
 
 function withStore(fn: (store: LifeStore) => void): void {
   const home = mkdtempSync(join(tmpdir(), 'temir-recall-'))
@@ -227,12 +227,12 @@ test('when fragments exceed the size budget, the lowest-scored ones are dropped 
     const recalled = hybridRecall(store, '柴犬阿福', [], { limit: 6, excludeSession: 'now' })
     assert.equal(recalled.length, 6)
     const text = renderRecall(store, recalled, undefined, '回憶：', [], { maxChars: 700 })
-    const shown = recalled.filter((r) => text.includes(r.event.id))
+    const shown = recalled.filter((r) => text.includes(shortId(r.event.id)))
     assert.ok(shown.length >= 1 && shown.length < 6)
     const lowest = Math.min(...recalled.map((r) => r.score))
     const kept = Math.min(...shown.map((r) => r.score))
     assert.ok(kept >= lowest)
-    assert.ok(shown.every((r) => recalled.filter((x) => !text.includes(x.event.id)).every((x) => x.score <= r.score)), 'nothing dropped outranks something kept')
+    assert.ok(shown.every((r) => recalled.filter((x) => !text.includes(shortId(x.event.id))).every((x) => x.score <= r.score)), 'nothing dropped outranks something kept')
   })
 })
 
@@ -247,8 +247,8 @@ test('progressive disclosure: the best fragments in full, the rest as one-line i
     const best = [...recalled].sort((a, b) => b.score - a.score)
     const full = text.split('## 其他可能相關的片段')[0] ?? ''
     const index = text.split('## 其他可能相關的片段')[1] ?? ''
-    for (const r of best.slice(0, 2)) assert.ok(full.includes(r.event.id), 'the two best are shown in full')
-    for (const r of best.slice(2)) assert.ok(index.includes(`[${r.event.id}｜`) && !full.includes(r.event.id), 'the rest only as index lines')
+    for (const r of best.slice(0, 2)) assert.ok(full.includes(shortId(r.event.id)), 'the two best are shown in full')
+    for (const r of best.slice(2)) assert.ok(index.includes(`[${shortId(r.event.id)}｜`) && !full.includes(shortId(r.event.id)), 'the rest only as index lines')
     assert.match(index, /recall 工具的 ids 參數展開/)
     assert.match(index, /阿福第\d件事/, 'index lines carry the extracted gist')
     const expanded = recalledOf(store, best[4]!.event.id)
@@ -299,4 +299,59 @@ test('a string value missing its opening quote is repaired; other malformed JSON
   assert.equal(parsed?.candidates[0]?.confidence, 20)
   assert.deepEqual(extractJson('{"a": 1, "b": true, "c": null, "d": [1, 2], "e": {"f": "g"}}'), { a: 1, b: true, c: null, d: [1, 2], e: { f: 'g' } })
   assert.equal(extractJson('{"facts": [未加引號]}'), undefined)
+})
+
+test('short ids are what the recall shows, and they resolve back to exactly one event', () => {
+  withStore((store) => {
+    const a = store.append({ kind: 'dsh/user/message', origin: 'session', session: 'session-5cd20c14-1b68-4b1e-9d97-b2c87ecd69e2', data: {}, text: '對方說：我住在吉安鄉', id: 'session-5cd20c14-1b68-4b1e-9d97-b2c87ecd69e2#23' })
+    const b = store.append({ kind: 'appraisal', origin: 'self', data: {}, text: '我的感受', id: 'l:350cc6a4-5b30-4636-bbb2-456a27208c08' })
+    assert.equal(shortId(a.id), '5cd20c14#23')
+    assert.equal(shortId(b.id), 'l:350cc6a4')
+    assert.equal(shortId('g:ad5e640f'), 'g:ad5e640f', 'other ids are left alone')
+    assert.equal(store.resolveId('5cd20c14#23'), a.id)
+    assert.equal(store.resolveId('l:350cc6a4'), b.id)
+    assert.equal(store.resolveId(a.id), a.id, 'full ids resolve to themselves')
+    assert.equal(store.resolveId('5cd20c14#24'), undefined)
+    assert.equal(store.resolveId('胡亂的字串'), undefined)
+  })
+})
+
+test('progressive index lines do not repeat facts already listed about the person; full fragments keep only the conclusion', () => {
+  withStore((store) => {
+    const facts = (ts: number, text: string, cause: string) => store.append({ kind: FACTS_KIND, origin: 'self', data: { facts: [text], lasting: [text], from: 'heard' }, text, causes: [cause], ts })
+    for (let i = 0; i < 5; i++) {
+      const m = store.append({ kind: 'dsh/user/message', origin: 'session', session: `s${i}`, data: {}, text: `對方說：關於柴犬阿福的第${i}件事`, ts: 1_000 + i })
+      facts(1_001 + i, `阿福第${i}件事`, m.id)
+    }
+    const recalled = hybridRecall(store, '柴犬阿福', [], { limit: 5, excludeSession: 'now' })
+    const person = personFacts(store)
+    const text = renderRecall(store, recalled, undefined, '回憶：', person, { expand: 1 })
+    const index = text.split('## 其他可能相關的片段')[1] ?? ''
+    assert.equal(index.split('\n').filter((l) => l.startsWith('- [')).length, 0, 'all remaining gists are already listed about the person')
+  })
+})
+
+test('the facts shown every time are bounded: facts sharing terms with the cue first, then the newest; the rest are counted', () => {
+  withStore((store) => {
+    const texts = ['對方的名字是鍾子珩', '對方對花生過敏', '對方住在吉安鄉', '對方養了一隻柴犬', '對方在學韓文', '對方最近想學做麵包']
+    texts.forEach((text, i) => {
+      const m = store.append({ kind: 'dsh/user/message', origin: 'session', session: `s${i}`, data: {}, text: `對方說：${text}`, ts: 1_000 + i })
+      store.append({ kind: FACTS_KIND, origin: 'self', session: `s${i}`, data: { facts: [text], lasting: [text], from: 'heard' }, text, causes: [m.id], ts: 1_000 + i })
+    })
+    const known = knownFacts(store)
+    assert.equal(known.length, 6)
+    const cost = (t: string) => t.length + 14
+    // 前一半剛好放得下兩條和線索有共同詞的事實（花生、麵包），後一半依新到舊補滿。
+    const budget = 2 * (cost('對方對花生過敏') + cost('對方最近想學做麵包'))
+    const chosen = selectFacts(known, budget, '晚餐想做花生醬麵包')
+    assert.deepEqual(
+      chosen.map((f) => f.text),
+      ['對方對花生過敏', '對方養了一隻柴犬', '對方在學韓文', '對方最近想學做麵包'],
+      'the allergy is old but shares a term with the cue, so it is kept; the rest of the budget goes to the newest; shown in time order',
+    )
+    assert.deepEqual(selectFacts(known, budget).map((f) => f.text), ['對方住在吉安鄉', '對方養了一隻柴犬', '對方在學韓文', '對方最近想學做麵包'], 'without a cue: newest first')
+    const text = renderRecall(store, [], undefined, '回憶：', chosen, { omittedFacts: known.length - chosen.length })
+    assert.match(text, /另有 2 條較早、和現在的話題比較無關的事實沒有列出/)
+    assert.match(text, /（1970\/01\/01）\n- 對方對花生過敏/, 'facts heard on the same day share one date line')
+  })
 })

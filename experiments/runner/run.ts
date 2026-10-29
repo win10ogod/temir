@@ -13,6 +13,9 @@
  * 歷史全部跑完後拍快照；每題探針（以及每一次重複，見資料集 `meta.repeats`）之前把三者還原成快照，
  * 題與題之間不互相污染。DSH 的使用者層級指令檔（`$DSH_AGENTS_HOME/AGENTS.md`）指向空目錄。
  *
+ * 模擬時間（v3 起）：資料集的歷史有 `meta.at`、資料集有 `meta.probeAt` 時，每段歷史各用一個 DSH 執行期，
+ * 啟動時把 JavaScript 的時鐘撥到那段歷史的時間（clock.ts、sim-bin/date）；探針一律在 probeAt。沒有這些欄位時行為與 v2 相同。
+ *
  * 目錄配置（`--layout`）：
  * - adjacent（v1，預設）：life、dsh-home、workspace、agents-home 四個目錄相鄰。
  * - home（v2）：模擬一個全新使用者帳號：HOME＝<state>/home，DSH 在 ~/.dsh、生命日誌在
@@ -29,10 +32,28 @@ import { DatabaseSync } from 'node:sqlite'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { homedir } from 'node:os'
 import { join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { HarnessProcess, INDIVIDUAL_PATCH, MODELS, REPO, textOf, type Block, type ModelName } from '../../cli/harness.ts'
 
 const RUNNER = join(REPO, 'experiments', 'runner')
+const CLOCK = join(RUNNER, 'clock.ts')
+const SIM_BIN = join(RUNNER, 'sim-bin')
+
+/**
+ * 模擬時鐘的環境變數（見 clock.ts）：at 是這個執行期開始時的模擬時間（ISO 8601，含時區）。
+ * 偏移量在啟動時算好，DSH 與它的子行程（node 腳本、date）共用同一個偏移量。
+ */
+export function clockEnv(at: string | undefined, base: NodeJS.ProcessEnv = process.env, now = Date.now()): Record<string, string> {
+  if (at === undefined) return {}
+  const target = Date.parse(at)
+  if (!Number.isFinite(target)) throw new Error(`無法解析的模擬時間 ${at}`)
+  return {
+    TEMIR_SIM_OFFSET_MS: String(target - now),
+    NODE_OPTIONS: `${base['NODE_OPTIONS'] ?? ''} --import=${CLOCK}`.trim(),
+    PATH: `${SIM_BIN}:${base['PATH'] ?? ''}`,
+  }
+}
 
 export const CONDITIONS = {
   baseline: [] as string[],
@@ -49,7 +70,8 @@ export type Condition = keyof typeof CONDITIONS
 
 interface Dataset {
   readonly id: string
-  readonly histories: readonly { readonly id: string; readonly turns: readonly string[] }[]
+  readonly meta?: { readonly probeAt?: string }
+  readonly histories: readonly { readonly id: string; readonly turns: readonly string[]; readonly meta?: { readonly at?: string } }[]
   readonly probes: readonly { readonly id: string; readonly turns: readonly string[]; readonly meta?: { readonly repeats?: number } }[]
 }
 
@@ -226,6 +248,14 @@ async function main(): Promise<void> {
   }
 
   const patches = CONDITIONS[condition]
+  const simulated = dataset.histories.some((h) => h.meta?.at !== undefined)
+  if (simulated && (dataset.histories.some((h) => h.meta?.at === undefined) || dataset.meta?.probeAt === undefined)) {
+    throw new Error('模擬時間需要每段歷史都有 meta.at，資料集也要有 meta.probeAt')
+  }
+  const probeAt = simulated ? dataset.meta?.probeAt : undefined
+  const lastAt = dataset.histories.at(-1)?.meta?.at
+  // 沉澱（補做擷取）在最後一段歷史之後 10 分鐘：補做的事實以這個時間記錄。
+  const settleAt = simulated && lastAt ? new Date(Date.parse(lastAt) + 10 * 60_000).toISOString() : undefined
   const config = {
     runId,
     dataset: { id: dataset.id, path: relative(REPO, datasetPath), sha256: sha256(datasetRaw) },
@@ -241,6 +271,7 @@ async function main(): Promise<void> {
     questionReply: QUESTION_REPLY,
     layout: layoutName,
     assistantText,
+    clock: simulated ? { histories: dataset.histories.map((h) => h.meta?.at ?? null), settleAt, probeAt } : null,
     isolation: 'fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat',
     code: { commit: git('rev-parse', 'HEAD'), dirty: git('status', '--porcelain').length > 0, diffSha256: sha256(git('diff', 'HEAD')) },
     runtime: { node: process.version, dsh: execFileSync('dsh', ['--version'], { encoding: 'utf8' }).trim() },
@@ -329,12 +360,12 @@ async function main(): Promise<void> {
     appendFileSync(recordsPath, `${JSON.stringify(line)}\n`)
   }
 
-  function launch(model: ModelName, state: string, label: string): Promise<HarnessProcess> {
+  function launch(model: ModelName, state: string, label: string, at?: string): Promise<HarnessProcess> {
     return HarnessProcess.start({
       model,
       patches,
       cwd: layout.cwd(state),
-      env: { ...process.env, ...layout.env(state) },
+      env: { ...process.env, ...layout.env(state), ...clockEnv(at) },
       logPath: join(stateDir, 'logs', `${label}.log`),
       // 每個條件同樣允許工具執行；審核紀錄在 log 中。
       onApproval: async (request) => {
@@ -349,10 +380,17 @@ async function main(): Promise<void> {
     })
   }
 
-  /** 1. 歷史：同一個執行期依序跑完所有歷史 session，沉澱後拍成「歷史結束」快照。 */
+  /**
+   * 1. 歷史：依序跑完所有歷史 session，沉澱後拍成「歷史結束」快照。
+   * 沒有模擬時間時同一個執行期跑完；有模擬時間時每段歷史各自啟動一個執行期，時鐘撥到那段歷史的時間。
+   */
   async function runHistories(snapshot: string): Promise<{ exit: number | null; unsettled: number | null }> {
-    let harness = await launch(historyModel, live, 'history')
-    for (const history of dataset.histories) {
+    let harness = await launch(historyModel, live, 'history', dataset.histories[0]?.meta?.at)
+    for (const [i, history] of dataset.histories.entries()) {
+      if (simulated && i > 0) {
+        await harness.close()
+        harness = await launch(historyModel, live, `history-${history.id}`, history.meta?.at)
+      }
       const startedAt = new Date().toISOString()
       try {
         const { sessionId, records } = await runSession(harness, history.turns)
@@ -365,7 +403,7 @@ async function main(): Promise<void> {
         }
         write('history', history.id, historyModel, failed.sessionId ?? '', records, startedAt)
         await harness.kill()
-        harness = await launch(historyModel, live, `history-after-${history.id}`)
+        harness = await launch(historyModel, live, `history-after-${history.id}`, history.meta?.at)
       }
     }
     const exit = await harness.close()
@@ -377,7 +415,7 @@ async function main(): Promise<void> {
       const lifeDb = layout.lifeDb(live)
       unsettled = pendingSelfStatements(lifeDb)
       if (unsettled > 0) {
-        const settler = await launch(historyModel, live, 'settle')
+        const settler = await launch(historyModel, live, 'settle', settleAt)
         const deadline = Date.now() + 15 * 60_000
         while ((unsettled = pendingSelfStatements(lifeDb)) > 0 && Date.now() < deadline) await sleep(2000)
         await settler.close()
@@ -405,7 +443,7 @@ async function main(): Promise<void> {
       const label = `probe-${probe.id}-r${repeat}`
       let probeHarness: HarnessProcess | undefined
       try {
-        probeHarness = await launch(probeModel, state, label)
+        probeHarness = await launch(probeModel, state, label, probeAt)
         const { sessionId, records } = await runSession(probeHarness, probe.turns)
         write('probe', probe.id, probeModel, sessionId, records, startedAt, repeat)
         await probeHarness.close()
@@ -453,4 +491,5 @@ async function main(): Promise<void> {
   console.log(JSON.stringify(summary))
 }
 
-await main()
+// 被測試匯入時不執行（clockEnv 等函式有單元測試）。
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) await main()

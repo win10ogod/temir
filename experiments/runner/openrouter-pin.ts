@@ -12,10 +12,10 @@
  * 判定 OpenRouter 格式（推理參數、訊息角色；pi-ai dist/api/openai-completions.js 的 isOpenRouter），
  * 這樣付費與免費兩條路由的請求格式相同。代理轉送前去掉這段前綴。
  *
- * 用法：node experiments/runner/openrouter-pin.ts [--port 8787] [--log <路徑>]
+ * 用法：node experiments/runner/openrouter-pin.ts [--port 8787] [--log <路徑>] [--upstream https://openrouter.ai]
  */
 import { appendFileSync } from 'node:fs'
-import { createServer } from 'node:http'
+import { createServer, type Server } from 'node:http'
 import { Readable } from 'node:stream'
 import { parseArgs } from 'node:util'
 
@@ -44,12 +44,12 @@ export function servedProvider(text: string): string | undefined {
   return /"provider"\s*:\s*"([^"]+)"/.exec(text)?.[1]
 }
 
-function main(): void {
-  const { values } = parseArgs({ options: { port: { type: 'string', default: '8787' }, log: { type: 'string' } } })
-  const log = (entry: Record<string, unknown>) => {
-    if (values.log) appendFileSync(values.log, `${JSON.stringify({ ts: new Date().toISOString(), ...entry })}\n`)
-  }
-  const server = createServer(async (req, res) => {
+/**
+ * 建立代理伺服器（不開始監聽）。upstream 預設為 OpenRouter；測試時可以指向本機的假上游。
+ * log 為每個請求寫一筆紀錄（路徑、狀態、實際的供應商或錯誤）。
+ */
+export function createProxy(upstream: string, log: (entry: Record<string, unknown>) => void): Server {
+  return createServer(async (req, res) => {
     const chunks: Buffer[] = []
     for await (const chunk of req) chunks.push(chunk as Buffer)
     const raw = req.url ?? '/'
@@ -60,31 +60,38 @@ function main(): void {
       for (const [k, v] of Object.entries(req.headers)) {
         if (v !== undefined && !HOP_BY_HOP.has(k.toLowerCase())) headers.set(k, Array.isArray(v) ? v.join(', ') : v)
       }
-      const upstream = await fetch(`${UPSTREAM}${path}`, {
+      const response = await fetch(`${upstream}${path}`, {
         method: req.method ?? 'GET',
         headers,
         ...(req.method === 'GET' || req.method === 'HEAD' ? {} : { body: new Uint8Array(body) }),
       })
       const outHeaders: Record<string, string> = {}
-      upstream.headers.forEach((v, k) => {
+      response.headers.forEach((v, k) => {
         if (!HOP_BY_HOP.has(k) && k !== 'content-encoding') outHeaders[k] = v
       })
-      res.writeHead(upstream.status, outHeaders)
+      res.writeHead(response.status, outHeaders)
       let provider: string | undefined
       let sniffed = ''
-      if (upstream.body) {
-        const stream = Readable.fromWeb(upstream.body as import('node:stream/web').ReadableStream)
+      if (response.body) {
+        const stream = Readable.fromWeb(response.body as import('node:stream/web').ReadableStream)
         stream.on('data', (chunk: Buffer) => {
           if (provider === undefined && sniffed.length < 65536) {
             sniffed += chunk.toString('utf8')
             provider = servedProvider(sniffed)
           }
         })
-        stream.on('end', () => log({ path, status: upstream.status, provider: provider ?? null }))
+        stream.on('end', () => log({ path, status: response.status, provider: provider ?? null }))
+        // 上游連線中途斷掉（例如 read ETIMEDOUT）時，只結束這一個回應並記錄；沒有這個監聽器，
+        // 未處理的 'error' 事件會讓整個代理程序結束（2026-10-29 dev1：02:48 之後所有請求都連不上）。
+        stream.on('error', (error) => {
+          log({ path, status: response.status, provider: provider ?? null, error: `stream: ${String(error)}` })
+          res.destroy(error)
+        })
+        res.on('error', () => stream.destroy())
         stream.pipe(res)
       } else {
         res.end()
-        log({ path, status: upstream.status, provider: null })
+        log({ path, status: response.status, provider: null })
       }
     } catch (error) {
       log({ path, error: String(error) })
@@ -92,7 +99,18 @@ function main(): void {
       res.end(JSON.stringify({ error: { message: `openrouter-pin proxy error: ${String(error)}` } }))
     }
   })
-  server.listen(Number(values.port), '127.0.0.1', () => console.log(`openrouter-pin listening on 127.0.0.1:${values.port}`))
+}
+
+function main(): void {
+  const { values } = parseArgs({
+    options: { port: { type: 'string', default: '8787' }, log: { type: 'string' }, upstream: { type: 'string', default: UPSTREAM } },
+  })
+  const log = (entry: Record<string, unknown>) => {
+    if (values.log) appendFileSync(values.log, `${JSON.stringify({ ts: new Date().toISOString(), ...entry })}\n`)
+  }
+  createProxy(values.upstream, log).listen(Number(values.port), '127.0.0.1', () =>
+    console.log(`openrouter-pin listening on 127.0.0.1:${values.port}`),
+  )
 }
 
 if (import.meta.main) main()

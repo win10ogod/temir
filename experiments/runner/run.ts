@@ -168,6 +168,8 @@ async function main(): Promise<void> {
       // 'last'（v1）：只記每輪最後一則可見文字；'all'（v2）：每輪所有可見文字依序以空行連接。
       'assistant-text': { type: 'string', default: 'last' },
       'turn-timeout-ms': { type: 'string', default: '900000' },
+      // 連續這麼多題探針失敗就中止整個 run：多半是基礎設施故障（例如代理或供應商斷線），繼續跑只會產生無效紀錄。
+      'max-consecutive-failures': { type: 'string', default: '3' },
       // 多個 run 平行執行時，帳戶餘額差無法歸屬到單一 run；改由批次腳本量總花費。
       'no-balance': { type: 'boolean', default: false },
     },
@@ -179,6 +181,7 @@ async function main(): Promise<void> {
   const probeModel = (values['probe-model'] ?? historyModel) as ModelName
   for (const m of [historyModel, probeModel]) if (!(m in MODELS)) throw new Error(`未知模型 ${m}`)
   const turnTimeoutMs = Number(values['turn-timeout-ms'])
+  const maxConsecutiveFailures = Number(values['max-consecutive-failures'])
 
   const datasetPath = join(process.cwd(), values.dataset)
   const datasetRaw = readFileSync(datasetPath)
@@ -262,6 +265,13 @@ async function main(): Promise<void> {
         if (event.data.usage) current.usage.push(event.data.usage)
       } else if (event.type === 'user/message' && (event.data.source as { kind: string }).kind === 'temir-recall') {
         current.recallInjected = textOf(event.data.content as readonly Block[]).split('\n').filter((l) => l.startsWith('- [')).length
+      } else if (event.type === 'turn/end') {
+        // DSH 以錯誤結束回合時（例如模型連線失敗），session/wait 仍會正常返回；必須從 turn/end 的原因記下錯誤，
+        // 否則回合會被當成「沒有回覆」計分（2026-10-29 dev1 的教訓）。
+        const reason = (event.data as { reason?: { kind: string; error?: { message?: string; code?: string } } }).reason
+        if (reason && reason.kind !== 'completed') {
+          current.error = `turn ended: ${reason.kind}${reason.error ? ` [${reason.error.code ?? ''}] ${reason.error.message ?? ''}` : ''}`
+        }
       }
     })
     try {
@@ -274,10 +284,10 @@ async function main(): Promise<void> {
           await harness.run(sessionId, user, AbortSignal.timeout(turnTimeoutMs))
         } catch (error) {
           turn.error = String(error)
-          throw Object.assign(new Error(`turn failed: ${turn.error}`), { records, sessionId })
         } finally {
           turn.ms = Date.now() - started
         }
+        if (turn.error !== null) throw Object.assign(new Error(`turn failed: ${turn.error}`), { records, sessionId })
       }
       return { sessionId, records }
     } finally {
@@ -380,6 +390,7 @@ async function main(): Promise<void> {
   const histories = fromRun ? { exit: null, unsettled: null } : await runHistories(snapshot)
 
   // 3. 探針：每題（每次重複）都從快照還原，在新的執行期與新的 session 中提問。
+  let consecutiveFailures = 0
   for (const probe of probes) {
     const repeats = Math.max(1, probe.meta?.repeats ?? 1)
     for (let repeat = 0; repeat < repeats; repeat++) {
@@ -393,11 +404,15 @@ async function main(): Promise<void> {
         const { sessionId, records } = await runSession(probeHarness, probe.turns)
         write('probe', probe.id, probeModel, sessionId, records, startedAt, repeat)
         await probeHarness.close()
+        consecutiveFailures = 0
       } catch (error) {
         const failed = error as Error & { records?: TurnRecord[]; sessionId?: string }
         const records = failed.records ?? [{ user: probe.turns[0] ?? '', assistant: '', toolCalls: [], recallInjected: null, error: String(error), ms: 0, usage: [] }]
         write('probe', probe.id, probeModel, failed.sessionId ?? '', records, startedAt, repeat)
         await probeHarness?.kill()
+        if (++consecutiveFailures >= maxConsecutiveFailures) {
+          throw new Error(`aborting ${runId}: ${consecutiveFailures} consecutive probe failures (last: ${records.at(-1)?.error ?? String(error)})`)
+        }
       }
     }
   }

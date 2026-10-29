@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "test": "node --test \"individual/test/**/*.test.ts\""
+    "test": "node --test \"individual/test/**/*.test.ts\"",
+    "test:experiments": "node --test \"experiments/eval/test/**/*.test.ts\" \"experiments/runner/test/**/*.test.ts\""
   }
 }

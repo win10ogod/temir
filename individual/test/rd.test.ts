@@ -215,8 +215,8 @@ test('the deliberation and the outcome carry kinetic energy and the release or c
   assert.equal(d?.drive, '對方又在抒發；我懸著的「先分清楚要建議還是傾聽」被觸發')
   assert.equal(parseDeliberation('{"situation":"x","candidates":[{"action":"a"},{"action":"b"}]}', new Map())?.drive, '', 'older outputs without a drive still parse')
   const o = parseOutcome('{"didAction":"先聽","actual":"對方說謝謝","matched":"yes","reward":0.6,"reason":"r","released":"先分清楚對方要什麼的目標有了進展","left":"答應下次問對方想不想聽建議"}')
-  assert.deepEqual([o?.released, o?.releasedRefs, o?.left], ['先分清楚對方要什麼的目標有了進展', [], '答應下次問對方想不想聽建議'], 'the first format (one sentence) still parses')
-  assert.deepEqual([parseOutcome('{"reward":0}')?.released, parseOutcome('{"reward":0}')?.left], ['', ''])
+  assert.deepEqual([o?.released, o?.releasedRefs, o?.left], ['先分清楚對方要什麼的目標有了進展', [], [{ text: '答應下次問對方想不想聽建議', type: 'unresolved' }]], 'the first format (one sentence) still parses, as one item')
+  assert.deepEqual([parseOutcome('{"reward":0}')?.released, parseOutcome('{"reward":0}')?.left], ['', []])
 })
 
 test('the second energy format names items: activated in the deliberation, released in the outcome', () => {
@@ -241,4 +241,14 @@ test('the energy ablation removes exactly the energy fields from both prompts; t
   assert.ok(lines(d).slice(2).every((l) => DELIBERATE_SYSTEM.includes(l)))
   assert.match(d, /\{"situation": "\.\.\.", "similar": \[\], "candidates"/)
   assert.match(o, /"significance": "daily"\}/)
+})
+
+test('energy v3: what an action leaves is recorded item by item, each with its kind; unknown kinds become unresolved', () => {
+  const o = parseOutcome('{"reward":0.5,"left":[{"text":"答應婚禮後問他致詞順不順利","type":"promise"},{"text":"等他胃鏡的結果","type":"waiting"},{"text":"不確定該不該一直追問","type":"worry"},{"text":""}]}')
+  assert.deepEqual(o?.left, [
+    { text: '答應婚禮後問他致詞順不順利', type: 'promise' },
+    { text: '等他胃鏡的結果', type: 'waiting' },
+    { text: '不確定該不該一直追問', type: 'unresolved' },
+  ])
+  assert.deepEqual(parseOutcome('{"reward":0,"left":[]}')?.left, [])
 })

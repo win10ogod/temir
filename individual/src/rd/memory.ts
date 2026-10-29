@@ -37,6 +37,9 @@ export interface DecisionData {
   readonly activated?: readonly string[]
 }
 
+/** 行動留下的懸念的種類（H-E 第三版）：答應的事、在等的事、還沒解開的不安。 */
+export type LeftType = 'promise' | 'waiting' | 'unresolved'
+
 export interface OutcomeData {
   readonly decision: string
   readonly didAction: string
@@ -52,7 +55,9 @@ export interface OutcomeData {
   /** H-E：這次行動釋放了哪件懸著的事（說明與 key）、留下了什麼新的懸念（個體自己寫的）；舊紀錄沒有這些欄位。 */
   readonly released?: string
   readonly releasedItems?: readonly string[]
+  /** 第一、二版：一句話（可能綁了幾件事）。第三版起另有 leftItems，逐件記錄，left 是它們的合併文字（顯示用）。 */
   readonly left?: string
+  readonly leftItems?: readonly { readonly text: string; readonly type: LeftType }[]
   readonly selfVersion: number
   readonly heard: string
 }

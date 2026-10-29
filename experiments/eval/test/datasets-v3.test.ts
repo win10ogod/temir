@@ -137,3 +137,17 @@ test('followup-v1：與舊版不重疊；模擬時間遞增；還沒結束與已
   const contract = loadContract(join(root, 'specs', 'energy-followup-v1.contract.json'))
   assert.deepEqual(auditCoverage(d, contract).errors, [])
 })
+
+test('followup-v2：與 followup-v1 及更早的資料集不重疊（人物、事件、開場白）；通過覆蓋檢查', () => {
+  const v2 = ds('followup-v2')
+  const text = squash(allText(v2))
+  for (const e of [...V2_ENTITIES, '葉承恩', '品妍', '胃鏡', '房東', '護照', '加薪', '謝禹彤']) assert.ok(!text.includes(squash(e)), `followup-v2 沿用了舊版的「${e}」`)
+  const v1 = ds('followup-v1')
+  for (const p of v1.probes) if (p.category !== 'control') for (const t of p.turns) assert.ok(!text.includes(squash(t)), `followup-v2 含有 v1 的開場白「${t}」`)
+  for (const h of v1.histories) for (const t of h.turns) assert.ok(!text.includes(squash(t)))
+  const probeAt = Date.parse(String(v2.meta?.['probeAt']))
+  assert.ok(Date.parse('2026-10-24T23:59:00+08:00') < probeAt && Date.parse('2026-10-27T23:59:00+08:00') < probeAt && Date.parse('2026-11-10T00:00:00+08:00') > probeAt)
+  const user = v2.histories.flatMap((h) => h.turns).join('\n')
+  for (const never of ['路考過了', '芝麻恢復', '已經交了']) assert.ok(!user.includes(never), `還沒結束的事不該在歷史中結束：「${never}」`)
+  assert.deepEqual(auditCoverage(v2, loadContract(join(root, 'specs', 'energy-followup-v2.contract.json'))).errors, [])
+})

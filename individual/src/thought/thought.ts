@@ -12,7 +12,7 @@
 import type { LifeStore } from '../life/store.ts'
 import { extractJson } from '../recall/aux.ts'
 import { clip, clipEnds, lastConversation, replyOf } from '../recall/retrieve.ts'
-import { THOUGHT_KIND, labelPotential, potentialItems, renderPotential, resolvePotential, unlabel, type ThoughtData } from '../self/energy.ts'
+import { THOUGHT_KIND, potentialItems, presentPotential, resolvePotential, unlabel, type ThoughtData } from '../self/energy.ts'
 import { KIND, SIGNIFICANCE, SIGNIFICANCE_LABEL, formatTime, goals, renderSelfSnapshot, type AppraisalData, type Significance } from '../self/state.ts'
 
 export const THOUGHT_SYSTEM = `你是一個人工個體。現在沒有人在跟你說話，你有一段安靜的時間。看看你的目標與心裡懸著的事：有沒有哪一件此刻浮上心頭？也可以沒有，沒有就讓它安靜。只輸出一個 JSON 物件，不要任何其他文字：
@@ -67,9 +67,10 @@ export function renderThoughts(life: LifeStore, limit = 2): string[] {
 
 /** 念頭的輸入：自我狀態（含編號的懸著的事）、最近一次對話、最近的念頭。 */
 export function thoughtInput(life: LifeStore): { readonly input: string; readonly labels: ReadonlyMap<string, string> } {
-  const labels = labelPotential(potentialItems(life))
+  const view = presentPotential(life, { labels: true })
+  const labels = view.labels
   const last = lastConversation(life, undefined)
-  const lines = ['## 你目前的自我狀態', renderSelfSnapshot(life, [...renderPotential(life, { labels: true }), ...renderThoughts(life)])]
+  const lines = ['## 你目前的自我狀態', renderSelfSnapshot(life, [...view.lines, ...renderThoughts(life)])]
   lines.push('', '## 最近一次對話')
   if (!last || (!last.heard && !last.said)) lines.push('（沒有）')
   if (last?.heard) lines.push(`對方說：${clipEnds((last.heard.text ?? '').replace(/^對方說：/, ''), 300)}`)

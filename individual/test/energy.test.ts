@@ -32,7 +32,8 @@ test('potential energy: every held item has a stable key; it stays until the ind
     assert.deepEqual(potentialItems(store), [])
     assert.deepEqual(renderPotential(store), [], 'nothing held: no section')
     const promise = outcome(store, 'partly', '答應對方查台東的公車')
-    const surprise = outcome(store, 'no', '')
+    const surprise = outcome(store, 'no', '', { significance: 'notable' })
+    outcome(store, 'no', '', { significance: 'daily' }) // 日常的落差不成為懸著的事（第三版）
     const proposal = store.append({ kind: PROPOSAL_KIND, origin: 'self', data: {}, text: '我考慮過但這次沒有採用的自我模型修訂（穩定性不成立）：我只在乎效率' })
     const integration = store.append({ id: 'l:integration-1', kind: INTEGRATION_KIND, origin: 'self', data: { status: 'completed', range: [0, store.lastSeq()], contradictions: ['我想尊重對方，又忍不住給建議'] }, causes: [proposal.id] })
     assert.deepEqual(
@@ -100,5 +101,25 @@ test('the energy ablation hides held items from the integration as well', () => 
     assert.equal(collect(store, 0).potential.length, 1)
     assert.equal(collect(store, 0, undefined, false).potential.length, 0)
     assert.doesNotMatch(renderEvidence(store, collect(store, 0, undefined, false)), /懸著的事/)
+  })
+})
+
+test('energy v3: one item per held thing, released one by one; promises and waiting come first and are not crowded out', async () => {
+  const { presentPotential } = await import('../src/self/energy.ts')
+  withStore((store) => {
+    // 一次事後比對留下兩件事：婚禮致詞（答應的）與加薪結果（在等的）。加薪有了結果只釋放那一件，致詞還懸著。
+    const both = outcome(store, 'partly', '答應問致詞；等加薪結果', { leftItems: [{ text: '答應婚禮後問他致詞順不順利', type: 'promise' }, { text: '等他加薪談判的結果', type: 'waiting' }] })
+    for (let i = 0; i < 6; i++) outcome(store, 'partly', `不安 ${i}`, { leftItems: [{ text: `還沒解開的不安 ${i}`, type: 'unresolved' }] })
+    outcome(store, 'yes', '', { releasedItems: [`left:${both.id}#1`] })
+    const keys = potentialItems(store).map((p) => p.key)
+    assert.ok(keys.includes(`left:${both.id}#0`) && !keys.includes(`left:${both.id}#1`), 'releasing one part does not release the other')
+    const view = presentPotential(store, { labels: true })
+    assert.equal(view.shown[0]?.key, `left:${both.id}#0`, 'the promise is listed first even though it is the oldest')
+    assert.equal(view.shown.filter((p) => !p.outward).length, 4, 'only the latest four inward items are listed')
+    assert.equal(view.labels.get('P1'), `left:${both.id}#0`, 'labels follow the order on screen')
+    const text = view.lines.join('\n')
+    assert.match(text, /對對方：\n- \[P1\] 我答應的事（[^）]+）：答應婚禮後問他致詞順不順利/)
+    assert.match(text, /自己心裡：\n- \[P2\] 還沒解開的不安/)
+    assert.match(text, /較早的 2 件沒有列出/)
   })
 })

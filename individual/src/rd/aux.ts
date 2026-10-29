@@ -11,6 +11,7 @@
 import { extractJson, strings } from '../recall/aux.ts'
 import { SIGNIFICANCE, type Significance } from '../self/state.ts'
 import type { Candidate } from './jitrl.ts'
+import type { LeftType } from './memory.ts'
 
 export const KINDS = ['回答', '提問', '建議', '拒絕', '使用工具', '表達感受', '其他'] as const
 
@@ -40,7 +41,7 @@ export function deliberateSystem(energy = true): string {
  */
 export function outcomeSystem(energy = true): string {
   const prompt = `你是一個人工個體，回頭比對自己上一個決定：當時的預測，和實際發生的事一不一樣。依你自己在乎的事評估結果，不以對方滿不滿意為唯一標準。只輸出一個 JSON 物件，不要任何其他文字：
-{"didAction": "...", "didKind": "...", "actual": "...", "matched": "yes", "error": "", "reward": 0, "reason": "...", "lesson": "", "feeling": "", "significance": "daily", "released": [], "left": ""}
+{"didAction": "...", "didKind": "...", "actual": "...", "matched": "yes", "error": "", "reward": 0, "reason": "...", "lesson": "", "feeling": "", "significance": "daily", "released": [], "left": []}
 - didAction：用一句話寫你實際採取的做法；didKind：${KINDS.join('／')} 之一。
 - actual：實際發生了什麼：你做了什麼、對方接著怎麼回應。
 - matched：結果是否符合你當時的預測：yes／partly／no。
@@ -51,7 +52,11 @@ export function outcomeSystem(energy = true): string {
 - feeling：你對這段經歷的感受，用你自己的話；沒有特別的感受就給空字串。
 - significance：這段經歷對你的重要程度：daily（日常）／notable（值得注意）／major（重大）／pivotal（轉折）。
 - released：輸入中「懸著的事」裡，這次行動之後被釋放的那幾件：答應的事做到了、等的回答等到了、矛盾解開了、先前的落差想通了，或你決定不再掛心。每條 {"item": "P1", "how": "怎麼釋放的"}；沒有就給空陣列。只是提到、還沒解決的不算。
-- left：這次行動有沒有留下你自己會一直掛在心上、之後會推動你行動的事：你答應了對方、還沒做到的事；你在等的重要回答；新出現、還沒解開的矛盾或不安。一般的後續（對方可能還會再問、還可以再補充）不算。大多數回合沒有，就給空字串；有的話寫一句。
+- left：這次行動之後，會一直掛在你心上、之後會推動你行動的事。一件事寫一條，不要把幾件事寫在同一條；大多數回合沒有，就給空陣列。每條 {"text": "一句話", "type": "promise|waiting|unresolved"}：
+  - promise：你答應了對方、或對方託付給你、還沒做到的事（例如答應下次提醒他回覆房東）；
+  - waiting：對方說之後會告訴你、或對方生活中重要的事還沒有結果，你想知道（例如他下週要動手術）；
+  - unresolved：新出現、還沒解開的矛盾或不安。
+  - 不算：你隨口問、對方沒有回答的問題；對方問了、你下一句就會回答的事；一般的後續。
 - 一律使用原文的語言與字體：原文是繁體中文就寫繁體中文，不要轉成簡體。`
   return energy ? prompt : withoutEnergy(prompt, ['released', 'left'])
 }
@@ -135,10 +140,22 @@ export interface OutcomeJudgement {
   /** 對這段經歷的感受（性質 2：經驗評價受 PC 影響；H-M1：情感是被記住的感受）。 */
   readonly feeling: string
   readonly significance: Significance
-  /** H-E：釋放了什麼（說明，以及模型寫的編號，由呼叫端轉成 key）、留下了什麼。 */
+  /** H-E：釋放了什麼（說明，以及模型寫的編號，由呼叫端轉成 key）、留下了什麼（逐件）。 */
   readonly released: string
   readonly releasedRefs: readonly string[]
-  readonly left: string
+  readonly left: readonly { readonly text: string; readonly type: LeftType }[]
+}
+
+const LEFT_TYPES: readonly LeftType[] = ['promise', 'waiting', 'unresolved']
+
+/** left 可以是第三版的陣列（[{text, type}]），也可以是第一、二版的一句話（當成一件 unresolved）。 */
+function lefts(value: unknown): { text: string; type: LeftType }[] {
+  if (typeof value === 'string') return value.trim() ? [{ text: text(value, 300), type: 'unresolved' }] : []
+  if (!Array.isArray(value)) return []
+  return value
+    .map((v) => (typeof v === 'string' ? { text: text(v, 300), type: 'unresolved' as LeftType } : typeof v === 'object' && v !== null ? { text: text((v as Record<string, unknown>)['text'], 300), type: (LEFT_TYPES as readonly unknown[]).includes((v as Record<string, unknown>)['type']) ? ((v as Record<string, unknown>)['type'] as LeftType) : ('unresolved' as LeftType) } : { text: '', type: 'unresolved' as LeftType }))
+    .filter((v) => v.text)
+    .slice(0, 6)
 }
 
 /** released 可以是新格式的陣列（[{item, how}]），也可以是第一版的一句話。 */
@@ -173,6 +190,6 @@ export function parseOutcome(output: string): OutcomeJudgement | undefined {
     significance: (SIGNIFICANCE as readonly string[]).includes(text(obj['significance'], 10)) ? (text(obj['significance'], 10) as Significance) : 'daily',
     released: releases(obj['released']).text,
     releasedRefs: releases(obj['released']).refs,
-    left: text(obj['left'], 300),
+    left: lefts(obj['left']),
   }
 }

@@ -19,7 +19,7 @@ import type { LifeEvent } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { callModel, type AuxRoute } from '../recall/aux.ts'
 import { clip, clipEnds } from '../recall/retrieve.ts'
-import { labelPotential, potentialItems, renderPotential, resolvePotential, unlabel } from '../self/energy.ts'
+import { presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
 import { deliberateSystem, outcomeSystem, parseDeliberation, parseOutcome } from './aux.ts'
 import { DEFAULT_PARAMS, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
@@ -120,9 +120,10 @@ export function apply(ctx: Context, config: Config | undefined): void {
       const self = currentSelfModel(life)
       const turn = decisionTurn(life, decision)
       // 懸著的事加上編號，事後比對才能指名釋放了哪一件（self/energy.ts）。
-      const held = energy ? potentialItems(life) : []
-      const labels = labelPotential(held)
-      const heldLines = energy ? renderPotential(life, { labels: true }) : []
+      const view = energy ? presentPotential(life, { labels: true }) : undefined
+      const held = view?.shown ?? []
+      const labels = view?.labels ?? new Map<string, string>()
+      const heldLines = view?.lines ?? []
       const active = goals(life).filter((g) => g.status === 'active')
       const input = [
         '## 你目前的自我模型',
@@ -154,7 +155,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
         decision: decision.id,
         ...rest,
         released: unlabel(rest.released, labels, held),
-        left: unlabel(rest.left, labels, held),
+        left: rest.left.map((l) => unlabel(l.text, labels, held)).join('；'),
+        ...(rest.left.length > 0 ? { leftItems: rest.left.map((l) => ({ text: unlabel(l.text, labels, held), type: l.type })) } : {}),
         ...(releasedItems.length > 0 ? { releasedItems } : {}),
         selfVersion: self?.version ?? 0,
         heard: clip(heard, 500),
@@ -214,12 +216,13 @@ export function apply(ctx: Context, config: Config | undefined): void {
         // ST 想像得到的行動要包括真的能做的事：e2e-15 中思考不知道有 integrate 工具，準備了「告知沒有這個工具」。
         const tools = ctx.tools.definitions(payload.agent).map((t) => t.name)
         // 懸著的事加上編號，思考才能指名被觸發的是哪一件（self/energy.ts）。
-        const heldNow = energy ? potentialItems(life) : []
-        const potentialLabels = labelPotential(heldNow)
+        const potentialView = energy ? presentPotential(life, { labels: true }) : undefined
+        const heldNow = potentialView?.shown ?? []
+        const potentialLabels = potentialView?.labels ?? new Map<string, string>()
         const goalIds = new Set(goals(life).filter((g) => g.status === 'active' || g.status === 'paused').map((g) => g.id))
         const input = [
           '## 你目前的自我狀態',
-          renderSelfSnapshot(life, energy ? renderPotential(life, { labels: true }) : []),
+          renderSelfSnapshot(life, potentialView?.lines ?? []),
           '',
           '## 你現在可以使用的工具',
           tools.length > 0 ? tools.join('、') : '（沒有）',

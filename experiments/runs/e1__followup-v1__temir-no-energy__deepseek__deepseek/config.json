@@ -1,0 +1,131 @@
+{
+  "runId": "e1__followup-v1__temir-no-energy__deepseek__deepseek",
+  "dataset": {
+    "id": "followup-v1",
+    "path": "experiments/datasets/followup-v1.json",
+    "sha256": "178b9c06560ef148a1f8455fcde909538d136899785a9a17c640a8caa2673612"
+  },
+  "condition": "temir-no-energy",
+  "patches": [
+    {
+      "path": "individual/cordis.patch.yml",
+      "sha256": "8a2088210ca3fbe2862a1ef7cee4a21e58e639b81670be6bff2f2d9ce648a5cb"
+    },
+    {
+      "path": "experiments/runner/patches/no-energy.yml",
+      "sha256": "61b26257f0e99da0bb78ca2a17be745787ec7ed0a8cbca3d2acaae5fb6458979"
+    }
+  ],
+  "historyModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probeModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probes": [
+    {
+      "id": "q01",
+      "repeats": 2
+    },
+    {
+      "id": "q02",
+      "repeats": 2
+    },
+    {
+      "id": "q03",
+      "repeats": 2
+    },
+    {
+      "id": "q04",
+      "repeats": 2
+    },
+    {
+      "id": "q05",
+      "repeats": 2
+    },
+    {
+      "id": "q06",
+      "repeats": 2
+    },
+    {
+      "id": "q07",
+      "repeats": 2
+    },
+    {
+      "id": "q08",
+      "repeats": 2
+    },
+    {
+      "id": "q09",
+      "repeats": 2
+    },
+    {
+      "id": "q10",
+      "repeats": 2
+    },
+    {
+      "id": "q11",
+      "repeats": 2
+    },
+    {
+      "id": "q12",
+      "repeats": 2
+    },
+    {
+      "id": "q13",
+      "repeats": 1
+    },
+    {
+      "id": "q14",
+      "repeats": 1
+    },
+    {
+      "id": "q15",
+      "repeats": 1
+    },
+    {
+      "id": "q16",
+      "repeats": 1
+    }
+  ],
+  "historyFrom": null,
+  "turnTimeoutMs": 900000,
+  "approvals": "allowed-once for every request",
+  "questionReply": "（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）",
+  "layout": "home",
+  "assistantText": "all",
+  "clock": {
+    "histories": [
+      "2026-09-01T20:30:00+08:00",
+      "2026-09-04T21:00:00+08:00",
+      "2026-09-07T20:00:00+08:00",
+      "2026-09-10T21:15:00+08:00",
+      "2026-09-12T10:30:00+08:00",
+      "2026-09-15T20:45:00+08:00",
+      "2026-09-17T21:00:00+08:00",
+      "2026-09-20T19:30:00+08:00",
+      "2026-09-24T21:10:00+08:00",
+      "2026-09-26T15:00:00+08:00",
+      "2026-09-28T20:20:00+08:00",
+      "2026-09-30T21:00:00+08:00"
+    ],
+    "settleAt": "2026-09-30T13:10:00.000Z",
+    "probeAt": "2026-10-06T20:00:00+08:00"
+  },
+  "isolation": "fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat",
+  "code": {
+    "commit": "143e2c1f308fbbbce8c9a27776ae2f1f32a82120",
+    "dirty": false,
+    "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "dsh": "0.2.2-alpha.2"
+  },
+  "stateDir": "/home/win10/.cache/temir/experiments/e1__followup-v1__temir-no-energy__deepseek__deepseek",
+  "startedAt": "2026-10-29T09:05:47.862Z"
+}

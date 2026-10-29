@@ -90,6 +90,21 @@ export interface Deliberation {
   readonly candidates: readonly Candidate[]
 }
 
+/** 逐一轉換思考結果中會進入準備訊息與紀錄的文字：處境、drive、候選的做法、預期與扣除理由。 */
+export function mapDeliberationText(d: Deliberation, f: (s: string) => string): Deliberation {
+  return {
+    ...d,
+    situation: f(d.situation),
+    drive: f(d.drive),
+    candidates: d.candidates.map((c) => ({
+      ...c,
+      action: f(c.action),
+      prediction: f(c.prediction),
+      ...(c.excludeReason ? { excludeReason: f(c.excludeReason) } : {}),
+    })),
+  }
+}
+
 function text(value: unknown, max: number): string {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : ''
 }

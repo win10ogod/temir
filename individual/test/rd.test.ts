@@ -270,3 +270,23 @@ test('PC = ST + E − RD = A: RD subtracts candidates the individual rules out; 
   assert.equal(chooseAmong([0.1, 0.9], all), 1)
   assert.equal(chooseAmong([0.9, 0.1], [{ ...candidate('a', 60), excluded: true }, candidate('b', 40)]), 1)
 })
+
+test('deliberation text that reaches records carries no per-call potential labels (dev5: the main model echoed "P1、P2")', async () => {
+  const { mapDeliberationText } = await import('../src/rd/aux.ts')
+  const { unlabel } = await import('../src/self/energy.ts')
+  const held = [
+    { key: 'left:a#0', kind: 'left', type: 'waiting', outward: true, text: '她對蝦蟹過敏的嚴重程度還沒回覆', ts: 0, source: 'a', seq: 1 },
+    { key: 'left:b#0', kind: 'left', type: 'promise', outward: true, text: '答應幫她找不含蝦蟹的料理', ts: 0, source: 'b', seq: 2 },
+  ] as const
+  const labels = new Map([['P1', 'left:a#0'], ['P2', 'left:b#0']])
+  const d = parseDeliberation(
+    '{"situation":"她欠我回覆的：過敏程度（P1）","drive":"P2 一直懸著","candidates":[{"action":"先問 P1","prediction":"P2 會被放下","confidence":60,"excluded":true,"reason":"P1 問過太多次"},{"action":"推薦清蒸魚","confidence":40}]}',
+    new Map(),
+  )!
+  const plain = mapDeliberationText(d, (s) => unlabel(s, labels, held))
+  const all = [plain.situation, plain.drive, ...plain.candidates.flatMap((c) => [c.action, c.prediction, c.excludeReason ?? ''])].join('\n')
+  assert.doesNotMatch(all, /\bP\d+\b/u)
+  assert.match(plain.situation, /「她對蝦蟹過敏的嚴重程度還沒回覆」/u)
+  assert.match(plain.candidates[0]!.excludeReason!, /「她對蝦蟹過敏/u)
+  assert.equal(plain.candidates[1]!.excludeReason, undefined)
+})

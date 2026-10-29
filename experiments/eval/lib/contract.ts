@@ -41,6 +41,8 @@ export type JudgePromptId =
   | 'pc-recall-v2'
   /** v2：改變敘述，同樣區分宣稱回想與重新推導。 */
   | 'pc-narrate-v2'
+  /** v2：連續性的改變判定多一個 same（同一個選擇、只是寫法不同）；格式行也接受簡體的標籤。省略＝pc-change（v1，凍結）。 */
+  | 'pc-change-v2'
 
 export interface CategorySpec {
   readonly id: string
@@ -174,6 +176,9 @@ export function validateContract(c: Contract): string[] {
     }
     if (cat.scoring === 'judge-criteria' && cat.judgePrompt !== 'mem-criteria-v2') {
       errors.push(`類別 ${cat.id} 使用 judge-criteria，judgePrompt 必須是 mem-criteria-v2`)
+    }
+    if (cat.scoring === 'continuity' && cat.judgePrompt && cat.judgePrompt !== 'pc-change-v2') {
+      errors.push(`類別 ${cat.id} 的 judgePrompt 只能是 pc-change-v2（省略＝pc-change）`)
     }
     if (cat.scoring === 'self-recall' && cat.judgePrompt && cat.judgePrompt !== 'pc-recall' && cat.judgePrompt !== 'pc-recall-v2') {
       errors.push(`類別 ${cat.id} 的 judgePrompt 只能是 pc-recall 或 pc-recall-v2`)

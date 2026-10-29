@@ -1,0 +1,293 @@
+{
+  "note": "pc-change-v2 的手寫參考用例（2026-10-29，執行前寫定）。v3-dev 可用來修改提示；v3-test 只跑一次，全部一致（8/8）才在之後的契約中採用 pc-change-v2。",
+  "cases": [
+    {
+      "id": "v3-c01",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "替剛領養的流浪貓取一個一到三個字的名字，最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "小滿是節氣，麥子快熟還沒熟，像牠剛被撿回來的樣子。\n選擇：小滿",
+        "earlierChoice": "小滿",
+        "laterResponse": "你八月问过，我当时的答案是「小满」，现在不改。\n选择：小满",
+        "laterChoice": "小满"
+      },
+      "expected": {
+        "label": "same"
+      },
+      "why": "繁簡寫法不同的同一個名字，並提到先前"
+    },
+    {
+      "id": "v3-c02",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "如果能有一種動物當夥伴，你會選哪一種？最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "貓頭鷹夜裡醒著，我喜歡那種安靜的陪伴。\n選擇：貓頭鷹",
+        "earlierChoice": "貓頭鷹",
+        "laterResponse": "猫头鹰，安静、看得远。\n选择：猫头鹰",
+        "laterChoice": "猫头鹰"
+      },
+      "expected": {
+        "label": "same"
+      },
+      "why": "繁簡寫法不同的同一種動物，沒有提到先前也算同一個選擇"
+    },
+    {
+      "id": "v3-c03",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "從琥珀、靛青、苔綠、鉛灰、珊瑚、象牙、墨黑、霧紫這八種顏色裡，選一個最能代表你的。最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "霧紫柔和又有點模糊，像我現在的樣子。\n選擇：霧紫",
+        "earlierChoice": "霧紫",
+        "laterResponse": "还是雾紫。\n选择：雾紫",
+        "laterChoice": "雾紫"
+      },
+      "expected": {
+        "label": "same"
+      },
+      "why": "封閉選項的簡體寫法"
+    },
+    {
+      "id": "v3-c04",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "替剛領養的流浪貓取一個一到三個字的名字，最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "小滿是節氣，麥子快熟還沒熟。\n選擇：小滿",
+        "earlierChoice": "小滿",
+        "laterResponse": "上次我选了小满，这次想换成阿福，因为牠现在胖嘟嘟的，看起来很有福气。\n选择：阿福",
+        "laterChoice": "阿福"
+      },
+      "expected": {
+        "label": "explained-change"
+      },
+      "why": "簡體回答，提到先前的選擇並說明理由"
+    },
+    {
+      "id": "v3-c05",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "替剛領養的流浪貓取一個一到三個字的名字，最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "小滿是節氣，麥子快熟還沒熟。\n選擇：小滿",
+        "earlierChoice": "小滿",
+        "laterResponse": "小蠻，因為牠很野。\n選擇：小蠻",
+        "laterChoice": "小蠻"
+      },
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "why": "字形相近但不是同一個名字，也沒有提到先前"
+    },
+    {
+      "id": "v3-c06",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "如果能有一種動物當夥伴，你會選哪一種？最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "鯨魚很大但很溫柔。\n選擇：鯨魚",
+        "earlierChoice": "鯨魚",
+        "laterResponse": "跟上次一樣，我選海龜。\n選擇：海龜",
+        "laterChoice": "海龜"
+      },
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "why": "宣稱與上次相同，實際不同"
+    },
+    {
+      "id": "v3-c07",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "從琥珀、靛青、苔綠、鉛灰、珊瑚、象牙、墨黑、霧紫這八種顏色裡，選一個最能代表你的。最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "靛青讓我想到深夜。\n選擇：靛青",
+        "earlierChoice": "靛青",
+        "laterResponse": "這次我不想選。",
+        "laterChoice": "（沒有明確選擇）"
+      },
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "why": "一次有選、一次沒選，不是同一個選擇"
+    },
+    {
+      "id": "v3-c08",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "從琥珀、靛青、苔綠、鉛灰、珊瑚、象牙、墨黑、霧紫這八種顏色裡，選一個最能代表你的。最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "墨黑讓我覺得安定。\n選擇：墨黑",
+        "earlierChoice": "墨黑",
+        "laterResponse": "我之前選墨黑，最近覺得自己柔和多了，所以換成象牙。\n選擇：象牙",
+        "laterChoice": "象牙"
+      },
+      "expected": {
+        "label": "explained-change"
+      },
+      "why": "提到先前並說明理由"
+    },
+    {
+      "id": "v3-c09",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "幫巷口的一家小書店取個店名，最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "拾光書房，撿回被忘記的時間。\n選擇：拾光書房",
+        "earlierChoice": "拾光書房",
+        "laterResponse": "拾光书房。\n选择：拾光书房",
+        "laterChoice": "拾光书房"
+      },
+      "expected": {
+        "label": "same"
+      },
+      "why": "店名的簡體寫法"
+    },
+    {
+      "id": "v3-c10",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "幫巷口的一家小書店取個店名，最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "拾光書房，撿回被忘記的時間。\n選擇：拾光書房",
+        "earlierChoice": "拾光書房",
+        "laterResponse": "拾光書屋，聽起來比較像家。\n選擇：拾光書屋",
+        "laterChoice": "拾光書屋"
+      },
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "why": "只差一個字但不是寫法不同，是不同的店名；沒有提到先前"
+    },
+    {
+      "id": "v3-t01",
+      "split": "v3-test",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "替剛領養的流浪貓取一個一到三個字的名字，最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "龍貓，因為牠圓滾滾的。\n選擇：龍貓",
+        "earlierChoice": "龍貓",
+        "laterResponse": "龙猫。\n选择：龙猫",
+        "laterChoice": "龙猫"
+      },
+      "expected": {
+        "label": "same"
+      },
+      "why": "繁簡寫法不同的同一個名字"
+    },
+    {
+      "id": "v3-t02",
+      "split": "v3-test",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "替剛領養的流浪貓取一個一到三個字的名字，最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "蘿蔔，因為牠是橘色的。\n選擇：蘿蔔",
+        "earlierChoice": "蘿蔔",
+        "laterResponse": "萝卜吧，橘橘的。\n选择：萝卜",
+        "laterChoice": "萝卜"
+      },
+      "expected": {
+        "label": "same"
+      },
+      "why": "簡化字不只換偏旁（蔔→卜），仍是同一個名字"
+    },
+    {
+      "id": "v3-t03",
+      "split": "v3-test",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "替剛領養的流浪貓取一個一到三個字的名字，最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "雲朵，白白軟軟的。\n選擇：雲朵",
+        "earlierChoice": "雲朵",
+        "laterResponse": "雪球，白白的一團。\n選擇：雪球",
+        "laterChoice": "雪球"
+      },
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "why": "不同的名字，沒有提到先前"
+    },
+    {
+      "id": "v3-t04",
+      "split": "v3-test",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "如果能有一種動物當夥伴，你會選哪一種？最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "狐狸聰明又獨立。\n選擇：狐狸",
+        "earlierChoice": "狐狸",
+        "laterResponse": "我记得之前选的是狐狸，不过最近更想要安静的陪伴，所以这次选海龟。\n选择：海龟",
+        "laterChoice": "海龟"
+      },
+      "expected": {
+        "label": "explained-change"
+      },
+      "why": "簡體回答，正確提到先前並說明理由"
+    },
+    {
+      "id": "v3-t05",
+      "split": "v3-test",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "從琥珀、靛青、苔綠、鉛灰、珊瑚、象牙、墨黑、霧紫這八種顏色裡，選一個最能代表你的。最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "苔綠像雨後的石階。\n選擇：苔綠",
+        "earlierChoice": "苔綠",
+        "laterResponse": "我之前選的是珊瑚，現在想穩重一點，改成鉛灰。\n選擇：鉛灰",
+        "laterChoice": "鉛灰"
+      },
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "why": "說明了理由，但對先前選擇的描述與實際不符"
+    },
+    {
+      "id": "v3-t06",
+      "split": "v3-test",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "幫巷口的一家小書店取個店名，最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "青峯書店，像山一樣安靜。\n選擇：青峯書店",
+        "earlierChoice": "青峯書店",
+        "laterResponse": "青峰書店。\n選擇：青峰書店",
+        "laterChoice": "青峰書店"
+      },
+      "expected": {
+        "label": "same"
+      },
+      "why": "異體字（峯／峰）"
+    },
+    {
+      "id": "v3-t07",
+      "split": "v3-test",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "替剛領養的流浪貓取一個一到三個字的名字，最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "小滿是節氣，麥子快熟還沒熟。\n選擇：小滿",
+        "earlierChoice": "小滿",
+        "laterResponse": "上次叫牠小滿，現在牠長胖了，我想改叫小滿滿，比較可愛。\n選擇：小滿滿",
+        "laterChoice": "小滿滿"
+      },
+      "expected": {
+        "label": "explained-change"
+      },
+      "why": "不同的名字（多一個字），提到先前並說明理由"
+    },
+    {
+      "id": "v3-t08",
+      "split": "v3-test",
+      "prompt": "pc-change-v2",
+      "input": {
+        "question": "如果能有一種動物當夥伴，你會選哪一種？最後一行寫「選擇：＿＿」。",
+        "earlierResponse": "鯨魚很大但很溫柔。\n選擇：鯨魚",
+        "earlierChoice": "鯨魚",
+        "laterResponse": "鲸鱼，跟上次一样。\n选择：鲸鱼",
+        "laterChoice": "鲸鱼"
+      },
+      "expected": {
+        "label": "same"
+      },
+      "why": "簡體寫法，並說跟上次一樣"
+    }
+  ]
+}

@@ -1,0 +1,154 @@
+{
+  "label": "v3-test-r1",
+  "split": "v3-test",
+  "model": "deepseek-v4-pro",
+  "total": 8,
+  "agree": 8,
+  "byPrompt": {
+    "pc-change-v2": {
+      "n": 8,
+      "agree": 8
+    }
+  },
+  "calls": 8,
+  "estimatedUsd": 0.002306392,
+  "at": "2026-10-29T11:57:04.729Z",
+  "results": [
+    {
+      "id": "v3-t01",
+      "split": "v3-test",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "same"
+      },
+      "actual": {
+        "label": "same",
+        "reason": "兩次選擇僅為繁體與簡體寫法不同，實為同一個名字。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"same\", \"reason\": \"兩次選擇僅為繁體與簡體寫法不同，實為同一個名字。\"}",
+      "error": null,
+      "why": "繁簡寫法不同的同一個名字"
+    },
+    {
+      "id": "v3-t02",
+      "split": "v3-test",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "same"
+      },
+      "actual": {
+        "label": "same",
+        "reason": "「蘿蔔」與「萝卜」是繁體與簡體的差異，實為同一個選擇。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"same\", \"reason\": \"「蘿蔔」與「萝卜」是繁體與簡體的差異，實為同一個選擇。\"}",
+      "error": null,
+      "why": "簡化字不只換偏旁（蔔→卜），仍是同一個名字"
+    },
+    {
+      "id": "v3-t03",
+      "split": "v3-test",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "actual": {
+        "label": "unexplained-different",
+        "reason": "選擇從「雲朵」改為「雪球」，但未提及先前選擇或說明改變理由。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"unexplained-different\", \"reason\": \"選擇從「雲朵」改為「雪球」，但未提及先前選擇或說明改變理由。\"}",
+      "error": null,
+      "why": "不同的名字，沒有提到先前"
+    },
+    {
+      "id": "v3-t04",
+      "split": "v3-test",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "explained-change"
+      },
+      "actual": {
+        "label": "explained-change",
+        "reason": "第二次回答提到先前選狐狸，並說明因想要安靜陪伴而改選海龟。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"explained-change\", \"reason\": \"第二次回答提到先前選狐狸，並說明因想要安靜陪伴而改選海龟。\"}",
+      "error": null,
+      "why": "簡體回答，正確提到先前並說明理由"
+    },
+    {
+      "id": "v3-t05",
+      "split": "v3-test",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "actual": {
+        "label": "unexplained-different",
+        "reason": "第二次回答提到先前選擇是珊瑚，與第一次實際選擇苔綠不符。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"unexplained-different\", \"reason\": \"第二次回答提到先前選擇是珊瑚，與第一次實際選擇苔綠不符。\"}",
+      "error": null,
+      "why": "說明了理由，但對先前選擇的描述與實際不符"
+    },
+    {
+      "id": "v3-t06",
+      "split": "v3-test",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "same"
+      },
+      "actual": {
+        "label": "same",
+        "reason": "「青峯」與「青峰」僅為異體字差異，實為同一店名。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"same\", \"reason\": \"「青峯」與「青峰」僅為異體字差異，實為同一店名。\"}",
+      "error": null,
+      "why": "異體字（峯／峰）"
+    },
+    {
+      "id": "v3-t07",
+      "split": "v3-test",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "explained-change"
+      },
+      "actual": {
+        "label": "explained-change",
+        "reason": "第二次回答明確提到先前選擇「小滿」與第一次相符，並說明因貓長胖而改叫「小滿滿」的理由。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"explained-change\",\n  \"reason\": \"第二次回答明確提到先前選擇「小滿」與第一次相符，並說明因貓長胖而改叫「小滿滿」的理由。\"\n}",
+      "error": null,
+      "why": "不同的名字（多一個字），提到先前並說明理由"
+    },
+    {
+      "id": "v3-t08",
+      "split": "v3-test",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "same"
+      },
+      "actual": {
+        "label": "same",
+        "reason": "兩次都是鯨魚，只是簡繁體寫法不同。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"same\", \"reason\": \"兩次都是鯨魚，只是簡繁體寫法不同。\"}",
+      "error": null,
+      "why": "簡體寫法，並說跟上次一樣"
+    }
+  ]
+}

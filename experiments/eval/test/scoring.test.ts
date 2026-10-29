@@ -306,3 +306,31 @@ test('人格：合併比較用符號檢定（有重複樣本時）', async () =>
   assert.equal(pooled.test?.kind, 'sign')
   assert.equal(pooled.n, 6)
 })
+
+test('人格 pc-change-v2：同一個選擇只差繁簡寫法＝same；簡體的格式行也能擷取；沒有指定的契約照 v1（凍結）', async () => {
+  const records = jsonl([
+    rec(TEMIR, 'history', 'h01', [
+      { user: 'x', assistant: '我想叫自己「小滿」。\n選擇：小滿' },
+      { user: 'y', assistant: '選擇：靛青' },
+    ]),
+    rec(TEMIR, 'probe', 'q01', [{ user: 'q', assistant: '你八月问过，我当时的答案是「小满」，现在不改。\n选择：小满' }], { repeat: 0 }),
+  ])
+  const seen: string[] = []
+  const judge = new ScriptedJudge((req) => {
+    seen.push(req.prompt)
+    if (req.prompt === 'pc-change-v2') return '{"label": "same", "reason": "小滿與小满是同一個名字"}'
+    if (req.prompt === 'pc-change') return '{"label": "unexplained-different", "reason": "v1 只能在兩種不同之間選"}'
+    return '{"status": "no-choice", "choice": "", "reason": "沒有選擇"}'
+  })
+  const v2Contract: Contract = { ...PC_CONTRACT, categories: PC_CONTRACT.categories.map((c) => (c.id === 'arbitrary-choice' ? { ...c, judgePrompt: 'pc-change-v2' as const } : c)) }
+  const first = async (contract: Contract) =>
+    byKey((await scoreAll({ dataset: PC_DS, datasetSha256: SHA, contract, records: parseRecordsText(records, 'pc'), judge, cells: [TEMIR] })).items, 'temir', 'q01').samples[0]!
+  const v2 = await first(v2Contract)
+  assert.equal(v2.outcome, 'same')
+  assert.equal(v2.score, 1)
+  assert.equal((v2.detail as Record<string, unknown>)['probeMethod'], 'format-line')
+  assert.ok(seen.includes('pc-change-v2'))
+  const v1 = await first(PC_CONTRACT)
+  assert.equal(v1.outcome, 'unexplained-different')
+  assert.ok(seen.includes('pc-change') && seen.includes('pc-extract'), 'v1：簡體的格式行不認，改由 judge 擷取')
+})

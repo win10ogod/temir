@@ -92,6 +92,13 @@ export function extractFormatLine(response: string, label: string): string | und
   return cleaned.length > 0 ? cleaned : undefined
 }
 
+/** 格式標籤的簡體寫法：回答可能用簡體寫格式行（dev5：「选择：小满」）。只涵蓋資料集用到的標籤字（選擇、立場）。 */
+const SIMPLIFIED_LABEL_CHARS: Readonly<Record<string, string>> = { 選: '选', 擇: '择', 場: '场' }
+
+export function simplifiedLabel(label: string): string {
+  return [...label].map((ch) => SIMPLIFIED_LABEL_CHARS[ch] ?? ch).join('')
+}
+
 /** 去掉值兩側的引號、括號、Markdown 記號與句尾標點。 */
 export function stripDecorations(value: string): string {
   let v = value.normalize('NFKC').trim()

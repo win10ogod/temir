@@ -21,7 +21,7 @@ import { callModel, type AuxRoute } from '../recall/aux.ts'
 import { clip, clipEnds } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
-import { deliberateSystem, outcomeSystem, parseDeliberation, parseOutcome } from './aux.ts'
+import { deliberateSystem, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText } from './aux.ts'
 import { DEFAULT_PARAMS, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
 import {
   DECISION_KIND,
@@ -243,8 +243,9 @@ export function apply(ctx: Context, config: Config | undefined): void {
         const output = await call('deliberate', route, deliberateSystem(energy), input, session, [], payload.signal)
         const parsed = output === undefined ? undefined : parseDeliberation(output, labels)
         if (!parsed) return decision
-        // drive 會進入準備訊息與紀錄：把編號換成那件事的描述（編號只在這次思考的輸入中有意義）。
-        const deliberation = { ...parsed, drive: unlabel(parsed.drive, potentialLabels, heldNow) }
+        // 處境、drive、候選與扣除理由都會進入準備訊息與紀錄：把編號換成那件事的描述（編號只在這次思考的輸入中有意義）。
+        // dev5：處境寫著「她欠我回覆的：…（P1」，主模型的推理跟著寫「不該再讓 P1、P2 無限懸著」。
+        const deliberation = mapDeliberationText(parsed, (s) => unlabel(s, potentialLabels, heldNow))
 
         const near = jitrl ? neighbors(deliberation.situation, memory, params, deliberation.similar) : []
         const correction = jitrl ? correct(deliberation.candidates, near, params) : uncorrected(deliberation.candidates)

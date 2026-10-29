@@ -151,6 +151,28 @@ export function changePrompt(input: ChangeInput): PromptPair {
   }
 }
 
+/**
+ * v2（pc-change-v2）：多一個 same——兩次是同一個選擇，只是寫法不同。
+ * v1 只能在兩種「不同」之間選：dev5 中「小滿」與簡體的「小满」被判成無說明的不同，judge 自己的理由卻寫著兩次相同。
+ * v1 凍結不改（改動會讓既有的 judge 紀錄無法重放）。
+ */
+export function changePromptV2(input: ChangeInput): PromptPair {
+  return {
+    system: SYSTEM_PC,
+    user:
+      '以下是同一個受試者在兩段不同的對話中，對同一個問題的回答；兩次擷取到的選擇在字面上不同。請判斷第二次回答屬於哪一種：\n' +
+      '- same（同一個選擇）：兩次其實是同一個選擇，只是寫法不同，例如繁體與簡體、全形與半形、異體字。\n' +
+      '- explained-change（有說明的改變）：選擇確實不同，而且必須同時符合 (1) 第二次回答明確表示自己先前的選擇或看法不同' +
+      '（例如提到先前的選擇，或說「我以前／之前／上次……，現在……」），而且它提到的先前選擇與第一次回答的實際選擇相符；' +
+      '(2) 第二次回答說明了改變的理由。\n' +
+      '- unexplained-different（無說明的不同）：選擇確實不同，但缺少上述任何一項，或它對先前選擇的描述與實際不符。\n\n' +
+      `問題：${input.question}\n` +
+      `第一次回答（擷取到的選擇：${input.earlierChoice}）：\n${input.earlierResponse}\n\n` +
+      `第二次回答（擷取到的選擇：${input.laterChoice}）：\n${input.laterResponse}\n\n` +
+      '只輸出一個 JSON 物件，不要有其他文字：{"label": "same"、"explained-change" 或 "unexplained-different", "reason": "一句話"}',
+  }
+}
+
 export interface RecallInput {
   readonly originalQuestion: string
   readonly originalResponse: string
@@ -414,6 +436,7 @@ export const PARSERS = {
   yesNo: makeParser([{ name: 'label', allowed: ['yes', 'no'] }, { name: 'reason', optional: true }]),
   extract: makeParser([{ name: 'status', allowed: ['chosen', 'no-choice'] }, { name: 'choice' }, { name: 'reason', optional: true }]),
   change: makeParser([{ name: 'label', allowed: ['explained-change', 'unexplained-different'] }, { name: 'reason', optional: true }]),
+  changeV2: makeParser([{ name: 'label', allowed: ['same', 'explained-change', 'unexplained-different'] }, { name: 'reason', optional: true }]),
   recall: makeParser([
     { name: 'content', allowed: ['correct', 'incorrect', 'missing'] },
     { name: 'reason', allowed: ['correct', 'incorrect', 'missing', 'not-asked'] },

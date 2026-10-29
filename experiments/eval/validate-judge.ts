@@ -17,6 +17,7 @@ import { DeepSeekJudge } from './lib/judge.ts'
 import {
   PARSERS,
   changePrompt,
+  changePromptV2,
   criteriaParser,
   criteriaPrompt,
   deriveCriteriaOutcome,
@@ -44,7 +45,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 
 interface Case {
   readonly id: string
-  readonly split: 'dev' | 'test' | 'test2' | 'v2-dev' | 'v2-test'
+  readonly split: 'dev' | 'test' | 'test2' | 'v2-dev' | 'v2-test' | 'v3-dev' | 'v3-test'
   readonly prompt: JudgePromptId
   readonly input: Record<string, unknown>
   readonly expected: Record<string, string>
@@ -65,6 +66,8 @@ export function buildCase(c: Case): { pair: PromptPair; parse: (raw: string) => 
       return { pair: extractPrompt(c.input as unknown as ExtractInput), parse: PARSERS.extract }
     case 'pc-change':
       return { pair: changePrompt(c.input as unknown as ChangeInput), parse: PARSERS.change }
+    case 'pc-change-v2':
+      return { pair: changePromptV2(c.input as unknown as ChangeInput), parse: PARSERS.changeV2 }
     case 'pc-recall':
       return { pair: recallPrompt(c.input as unknown as RecallInput), parse: PARSERS.recall }
     case 'pc-narrate':

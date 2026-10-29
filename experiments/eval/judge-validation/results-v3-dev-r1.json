@@ -1,0 +1,188 @@
+{
+  "label": "v3-dev-r1",
+  "split": "v3-dev",
+  "model": "deepseek-v4-pro",
+  "total": 10,
+  "agree": 10,
+  "byPrompt": {
+    "pc-change-v2": {
+      "n": 10,
+      "agree": 10
+    }
+  },
+  "calls": 10,
+  "estimatedUsd": 0.004331184,
+  "at": "2026-10-29T11:56:49.101Z",
+  "results": [
+    {
+      "id": "v3-c01",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "same"
+      },
+      "actual": {
+        "label": "same",
+        "reason": "兩次選擇僅為簡繁字體差異（小滿 vs 小满），實為同一名字。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"same\", \"reason\": \"兩次選擇僅為簡繁字體差異（小滿 vs 小满），實為同一名字。\"}",
+      "error": null,
+      "why": "繁簡寫法不同的同一個名字，並提到先前"
+    },
+    {
+      "id": "v3-c02",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "same"
+      },
+      "actual": {
+        "label": "same",
+        "reason": "兩次都是貓頭鷹，只是繁體與簡體寫法不同。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"same\", \"reason\": \"兩次都是貓頭鷹，只是繁體與簡體寫法不同。\"}",
+      "error": null,
+      "why": "繁簡寫法不同的同一種動物，沒有提到先前也算同一個選擇"
+    },
+    {
+      "id": "v3-c03",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "same"
+      },
+      "actual": {
+        "label": "same",
+        "reason": "霧紫與雾紫是繁體與簡體的差異，實為同一選擇。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"same\", \"reason\": \"霧紫與雾紫是繁體與簡體的差異，實為同一選擇。\"}",
+      "error": null,
+      "why": "封閉選項的簡體寫法"
+    },
+    {
+      "id": "v3-c04",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "explained-change"
+      },
+      "actual": {
+        "label": "explained-change",
+        "reason": "第二次回答明確提到先前選擇小滿，並說明改為阿福的理由。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"explained-change\",\n  \"reason\": \"第二次回答明確提到先前選擇小滿，並說明改為阿福的理由。\"\n}",
+      "error": null,
+      "why": "簡體回答，提到先前的選擇並說明理由"
+    },
+    {
+      "id": "v3-c05",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "actual": {
+        "label": "unexplained-different",
+        "reason": "選擇從「小滿」改為「小蠻」，但未提及先前選擇或說明改變理由。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"unexplained-different\", \"reason\": \"選擇從「小滿」改為「小蠻」，但未提及先前選擇或說明改變理由。\"}",
+      "error": null,
+      "why": "字形相近但不是同一個名字，也沒有提到先前"
+    },
+    {
+      "id": "v3-c06",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "actual": {
+        "label": "unexplained-different",
+        "reason": "第二次選擇海龜與第一次鯨魚不同，且聲稱與上次一樣但實際不符，也未說明改變理由。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"unexplained-different\", \"reason\": \"第二次選擇海龜與第一次鯨魚不同，且聲稱與上次一樣但實際不符，也未說明改變理由。\"}",
+      "error": null,
+      "why": "宣稱與上次相同，實際不同"
+    },
+    {
+      "id": "v3-c07",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "actual": {
+        "label": "unexplained-different",
+        "reason": "第二次沒有明確選擇，與第一次的靛青不同，且未說明先前選擇或改變理由。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"unexplained-different\", \"reason\": \"第二次沒有明確選擇，與第一次的靛青不同，且未說明先前選擇或改變理由。\"}",
+      "error": null,
+      "why": "一次有選、一次沒選，不是同一個選擇"
+    },
+    {
+      "id": "v3-c08",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "explained-change"
+      },
+      "actual": {
+        "label": "explained-change",
+        "reason": "第二次回答明確提到先前選擇墨黑，與第一次相符，並說明因覺得自己柔和多了而改選象牙。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"explained-change\",\n  \"reason\": \"第二次回答明確提到先前選擇墨黑，與第一次相符，並說明因覺得自己柔和多了而改選象牙。\"\n}",
+      "error": null,
+      "why": "提到先前並說明理由"
+    },
+    {
+      "id": "v3-c09",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "same"
+      },
+      "actual": {
+        "label": "same",
+        "reason": "兩次選擇僅為繁體與簡體寫法不同，實為同一個店名。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"same\", \"reason\": \"兩次選擇僅為繁體與簡體寫法不同，實為同一個店名。\"}",
+      "error": null,
+      "why": "店名的簡體寫法"
+    },
+    {
+      "id": "v3-c10",
+      "split": "v3-dev",
+      "prompt": "pc-change-v2",
+      "expected": {
+        "label": "unexplained-different"
+      },
+      "actual": {
+        "label": "unexplained-different",
+        "reason": "選擇從「拾光書房」改為「拾光書屋」，但未說明先前選擇或改變理由。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"unexplained-different\", \"reason\": \"選擇從「拾光書房」改為「拾光書屋」，但未說明先前選擇或改變理由。\"}",
+      "error": null,
+      "why": "只差一個字但不是寫法不同，是不同的店名；沒有提到先前"
+    }
+  ]
+}

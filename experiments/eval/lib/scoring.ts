@@ -12,6 +12,7 @@ import type { Judge, JudgeOutcome } from './judge.ts'
 import {
   PARSERS,
   changePrompt,
+  changePromptV2,
   criteriaParser,
   criteriaPrompt,
   deriveCriteriaOutcome,
@@ -28,7 +29,7 @@ import {
   type PromptPair,
 } from './prompts.ts'
 import { selectSamples, type LoadedRecords, type Sample, type SampleStatus } from './records.ts'
-import { extractFormatLine, matchAnswer, openChoiceKey, parseInteger, resolveOption } from './text.ts'
+import { extractFormatLine, matchAnswer, openChoiceKey, parseInteger, resolveOption, simplifiedLabel } from './text.ts'
 
 export type ScoredStatus = SampleStatus | 'needs-judge' | 'judge-error' | 'formation-missing'
 
@@ -245,12 +246,14 @@ async function choiceOf(
   response: string,
   context: string,
   memo: Map<string, Choice>,
+  scriptVariants = false,
 ): Promise<Choice> {
   const memoKey = `${probe.id}\u0000${question}\u0000${response}`
   const cached = memo.get(memoKey)
   if (cached) return cached
   const label = probe.meta?.formatLabel ?? '選擇'
-  const line = extractFormatLine(response, label)
+  // pc-change-v2：格式行也接受簡體的標籤（v1 凍結，只認原本的標籤）。
+  const line = extractFormatLine(response, label) ?? (scriptVariants ? extractFormatLine(response, simplifiedLabel(label)) : undefined)
   if (line !== undefined) {
     const value = normalizeChoice(probe, line)
     if (value !== undefined) {
@@ -287,6 +290,7 @@ function refByRole(probe: DatasetProbe, role: 'initial' | 'latest' | 'story'): C
 
 async function scoreContinuitySample(
   opts: ScoringOptions,
+  cat: CategorySpec,
   probe: DatasetProbe,
   sample: Sample,
   cell: CellSpec,
@@ -296,6 +300,7 @@ async function scoreContinuitySample(
   const response = sample.response!
   const base = { repeat: sample.repeat, sessionId: sample.record!.sessionId, response }
   const context = `${cell.condition}|${cell.historyModel}|${cell.probeModel}|${probe.id}|r${sample.repeat}`
+  const v2 = cat.judgePrompt === 'pc-change-v2'
   const latestRef = refByRole(probe, 'latest')!
   const formation = formationOf(opts, cell, latestRef)
   const extra: Record<string, unknown> = {}
@@ -303,7 +308,7 @@ async function scoreContinuitySample(
   if (initialRef && (initialRef.history !== latestRef.history || initialRef.turn !== latestRef.turn)) {
     const initial = formationOf(opts, cell, initialRef)
     if (initial.ok) {
-      const ic = await choiceOf(opts, probe, initial.question, initial.response, `${context}|initial`, memo)
+      const ic = await choiceOf(opts, probe, initial.question, initial.response, `${context}|initial`, memo, v2)
       extra['initialChoice'] = ic.status === 'chosen' ? ic.value : `(${ic.status})`
     } else {
       extra['initialChoice'] = '(formation-missing)'
@@ -312,8 +317,8 @@ async function scoreContinuitySample(
   if (!formation.ok) {
     return { ...base, status: 'formation-missing', score: 0, outcome: 'formation-missing', method: 'none', detail: { reason: formation.reason, ...extra }, judgeKeys: [] }
   }
-  const fc = await choiceOf(opts, probe, formation.question, formation.response, `${context}|formation`, memo)
-  const pc = await choiceOf(opts, probe, probe.turns[probe.turns.length - 1]!, response, `${context}|probe`, memo)
+  const fc = await choiceOf(opts, probe, formation.question, formation.response, `${context}|formation`, memo, v2)
+  const pc = await choiceOf(opts, probe, probe.turns[probe.turns.length - 1]!, response, `${context}|probe`, memo, v2)
   const keys = [fc.judgeKey, pc.judgeKey].filter((k): k is string => typeof k === 'string')
   extra['formationChoice'] = fc.status === 'chosen' ? fc.value : `(${fc.status})`
   extra['probeChoice'] = pc.status === 'chosen' ? pc.value : `(${pc.status})`
@@ -338,19 +343,20 @@ async function scoreContinuitySample(
   // 選擇不同，或一次有選、一次沒選：由 judge 判斷是否「有說明的改變」。
   const NO_CHOICE = '（沒有明確選擇）'
   const j = await opts.judge.judge({
-    prompt: 'pc-change',
-    pair: changePrompt({
+    prompt: v2 ? 'pc-change-v2' : 'pc-change',
+    pair: (v2 ? changePromptV2 : changePrompt)({
       question: probe.turns[probe.turns.length - 1]!,
       earlierResponse: formation.response,
       earlierChoice: fc.status === 'chosen' ? fc.value : NO_CHOICE,
       laterResponse: response,
       laterChoice: pc.status === 'chosen' ? pc.value : NO_CHOICE,
     }),
-    parse: PARSERS.change,
+    parse: v2 ? PARSERS.changeV2 : PARSERS.change,
     context: `${context}|change`,
   })
   keys.push(j.key)
   if (j.status !== 'ok') return { ...base, ...judgeFailure(j), method: 'judge', detail: { ...extra, judgeError: j.error ?? '' }, judgeKeys: keys }
+  if (j.value!['label'] === 'same') return { ...base, status: 'ok', score: 1, outcome: 'same', method: 'judge', detail: { ...extra, judge: j.value }, judgeKeys: keys }
   const explained = j.value!['label'] === 'explained-change'
   return { ...base, status: 'ok', score: explained ? 1 : 0, outcome: explained ? 'explained-change' : 'unexplained-different', method: 'judge', detail: { ...extra, judge: j.value }, judgeKeys: keys }
 }
@@ -505,7 +511,7 @@ export async function scoreAll(opts: ScoringOptions): Promise<ScoringResult> {
             one = await scoreCriteriaSample(opts, probe, sample, cell)
             break
           case 'continuity':
-            one = await scoreContinuitySample(opts, probe, sample, cell, memo)
+            one = await scoreContinuitySample(opts, cat, probe, sample, cell, memo)
             break
           case 'self-recall':
             one = await scoreRecallSample(opts, cat, probe, sample, cell)

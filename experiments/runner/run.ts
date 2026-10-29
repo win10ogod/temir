@@ -41,6 +41,7 @@ export const CONDITIONS = {
   'temir-no-snapshot': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-snapshot.yml')],
   // 2026-10-29 起的條件（ADR-0002）：按需披露、關閉 RD、關閉 JitRL 經驗修正。
   'temir-progressive': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'progressive.yml')],
+  'temir-full': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'full-disclosure.yml')],
   'temir-no-rd': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-rd.yml')],
   'temir-no-jitrl': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-jitrl.yml')],
 } as const

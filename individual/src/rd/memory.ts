@@ -7,7 +7,7 @@
  */
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import { clip, clipEnds, isHeard, replyOf } from '../recall/retrieve.ts'
-import { formatDay } from '../self/state.ts'
+import { formatDay, type Significance } from '../self/state.ts'
 import type { Deliberation } from './aux.ts'
 import { discountedReturns, jaccard, termSet, type Correction, type Experience, type Neighbor, type Params, type Scored } from './jitrl.ts'
 
@@ -26,7 +26,9 @@ export interface DecisionData {
   readonly shown: Readonly<Record<string, string>>
   readonly jitrl: boolean
   readonly params: Params
+  /** 思考當時的自我模型與人生敘事版本（PC 的狀態）。 */
   readonly selfVersion: number
+  readonly narrativeVersion?: number
 }
 
 export interface OutcomeData {
@@ -39,6 +41,8 @@ export interface OutcomeData {
   readonly reward: number
   readonly reason: string
   readonly lesson: string
+  readonly feeling?: string
+  readonly significance?: Significance
   readonly selfVersion: number
   readonly heard: string
 }
@@ -96,20 +100,33 @@ export function openDecision(life: LifeStore, session: string): LifeEvent | unde
   return heard.length === 1 ? last : undefined
 }
 
-/** 決定之後那一回合我實際說出口的話：決定之後對方的第一句話，到對方下一句話之前我的最後回覆。 */
-export function turnReply(life: LifeStore, decision: LifeEvent): string {
-  if (!decision.session) return ''
-  let heard = false
-  let reply = ''
+/**
+ * 決定所在的那一回合：決定之後對方的第一句話（決定在它被寫進日誌之前就做出），
+ * 以及到對方下一句話之前我最後說出口的回覆。
+ */
+export function decisionTurn(life: LifeStore, decision: LifeEvent): { heard?: LifeEvent; reply?: LifeEvent; replyText: string } {
+  if (!decision.session) return { replyText: '' }
+  let heard: LifeEvent | undefined
+  let reply: LifeEvent | undefined
+  let replyText = ''
   for (const event of life.following(decision.session, ['dsh/user/message', 'dsh/assistant/message'], decision.seq, 200)) {
     if (isHeard(event)) {
       if (heard) break
-      heard = true
+      heard = event
     } else if (event.kind === 'dsh/assistant/message' && heard) {
-      reply = replyOf(event) || reply
+      const said = replyOf(event)
+      if (said) {
+        reply = event
+        replyText = said
+      }
     }
   }
-  return reply
+  return { ...(heard ? { heard } : {}), ...(reply ? { reply } : {}), replyText }
+}
+
+/** 決定之後那一回合我實際說出口的話。 */
+export function turnReply(life: LifeStore, decision: LifeEvent): string {
+  return decisionTurn(life, decision).replyText
 }
 
 /** 思考提示中列出的相關經驗：依對方的話與當時的話的相似度，取前 n 個。 */
@@ -130,9 +147,25 @@ export function renderExperiences(shown: readonly Experience[]): string {
     .join('\n')
 }
 
+/**
+ * 準備訊息裡的處境不帶「相關的記憶」欄：那是思考時的摘要，可能不完整。
+ * dev2 中，它把一個要列出全部醫囑的問題框成只有膝傷，主模型照著回答，漏掉了回憶裡有的另一項（memory-v2 q13）。
+ * 決定紀錄（rd/decision）仍保留完整的處境。
+ */
+export function preparedSituation(situation: string): string {
+  return situation
+    .split('｜')
+    .filter((part) => !part.trim().startsWith('相關的記憶'))
+    .join('｜')
+}
+
 /** 準備訊息：處境、候選（含經驗修正）、選擇與相關經驗。放在對方的話之後，主模型據此行動。 */
 export function renderPreparation(delib: Deliberation, correction: Correction, near: readonly Neighbor[]): string {
-  const lines = ['（準備：這是你在回應之前的思考與行動準備，不是對方說的話，對方看不到。）', `處境：${delib.situation}`, '你考慮過的做法：']
+  const lines = [
+    '（準備：這是你在回應之前的思考與行動準備，不是對方說的話，對方看不到。準備只是方向；回應的內容以回憶與對話為準，不要只用這裡提到的細節。）',
+    `處境：${preparedSituation(delib.situation)}`,
+    '你考慮過的做法：',
+  ]
   correction.scored.forEach((c, i) => {
     const basis = c.support > 0 ? `${c.support} 個相符的經驗` : c.optimistic ? '沒有相符的經驗，傾向嘗試' : '沒有相符的經驗'
     const adjust = c.q === null ? '' : `｜經驗修正 ${c.normalized >= 0 ? '+' : ''}${c.normalized.toFixed(2)}（${basis}）`

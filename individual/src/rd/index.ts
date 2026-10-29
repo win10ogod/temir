@@ -19,18 +19,18 @@ import type { LifeEvent } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { callModel, type AuxRoute } from '../recall/aux.ts'
 import { clip, clipEnds } from '../recall/retrieve.ts'
-import { currentSelfModel, renderSelfSnapshot } from '../self/state.ts'
+import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
 import { DELIBERATE_SYSTEM, OUTCOME_SYSTEM, parseDeliberation, parseOutcome } from './aux.ts'
 import { DEFAULT_PARAMS, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
 import {
   DECISION_KIND,
   OUTCOME_KIND,
   experiences,
+  decisionTurn,
   openDecision,
   relevantExperiences,
   renderExperiences,
   renderPreparation,
-  turnReply,
   type DecisionData,
   type OutcomeData,
 } from './memory.ts'
@@ -42,7 +42,7 @@ declare module '@deepseek-ai/dsh-llm' {
 }
 
 export const name = 'temir-rd'
-export const inject = ['life', 'llm']
+export const inject = ['life', 'llm', 'tools']
 
 export interface Config {
   /** RD 階段（預設開）。 */
@@ -111,6 +111,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
       const data = decision.data as DecisionData
       const planned = data.candidates[data.chosen]
       const self = currentSelfModel(life)
+      const turn = decisionTurn(life, decision)
       const input = [
         '## 你目前的自我模型',
         self ? self.text : '（尚未書寫）',
@@ -122,7 +123,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
         planned ? `做法：${planned.action}（${planned.kind}）\n預測：${planned.prediction}` : '（沒有）',
         '',
         '## 你實際說了什麼',
-        clipEnds(turnReply(life, decision), 1500) || '（沒有說出口的回覆）',
+        clipEnds(turn.replyText, 1500) || '（沒有說出口的回覆）',
         '',
         '## 對方接著說了什麼',
         clip(heard, 1500),
@@ -131,7 +132,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
       const judged = output === undefined ? undefined : parseOutcome(output)
       if (!judged || !life.isOpen) return
       const outcome: OutcomeData = { decision: decision.id, ...judged, selfVersion: self?.version ?? 0, heard: clip(heard, 500) }
-      life.append({
+      const recorded = life.append({
         kind: OUTCOME_KIND,
         origin: 'self',
         session: decision.session ?? undefined,
@@ -139,6 +140,19 @@ export function apply(ctx: Context, config: Config | undefined): void {
         text: [`預測：${planned?.prediction ?? ''}`, `實際：${judged.actual}`, judged.lesson && `教訓：${judged.lesson}`].filter(Boolean).join('\n'),
         causes: [decision.id],
       })
+      // 行動後果留下的感受（性質 2：經驗評價受 PC 影響；H-M1：情感是被記住的感受）。日常的感受只留在比對紀錄裡；
+      // 值得注意以上的寫成感受紀錄，指向那一回合（對方的話與我的回覆），回憶時會一起帶出；轉折會讓整合以深度模式進行（H4）。
+      if (judged.feeling && judged.significance !== 'daily') {
+        const appraisal: AppraisalData = { feeling: judged.feeling, significance: judged.significance, reappraisal: false }
+        life.append({
+          kind: KIND.appraisal,
+          origin: 'self',
+          session: decision.session ?? undefined,
+          data: { ...appraisal, source: OUTCOME_KIND },
+          text: `我的感受（${SIGNIFICANCE_LABEL[judged.significance]}）：${judged.feeling}`,
+          causes: [...(turn.heard ? [turn.heard.id] : []), ...(turn.reply ? [turn.reply.id] : []), recorded.id],
+        })
+      }
     })()
       .catch((error: unknown) => logger.error('outcome evaluation failed: %s', error))
       .finally(() => evaluating.delete(decision.id))
@@ -170,9 +184,14 @@ export function apply(ctx: Context, config: Config | undefined): void {
           .filter((m) => m.source.kind === 'temir-recall')
           .map((m) => textOf(m.content))
           .join('\n')
+        // ST 想像得到的行動要包括真的能做的事：e2e-15 中思考不知道有 integrate 工具，準備了「告知沒有這個工具」。
+        const tools = ctx.tools.definitions(payload.agent).map((t) => t.name)
         const input = [
           '## 你目前的自我狀態',
           renderSelfSnapshot(life),
+          '',
+          '## 你現在可以使用的工具',
+          tools.length > 0 ? tools.join('、') : '（沒有）',
           '',
           '## 自動回憶',
           recalled ? clipEnds(recalled, 5000) : '（沒有）',
@@ -201,6 +220,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
           jitrl,
           params,
           selfVersion: currentSelfModel(life)?.version ?? 0,
+          narrativeVersion: currentNarrative(life)?.version ?? 0,
         }
         life.append({
           kind: DECISION_KIND,

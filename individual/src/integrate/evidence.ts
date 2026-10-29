@@ -21,11 +21,14 @@ import {
 
 export const INTEGRATION_KIND = 'self/integration'
 export const LESSON_KIND = 'memory/lesson'
+/** 整合期中沒有通過穩定性與適應性判斷、保留下來的修訂提案。 */
+export const PROPOSAL_KIND = 'self/proposal'
 
 const HEARD = 'dsh/user/message'
 const SAID = 'dsh/assistant/message'
 
-export type Trigger = 'idle' | 'pivotal' | 'voluntary'
+/** 整合的觸發方式（不是 H3 的修訂觸發來源）。 */
+export type IntegrationTrigger = 'idle' | 'pivotal' | 'voluntary'
 
 export interface Observables {
   /** a1：事後比對中預測不符（partly 或 no）的比例；沒有事後比對時為 null。 */
@@ -38,6 +41,9 @@ export interface Observables {
   readonly contradictions: number
   /** s2：這次的自我修訂與人生敘事引用的經歷數。 */
   readonly citedExperiences: number
+  /** 提出的 PC 修訂（自我模型、人生敘事、目標）中，通過兩項判斷而採用的數量與保留為提案的數量。 */
+  readonly adopted: number
+  readonly deferred: number
   readonly rounds: number
   readonly outcomes: number
 }
@@ -46,7 +52,7 @@ export interface IntegrationData {
   readonly status: 'completed'
   /** 這次整合涵蓋的事件範圍 (from, to]（seq）。 */
   readonly range: readonly [number, number]
-  readonly trigger: Trigger
+  readonly trigger: IntegrationTrigger
   readonly deep: boolean
   readonly model: string
   /** 模型的原始輸出。 */
@@ -138,9 +144,9 @@ export function collect(life: LifeStore, from: number, limits: Limits = DEFAULT_
 export function renderEvidence(life: LifeStore, ev: Evidence): string {
   const lines: string[] = []
   const self = currentSelfModel(life)
-  lines.push(self ? `## 目前的自我模型（第 ${self.version} 版）` : '## 目前的自我模型', self ? self.text : '尚未書寫。')
+  lines.push(self ? `## 目前的自我模型（第 ${self.version} 版，[${self.eventId}]）` : '## 目前的自我模型', self ? self.text : '尚未書寫。')
   const story = currentNarrative(life)
-  lines.push('', story ? `## 目前的人生敘事（第 ${story.version} 版）` : '## 目前的人生敘事', story ? story.text : '尚未書寫。')
+  lines.push('', story ? `## 目前的人生敘事（第 ${story.version} 版，[${story.eventId}]）` : '## 目前的人生敘事', story ? story.text : '尚未書寫。')
   lines.push('', '## 目前的目標')
   const current = goals(life).filter((g) => g.status === 'active' || g.status === 'paused')
   if (current.length === 0) lines.push('目前沒有目標。')
@@ -181,7 +187,7 @@ export function renderEvidence(life: LifeStore, ev: Evidence): string {
 /** H5 的觀測量（描述性）。 */
 export function observe(
   ev: Evidence,
-  accepted: { readonly contradictions: number; readonly cited: number; readonly goalOps: readonly string[] },
+  accepted: { readonly contradictions: number; readonly cited: number; readonly goalOps: readonly string[]; readonly adopted: number; readonly deferred: number },
 ): Observables {
   const outcomes = ev.outcomes.map((e) => e.data as OutcomeData)
   const goalChanges: Record<string, number> = {}
@@ -196,6 +202,8 @@ export function observe(
     goalChanges,
     contradictions: accepted.contradictions,
     citedExperiences: accepted.cited,
+    adopted: accepted.adopted,
+    deferred: accepted.deferred,
     rounds: ev.rounds.length,
     outcomes: outcomes.length,
   }

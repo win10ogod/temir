@@ -14,7 +14,7 @@
  * 另提供主動回憶的 `recall` 工具；`ids` 參數展開索引中只列出要點的片段。
  *
  * 設定（消融實驗用）：automatic＝自動回憶；expansion＝線索理解與事實擷取；
- * disclosure＝'full'（全部呈現全文）或 'progressive'（只有分數最高的 expand 筆呈現全文，其餘只列索引，ADR-0002 D1）。
+ * disclosure＝'progressive'（預設：只有分數最高的 expand 筆呈現全文，其餘只列索引，ADR-0002 D1）或 'full'（全部呈現全文）。
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-agent'
@@ -41,7 +41,10 @@ export interface Config {
   readonly expansion?: boolean
   /** 自動回憶最多帶入幾段過往片段（預設 full 8、progressive 16）。 */
   readonly limit?: number
-  /** 回憶的披露方式（預設 full）。 */
+  /**
+   * 回憶的披露方式（預設 progressive）。dev2（v2 題目，已暴露，只作診斷）中，progressive 在兩個模型上的記憶主要比較
+   * 都不低於 full（DeepSeek 0.957 vs 0.894、Nemotron 0.979 vs 0.915），注入字數少約三成；依 dev2 規格 §3 改為預設。
+   */
   readonly disclosure?: 'full' | 'progressive'
   /** progressive 時呈現全文的筆數（預設 3）。 */
   readonly expand?: number
@@ -71,7 +74,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const life = ctx.life
   const automatic = config?.automatic ?? true
   const expansion = config?.expansion ?? true
-  const progressive = config?.disclosure === 'progressive'
+  const progressive = (config?.disclosure ?? 'progressive') === 'progressive'
   const limit = config?.limit ?? (progressive ? 16 : 8)
   const render = progressive ? { expand: config?.expand ?? 3 } : {}
   const timeoutMs = config?.auxTimeoutMs ?? 90_000

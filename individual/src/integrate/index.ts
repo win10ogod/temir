@@ -22,7 +22,7 @@ import type {} from '../life/index.ts'
 import { callModel, type AuxRoute } from '../recall/aux.ts'
 import { clip, isHeard } from '../recall/retrieve.ts'
 import { KIND, type AppraisalData } from '../self/state.ts'
-import { INTEGRATION_KIND, collect, integrationStart, renderEvidence, type Trigger } from './evidence.ts'
+import { INTEGRATION_KIND, collect, integrationStart, renderEvidence, type IntegrationTrigger } from './evidence.ts'
 import { DEEP_SYSTEM, INTEGRATE_SYSTEM, applyProposal, parseProposal, validate } from './proposal.ts'
 
 export const name = 'temir-integrate'
@@ -62,13 +62,16 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const timeoutMs = config?.timeoutMs ?? 180_000
   let running: Promise<string> | undefined
 
-  async function integrate(trigger: Trigger, deepRequested: boolean): Promise<string> {
-    const from = integrationStart(life)
-    const ev = collect(life, from)
+  async function integrate(trigger: IntegrationTrigger, deepRequested: boolean): Promise<string> {
+    const since = integrationStart(life)
+    const pivotal = collect(life, since).pivotal
+    const deep = deepRequested || pivotal
+    // 深度整合（H4）重新檢視核心價值、人生敘事與長期目標，需要整段生命的經歷（仍受各類上限約束），
+    // 不只是上次整合之後的新事件；一般整合只看新的經歷。排程都推進到現在。
+    const ev = collect(life, deep ? 0 : since)
     if (ev.rounds.length === 0 && ev.appraisals.length === 0 && ev.outcomes.length === 0) return '上次整合以後沒有新的經歷，這次沒有整合。'
     const route = latestRoute(life)
     if (!route) return '找不到可用的模型路由，這次沒有整合。'
-    const deep = deepRequested || ev.pivotal
     const model = `${route.provider}/${route.model}`
     const input = renderEvidence(life, ev)
     let output: string
@@ -83,18 +86,20 @@ export function apply(ctx: Context, config: Config | undefined): void {
     }
     const proposal = parseProposal(output)
     if (!proposal) return '整合的輸出無法解析，這次沒有修改任何紀錄。'
-    const { accepted, rejected } = validate(life, ev, proposal)
-    const result = life.transaction(() => applyProposal(life, ev, accepted, rejected, { trigger, deep, model, output }))
+    const { accepted, rejected, deferred } = validate(life, ev, proposal)
+    const result = life.transaction(() => applyProposal(life, ev, accepted, rejected, deferred, { trigger, deep, model, output }))
     const parts = [
       `${deep ? '深度' : ''}整合完成（${result.integration}）：`,
       `教訓 ${accepted.lessons.length}、重新評價 ${accepted.reappraisals.length}、自我模型${accepted.selfRevision ? '已修訂' : '未修訂'}、人生敘事${accepted.story ? '已改寫' : '未改寫'}、目標變更 ${accepted.goals.length}、過時事實 ${accepted.outdated.length}；`,
-      `未解的矛盾 ${accepted.contradictions.length} 條；丟棄 ${rejected.length} 項${rejected.length > 0 ? `（${rejected.map((r) => `${r.item}：${r.reason}`).join('；')}）` : ''}。`,
+      `未解的矛盾 ${accepted.contradictions.length} 條；`,
+      `保留為提案 ${deferred.length} 項${deferred.length > 0 ? `（${deferred.map((d) => `${d.kind}：${d.reason}`).join('；')}）` : ''}；`,
+      `丟棄 ${rejected.length} 項${rejected.length > 0 ? `（${rejected.map((r) => `${r.item}：${r.reason}`).join('；')}）` : ''}。`,
     ]
     if (accepted.change) parts.push(`\n${accepted.change}`)
     return parts.join('')
   }
 
-  function start(trigger: Trigger, deep: boolean): Promise<string> {
+  function start(trigger: IntegrationTrigger, deep: boolean): Promise<string> {
     if (running) return running
     running = integrate(trigger, deep)
       .catch((error: unknown) => {

@@ -3,7 +3,7 @@
 **一個在 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 上持續存在的人工個體。**
 它記得自己經歷過的事，自己書寫自己是誰，可以形成、放棄自己的目標，也可以拒絕。
 
-> *An artificial individual that persists on top of DeepSeek Harness: an append-only life log that every conversation feeds into, automatic recall that brings relevant past experiences (and the feelings recorded about them) into each step, a self-model written by the individual itself, and its own goals. No preset name, identity or personality. Implemented entirely as DSH plugins (TypeScript, no fork).*
+> *An artificial individual that persists on top of DeepSeek Harness: an append-only life log that every conversation feeds into, automatic recall that brings relevant past experiences (and the feelings recorded about them) into each step, a self-model written by the individual itself, and its own goals. An initial persona can be given as the starting point of its personality and is revised by experience; without one it starts blank. Implemented entirely as DSH plugins (TypeScript, no fork).*
 
 這不是一個「助理」的記憶外掛。專案的研究問題是：
 
@@ -17,7 +17,7 @@
 
 | | 原始 DeepSeek Harness | 加上特密爾的個體插件 |
 |---|---|---|
-| 身份 | 預設角色「You are a coding agent…」 | 沒有預設名字、身份或性格；只陳述處境事實 |
+| 身份 | 預設角色「You are a coding agent…」 | 可以給初始人設（名字、身份、性格、背景），它是人格的起點，會隨經歷改變；不給則從空白開始。系統提示只陳述處境事實 |
 | 跨對話記憶 | 沒有設計中的跨 session 記憶（能力強的模型有時會自己翻舊 session 檔、寫筆記，見下方實驗） | 所有 session 的事件都寫進同一份只增不改的生命日誌 |
 | 回憶 | 無 | 每一步自動回憶相關經歷，連同當時記下的感受與要點 |
 | 自我 | 無 | 自我模型（我現在是誰）與人生敘事（我怎麼變成這樣）都由個體自己書寫、修訂，舊版本保留 |
@@ -81,6 +81,13 @@ TEMIR_MODEL=local scripts/temir.sh chat   # 改用本機模型（設定見 dsh/l
 scripts/temir.sh chat --model nemotron    # 改用 OpenRouter 上的 NVIDIA Nemotron（需要 OPENROUTER_API_KEY）
 ```
 
+**初始人設（可省略）**：寫一個 JSON 檔，例如 `{"name": "…", "selfModel": "我是誰、在乎什麼、傾向怎麼做", "story": "背景故事"}`，以 `TEMIR_PERSONA_FILE=檔案路徑` 啟動。它只在個體第一次誕生、還沒有修訂過自己時，寫成自我模型與人生敘事的第一個版本；之後個體可以改變它。
+
+**檢視內在狀態**：`scripts/temir.sh state`。唯讀，不呼叫模型，可以看到：
+- 自我模型、人生敘事、目標與重要感受；
+- 教訓與最近一次整合；
+- 最近幾次 PC 循環：E 刺激、ST 思考、RD 準備與預測、A 行動、事後比對。
+
 開發：`npm run typecheck`、`npm test`。測試時請設定 `TEMIR_HOME` 指向另一個目錄，不要寫進正式個體的生命。
 
 ## 實驗：與原始 DSH 的對照
@@ -122,7 +129,7 @@ Nemotron 上通過「決定性差異」門檻（差 0.83，p＝3.6×10⁻¹²）
 
 - 回憶以詞彙檢索為主（CJK 二字組＋模型擴充線索詞），沒有向量嵌入；換句話說差太遠時仍可能找不到。
 - RD 階段、JitRL 經驗修正、整合期與人生敘事已實作，只有端到端測試，效果還沒有實驗證據；JitRL 的處境相似度門檻等數值是本專案的選擇，尚待以重播調整。
-- 按需披露（只給索引、需要時展開）已實作，但預設仍是全文呈現，等實驗比較後再決定。
+- 按需披露（最相關的 3 筆給全文、其餘只給索引、需要時展開）是預設。依據是在已暴露的 v2 題目上的開發檢查（dev2：兩個模型都不輸全文、注入字數少約三成），正式比較尚未做。
 - 「記憶與感受參與決策」目前只有本頁實驗量測到的範圍；其他主張都還沒有消融證據。
 - Web UI 是 DSH 原生的介面，個體的內在狀態（自我模型、生命日誌）目前只能用 CLI 與資料庫檢視。
 - 只在 Linux（WSL2）上測試過。

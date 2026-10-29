@@ -1,0 +1,4 @@
+# 全文呈現（ADR-0002 D1 的另一種模式）：自動回憶的片段全部呈現全文，上限 8 筆；2026-10-29 起預設是 progressive。
+- id: temir-recall
+  config:
+    disclosure: full

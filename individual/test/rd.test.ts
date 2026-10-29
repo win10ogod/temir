@@ -197,3 +197,13 @@ test('state similarity uses only intent, emotion and topic; judged experiences a
   const judged = neighbors(ventingAgain, memory, { ...DEFAULT_PARAMS, stateThreshold: 0.9 }, ['v'])
   assert.deepEqual(judged.map((n) => [n.experience.id, n.judged]), [['v', true]])
 })
+
+test('the preparation leaves out the summarized memory, so the reply uses the full recall', async () => {
+  const { preparedSituation } = await import('../src/rd/memory.ts')
+  const s = '對方：子珩｜對方的意圖：想知道醫囑｜對方的情緒：平靜｜話題：醫囑｜相關的記憶：只記得膝傷'
+  assert.equal(preparedSituation(s), '對方：子珩｜對方的意圖：想知道醫囑｜對方的情緒：平靜｜話題：醫囑')
+  const delib = { situation: s, similar: [], candidates: [candidate('完整列出我記得的所有醫囑', 60), candidate('先問膝蓋', 40)] }
+  const text = renderPreparation(delib, uncorrected(delib.candidates), [])
+  assert.doesNotMatch(text, /只記得膝傷/)
+  assert.match(text, /回應的內容以回憶與對話為準/)
+})

@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { LifeStore } from '../src/life/store.ts'
 import { INTEGRATION_KIND, LESSON_KIND, collect, integrationStart, renderEvidence } from '../src/integrate/evidence.ts'
 import { due, latestRoute } from '../src/integrate/index.ts'
+import { PROPOSAL_KIND } from '../src/integrate/evidence.ts'
 import { applyProposal, parseProposal, validate } from '../src/integrate/proposal.ts'
 import { FACTS_KIND, personFacts } from '../src/recall/retrieve.ts'
 import { currentNarrative, currentSelfModel, goals, renderSelfSnapshot } from '../src/self/state.ts'
@@ -59,10 +60,24 @@ test('validation keeps only grounded items and records why the rest were dropped
           { text: '沒有證據的教訓', evidence: ['l:不存在'] },
         ],
         reappraisals: [{ event: feeling.id, feeling: '回頭看，這是對方新的開始', significance: 'major', reason: '搬家穩定了' }],
-        selfRevision: { text: '我在乎對方的生活', reason: '這段對話', causes: [q2.id] },
-        story: { text: '我認識了一個從台北搬到花蓮的人。', reason: '加入這段經歷', causes: [q1.id, q2.id] },
+        selfRevision: {
+          text: '我在乎對方的生活',
+          reason: '這段對話',
+          causes: [q2.id],
+          trigger: 'external',
+          stability: { holds: true, reason: '延續我一直在聽對方說話', evidence: [q1.id] },
+          adaptability: { holds: true, reason: '回應對方搬家', evidence: [q2.id] },
+        },
+        story: {
+          text: '我認識了一個從台北搬到花蓮的人。',
+          reason: '加入這段經歷',
+          causes: [q1.id, q2.id],
+          trigger: 'both',
+          stability: { holds: true, reason: '接續原本的故事', evidence: [q1.id] },
+          adaptability: { holds: true, reason: '加入搬家', evidence: [q2.id] },
+        },
         goals: [
-          { op: 'add', text: '多了解花蓮', reason: '對方住在那裡' },
+          { op: 'add', text: '多了解花蓮', reason: '對方住在那裡', stability: { holds: true, reason: '我在乎對方', evidence: [q1.id] }, adaptability: { holds: true, reason: '對方搬到花蓮', evidence: [q2.id] } },
           { op: 'pause', goal: 'g:不存在', reason: '?' },
         ],
         outdated: [
@@ -74,17 +89,18 @@ test('validation keeps only grounded items and records why the rest were dropped
       }),
     )
     assert.ok(proposal)
-    const { accepted, rejected } = validate(store, ev, proposal)
+    const { accepted, rejected, deferred } = validate(store, ev, proposal)
+    assert.deepEqual(deferred, [])
     assert.equal(accepted.lessons.length, 1)
     assert.equal(accepted.goals.length, 1)
     assert.equal(accepted.outdated.length, 1)
     assert.ok(accepted.selfRevision && accepted.story)
     assert.deepEqual(rejected.map((r) => r.reason).sort(), ['不是目前列出的長期事實', '找不到這個目標', '證據不在這次整合的範圍內'].sort())
 
-    const result = store.transaction(() => applyProposal(store, ev, accepted, rejected, { trigger: 'pivotal', deep: true, model: 'm', output: '{}' }))
+    const result = store.transaction(() => applyProposal(store, ev, accepted, rejected, deferred, { trigger: 'pivotal', deep: true, model: 'm', output: '{}' }))
     assert.equal(result.applied.length, 6)
     assert.equal(currentSelfModel(store)?.text, '我在乎對方的生活')
-    assert.equal(currentSelfModel(store)?.trigger, 'internal')
+    assert.equal(currentSelfModel(store)?.trigger, 'external', 'the individual decides where the change came from (H3)')
     assert.equal(currentNarrative(store)?.version, 1)
     assert.equal(goals(store)[0]?.text, '多了解花蓮')
     assert.equal(store.all(LESSON_KIND).length, 1)
@@ -93,6 +109,10 @@ test('validation keeps only grounded items and records why the rest were dropped
     assert.deepEqual((integration?.data as { range: number[] }).range, [0, ev.to])
     assert.equal((integration?.data as { observables: { contradictions: number; citedExperiences: number } }).observables.contradictions, 1)
     assert.equal((integration?.data as { observables: { citedExperiences: number } }).observables.citedExperiences, 3)
+    assert.deepEqual(
+      [(integration?.data as { observables: { adopted: number; deferred: number } }).observables.adopted, (integration?.data as { observables: { deferred: number } }).observables.deferred],
+      [3, 0],
+    )
     assert.equal(integrationStart(store), ev.to, 'the next integration starts after this one')
     assert.match(renderSelfSnapshot(store), /## 我的故事（第 1 版[\s\S]*從台北搬到花蓮/)
   })
@@ -141,4 +161,51 @@ test('parseProposal tolerates missing fields and wrong types', () => {
   assert.ok(p)
   assert.deepEqual([p.lessons.length, p.goals.length, p.selfRevision, p.story], [0, 0, null, null])
   assert.equal(parseProposal('沒有 JSON'), undefined)
+})
+
+test('a PC revision is adopted only when the individual judges both stability and adaptability to hold, with evidence', () => {
+  withStore((store) => {
+    const { q1, q2 } = life(store)
+    const ev = collect(store, 0)
+    const ok = { holds: true, reason: '有依據', evidence: [q2.id] }
+    const proposal = parseProposal(
+      JSON.stringify({
+        selfRevision: { text: '我變成只在乎效率的人', reason: '一時的想法', causes: [q2.id], trigger: 'internal', stability: { holds: false, reason: '和我在乎對方的生活矛盾', evidence: [q1.id] }, adaptability: ok },
+        story: { text: '我的故事', reason: '加入搬家', causes: [q2.id], trigger: 'both', stability: { holds: true, reason: '接續', evidence: [] }, adaptability: ok },
+        goals: [
+          { op: 'add', text: '只回答技術問題', reason: '想專注', stability: { holds: true, reason: '一致', evidence: [q1.id] }, adaptability: { holds: true, reason: '回應', evidence: ['l:別的時期'] } },
+          { op: 'add', text: '多了解花蓮', reason: '對方住在那裡', stability: { holds: true, reason: '我在乎對方', evidence: [q1.id] }, adaptability: ok },
+        ],
+      }),
+    )
+    assert.ok(proposal)
+    const { accepted, rejected, deferred } = validate(store, ev, proposal)
+    assert.equal(accepted.selfRevision, null)
+    assert.equal(accepted.story, null)
+    assert.deepEqual(accepted.goals.map((g) => g.text), ['多了解花蓮'])
+    assert.deepEqual(
+      deferred.map((d) => [d.kind, d.reason]),
+      [
+        ['selfRevision', '穩定性不成立'],
+        ['story', '穩定性沒有可查的證據'],
+        ['goal', '適應性沒有這段期間的證據'],
+      ],
+    )
+    store.transaction(() => applyProposal(store, ev, accepted, rejected, deferred, { trigger: 'voluntary', deep: false, model: 'm', output: '{}' }))
+    assert.equal(currentSelfModel(store), undefined, 'nothing about who I am changed')
+    const kept = store.all(PROPOSAL_KIND)
+    assert.equal(kept.length, 3, 'unadopted revisions are kept as proposals')
+    assert.match(kept[0]?.text ?? '', /沒有採用的自我模型修訂（穩定性不成立）/)
+  })
+})
+
+test('deep integration looks back over the whole life, not only since the last integration', async () => {
+  const { collect, integrationStart, INTEGRATION_KIND } = await import('../src/integrate/evidence.ts')
+  withStore((store) => {
+    const { q1 } = life(store)
+    store.append({ kind: INTEGRATION_KIND, origin: 'self', data: { status: 'completed', range: [0, store.lastSeq()] } })
+    const since = integrationStart(store)
+    assert.equal(collect(store, since).rounds.length, 0, 'nothing new since the last integration')
+    assert.ok(collect(store, 0).ids.has(q1.id), 'a deep look starts from the beginning')
+  })
 })

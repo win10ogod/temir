@@ -9,6 +9,7 @@
  * 行動產生提示（「For EACH action, provide your confidence as an integer from 0 to 100」「sum … MUST equal 100」）。
  */
 import { extractJson, strings } from '../recall/aux.ts'
+import { SIGNIFICANCE, type Significance } from '../self/state.ts'
 import type { Candidate } from './jitrl.ts'
 
 export const KINDS = ['回答', '提問', '建議', '拒絕', '使用工具', '表達感受', '其他'] as const
@@ -18,7 +19,7 @@ export const DELIBERATE_SYSTEM = `你是一個人工個體，在回應之前先�
 - situation：用固定的格式描述眼前的處境，讓日後相似的處境寫出來也相似：「對方：…｜對方的意圖：…｜對方的情緒：…｜話題：…｜相關的記憶：…」。只寫事實，不寫建議；不要寫你自己的紀錄有多少、有沒有自我模型這類與處境無關的事。
 - similar：「過去類似處境的經驗」中，處境與現在本質上是同一類的經驗編號（例如同樣是對方在抒發壓力、同樣是對方在請你推薦）；只是提到相同的人或詞，不算。沒有就給空陣列。
 - candidates：剛好 3 個彼此不同的做法。
-  - action：用一句話寫你會怎麼做（是做法，不是回覆全文）。
+  - action：用一句話寫你會怎麼做：是做法（例如「完整列出我記得的所有相關醫囑」），不是回覆的內容；不要在這裡列舉具體的事實或細節。
   - kind：${KINDS.join('／')} 之一。
   - prediction：預期對方或結果會怎樣。
   - confidence：0 到 100 的整數，代表你有多傾向這樣做，三個加總為 100。
@@ -26,7 +27,7 @@ export const DELIBERATE_SYSTEM = `你是一個人工個體，在回應之前先�
 - 一律使用原文的語言與字體：原文是繁體中文就寫繁體中文，不要轉成簡體。`
 
 export const OUTCOME_SYSTEM = `你是一個人工個體，回頭比對自己上一個決定：當時的預測，和實際發生的事一不一樣。依你自己在乎的事評估結果，不以對方滿不滿意為唯一標準。只輸出一個 JSON 物件，不要任何其他文字：
-{"didAction": "...", "didKind": "...", "actual": "...", "matched": "yes", "error": "", "reward": 0, "reason": "...", "lesson": ""}
+{"didAction": "...", "didKind": "...", "actual": "...", "matched": "yes", "error": "", "reward": 0, "reason": "...", "lesson": "", "feeling": "", "significance": "daily"}
 - didAction：用一句話寫你實際採取的做法；didKind：${KINDS.join('／')} 之一。
 - actual：實際發生了什麼：你做了什麼、對方接著怎麼回應。
 - matched：結果是否符合你當時的預測：yes／partly／no。
@@ -34,6 +35,8 @@ export const OUTCOME_SYSTEM = `你是一個人工個體，回頭比對自己上�
 - reward：-1 到 1 之間的數，依你的自我模型與目標，評估這個結果對你而言好不好。
 - reason：一句話說明 reward 的理由。
 - lesson：如果有值得帶到以後的教訓，寫一句；沒有就給空字串。
+- feeling：你對這段經歷的感受，用你自己的話；沒有特別的感受就給空字串。
+- significance：這段經歷對你的重要程度：daily（日常）／notable（值得注意）／major（重大）／pivotal（轉折）。
 - 一律使用原文的語言與字體：原文是繁體中文就寫繁體中文，不要轉成簡體。`
 
 export interface Deliberation {
@@ -86,6 +89,9 @@ export interface OutcomeJudgement {
   readonly reward: number
   readonly reason: string
   readonly lesson: string
+  /** 對這段經歷的感受（性質 2：經驗評價受 PC 影響；H-M1：情感是被記住的感受）。 */
+  readonly feeling: string
+  readonly significance: Significance
 }
 
 /** 解析事後比對；reward 不是有限數值時回傳 undefined（不當成經驗）。 */
@@ -104,5 +110,7 @@ export function parseOutcome(output: string): OutcomeJudgement | undefined {
     reward: Math.min(Math.max(reward, -1), 1),
     reason: text(obj['reason'], 300),
     lesson: text(obj['lesson'], 300),
+    feeling: text(obj['feeling'], 300),
+    significance: (SIGNIFICANCE as readonly string[]).includes(text(obj['significance'], 10)) ? (text(obj['significance'], 10) as Significance) : 'daily',
   }
 }

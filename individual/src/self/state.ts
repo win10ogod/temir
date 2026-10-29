@@ -30,6 +30,8 @@ export const GOAL_STATUS_LABEL: Record<GoalStatus, string> = {
 }
 
 export const KIND = {
+  /** 創造者給予的初始人設（原樣保存）。 */
+  persona: 'self/persona',
   selfRevision: 'self/revision',
   narrative: 'self/narrative',
   goalChange: 'goal/change',
@@ -41,6 +43,54 @@ export interface SelfRevisionData {
   readonly text: string
   readonly reason: string
   readonly trigger: Trigger
+}
+
+/**
+ * 初始人設：PC 的初始狀態，由創造者給予。它寫成自我模型（與人生敘事）的第一個版本，之後和其他版本一樣，
+ * 可以在循環中被個體修訂（使用者 2026-10-29：「可以給予其初始人設，但這是可在循環中改變的可變項」）。
+ */
+export interface PersonaData {
+  readonly name?: string
+  /** 我是誰、在乎什麼、傾向怎麼做。 */
+  readonly selfModel: string
+  /** 背景故事（可省略）。 */
+  readonly story?: string
+  readonly source: string
+}
+
+/**
+ * 生命還沒有任何自我修訂時，把初始人設寫成自我模型第 1 版（與人生敘事第 1 版）；已經有自我修訂就不動，
+ * 因為那表示個體已經從起點走開了。回傳寫入的事件 id；沒有寫入時回傳空陣列。
+ */
+export function applyPersona(life: LifeStore, persona: PersonaData): string[] {
+  if (life.latest(KIND.selfRevision) || life.latest(KIND.persona)) return []
+  return life.transaction(() => {
+    const given = life.append({ kind: KIND.persona, origin: 'body', data: persona, text: `創造者給我的初始人設：${persona.name ? `名字 ${persona.name}。` : ''}${persona.selfModel}` })
+    const self = persona.name ? `我的名字是${persona.name}。\n${persona.selfModel}` : persona.selfModel
+    const reason = '創造者給予的初始人設：這是我的起點，可以在經歷中改變。'
+    const ids = [
+      given.id,
+      life.append({
+        kind: KIND.selfRevision,
+        origin: 'self',
+        data: { version: 1, text: self, reason, trigger: 'external' } satisfies SelfRevisionData,
+        text: `我的自我模型（第 1 版，初始人設）。${self}`,
+        causes: [given.id],
+      }).id,
+    ]
+    if (persona.story) {
+      ids.push(
+        life.append({
+          kind: KIND.narrative,
+          origin: 'self',
+          data: { version: 1, text: persona.story, reason } satisfies NarrativeData,
+          text: `我的人生敘事（第 1 版，初始人設）。${persona.story}`,
+          causes: [given.id],
+        }).id,
+      )
+    }
+    return ids
+  })
 }
 
 /** 人生敘事（hypotheses.md H-N）：個體用第一人稱寫的「我經歷了什麼、怎麼變成現在這樣」，引用經歷。 */
@@ -131,17 +181,27 @@ export function formatDay(ts: number): string {
   return dayFormat.format(new Date(ts))
 }
 
+/** 這個版本是誰寫的：源自初始人設（創造者給予），或個體自己寫下。 */
+function authorship(life: LifeStore, eventId: string): string {
+  const fromPersona = life.get(eventId)?.causes.some((id) => life.get(id)?.kind === KIND.persona)
+  return fromPersona ? '初始人設，由創造你的人給予' : '由你寫下'
+}
+
 /** 每一步都附在對話中的自我狀態快照。 */
 export function renderSelfSnapshot(life: LifeStore): string {
   const lines: string[] = ['（以下是你的生命紀錄中目前的自我狀態，由系統自動附上。）', '']
   const self = currentSelfModel(life)
   if (self) {
-    lines.push(`## 自我模型（第 ${self.version} 版，${formatTime(self.ts)} 由你寫下）`, self.text)
+    lines.push(`## 自我模型（第 ${self.version} 版，${formatTime(self.ts)}，${authorship(life, self.eventId)}）`, self.text)
   } else {
     lines.push('## 自我模型', '尚未書寫。')
   }
   const story = currentNarrative(life)
-  lines.push('', story ? `## 我的故事（第 ${story.version} 版，${formatTime(story.ts)} 由你寫下）` : '## 我的故事', story ? story.text : '尚未書寫。')
+  lines.push(
+    '',
+    story ? `## 我的故事（第 ${story.version} 版，${formatTime(story.ts)}，${authorship(life, story.eventId)}）` : '## 我的故事',
+    story ? story.text : '尚未書寫。',
+  )
   lines.push('', '## 目標')
   const current = goals(life).filter((g) => g.status === 'active' || g.status === 'paused')
   if (current.length === 0) lines.push('目前沒有目標。')

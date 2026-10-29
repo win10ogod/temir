@@ -9,7 +9,7 @@
  */
 import { DatabaseSync } from 'node:sqlite'
 import { randomUUID } from 'node:crypto'
-import { mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 /** 事件的來源類別。 */
@@ -166,10 +166,10 @@ export class LifeStore {
   readonly individualId: string
   readonly #db: DatabaseSync
 
-  private constructor(path: string, db: DatabaseSync) {
+  private constructor(path: string, db: DatabaseSync, individualId?: string) {
     this.path = path
     this.#db = db
-    this.individualId = this.#ensureBirth()
+    this.individualId = individualId ?? this.#ensureBirth()
   }
 
   /** 開啟（或建立）一個個體的生命日誌。`home` 是個體的資料目錄。 */
@@ -180,6 +180,22 @@ export class LifeStore {
     db.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA synchronous=NORMAL;')
     db.exec(SCHEMA)
     return new LifeStore(path, db)
+  }
+
+  /**
+   * 唯讀開啟既有的生命日誌（檢視工具用）：不建立資料庫、不寫入誕生事件、不改變任何東西。
+   * 個體還沒誕生（沒有 life.db）時回傳 undefined。
+   */
+  static openReadOnly(home: string): LifeStore | undefined {
+    const path = join(home, 'life.db')
+    if (!existsSync(path)) return undefined
+    const db = new DatabaseSync(path, { readOnly: true })
+    const row = db.prepare(`SELECT value FROM meta WHERE key = 'individual_id'`).get() as { value: string } | undefined
+    if (!row) {
+      db.close()
+      return undefined
+    }
+    return new LifeStore(path, db, row.value)
   }
 
   close(): void {
@@ -381,6 +397,22 @@ export class LifeStore {
          AND substr(text, 1, ?) = ? ORDER BY seq DESC LIMIT 1`,
       )
       .get(session, seq, kind, textPrefix.length, textPrefix) as Row | undefined
+    return row ? toEvent(row) : undefined
+  }
+
+  /** 同一 session 中 seq 在 (after, until] 之間的所有事件（不論有沒有檢索文字），由舊到新。 */
+  slice(session: string, after: number, until: number): LifeEvent[] {
+    const rows = this.#db
+      .prepare(`SELECT * FROM events WHERE session = ? AND seq > ? AND seq <= ? ORDER BY seq ASC`)
+      .all(session, after, until) as unknown as Row[]
+    return rows.map(toEvent)
+  }
+
+  /** 同一 session 中排在 `seq` 之前的最後一筆指定 kind 事件（不論有沒有檢索文字）。 */
+  lastBefore(session: string, kind: string, seq: number): LifeEvent | undefined {
+    const row = this.#db
+      .prepare(`SELECT * FROM events WHERE session = ? AND seq < ? AND kind = ? ORDER BY seq DESC LIMIT 1`)
+      .get(session, seq, kind) as Row | undefined
     return row ? toEvent(row) : undefined
   }
 

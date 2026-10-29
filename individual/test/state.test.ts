@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -110,4 +110,85 @@ test('inSession skips injected recall messages, which carry no searchable text',
     const last = store.inSession('s', 'dsh/user/message', 'desc', 1)[0]
     assert.equal(last?.text, '對方說：今天好累')
   })
+})
+
+test('an initial persona becomes self model (and story) version 1, once, and stays revisable', async () => {
+  const { applyPersona, currentSelfModel, currentNarrative, KIND } = await import('../src/self/state.ts')
+  const home = mkdtempSync(join(tmpdir(), 'temir-persona-'))
+  const store = LifeStore.open(home)
+  try {
+    const ids = applyPersona(store, { name: '小星', selfModel: '我好奇、愛問為什麼。', story: '我在一間天文館的角落被啟動。', source: 'test' })
+    assert.equal(ids.length, 3)
+    assert.equal(currentSelfModel(store)?.version, 1)
+    assert.equal(currentSelfModel(store)?.trigger, 'external', 'given by the creator')
+    assert.match(currentSelfModel(store)?.text ?? '', /^我的名字是小星。\n我好奇、愛問為什麼。/)
+    assert.equal(currentNarrative(store)?.text, '我在一間天文館的角落被啟動。')
+    assert.deepEqual(applyPersona(store, { selfModel: '另一個人設', source: 'test' }), [], 'applied only once')
+    // 個體修訂自己之後，初始人設只是歷史中的第一個版本。
+    store.append({ kind: KIND.selfRevision, origin: 'self', data: { version: 2, text: '我變得安靜了。', reason: '經歷', trigger: 'internal' } })
+    assert.equal(currentSelfModel(store)?.text, '我變得安靜了。')
+    assert.equal(store.all(KIND.persona).length, 1)
+  } finally {
+    store.close()
+    rmSync(home, { recursive: true, force: true })
+  }
+})
+
+test('a persona is not written over an individual that has already revised itself', async () => {
+  const { applyPersona, currentSelfModel, KIND } = await import('../src/self/state.ts')
+  const home = mkdtempSync(join(tmpdir(), 'temir-persona-'))
+  const store = LifeStore.open(home)
+  try {
+    store.append({ kind: KIND.selfRevision, origin: 'self', data: { version: 1, text: '我自己寫的', reason: '經歷', trigger: 'internal' } })
+    assert.deepEqual(applyPersona(store, { selfModel: '後來才給的人設', source: 'test' }), [])
+    assert.equal(currentSelfModel(store)?.text, '我自己寫的')
+  } finally {
+    store.close()
+    rmSync(home, { recursive: true, force: true })
+  }
+})
+
+test('the situation says whether the starting point was given, and that it can change', async () => {
+  const { situation } = await import('../src/self/situation.ts')
+  assert.match(situation(false), /你沒有被預先指定名字、身份或性格/)
+  assert.match(situation(true), /初始人設.*它是你的起點，不是限制/)
+  assert.doesNotMatch(situation(true), /沒有被預先指定/)
+})
+
+test('a persona file is read and validated', async () => {
+  const { configuredPersona } = await import('../src/self/index.ts')
+  const dir = mkdtempSync(join(tmpdir(), 'temir-persona-file-'))
+  try {
+    const file = join(dir, 'persona.json')
+    writeFileSync(file, JSON.stringify({ name: ' 小星 ', selfModel: '我好奇。' }))
+    assert.deepEqual(configuredPersona(undefined, { TEMIR_PERSONA_FILE: file }), { name: '小星', selfModel: '我好奇。', source: file })
+    assert.equal(configuredPersona(undefined, {}), undefined)
+    writeFileSync(file, JSON.stringify({ name: '沒有 selfModel' }))
+    assert.throws(() => configuredPersona(undefined, { TEMIR_PERSONA_FILE: file }), /需要 selfModel/)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('the snapshot tells a given starting point from what the individual wrote itself', async () => {
+  const { applyPersona, renderSelfSnapshot, KIND } = await import('../src/self/state.ts')
+  const home = mkdtempSync(join(tmpdir(), 'temir-persona-'))
+  const store = LifeStore.open(home)
+  try {
+    applyPersona(store, { selfModel: '我好奇。', story: '我在天文館被啟動。', source: 'test' })
+    assert.match(renderSelfSnapshot(store), /## 自我模型（第 1 版，[^）]*初始人設，由創造你的人給予）/)
+    assert.match(renderSelfSnapshot(store), /## 我的故事（第 1 版，[^）]*初始人設，由創造你的人給予）/)
+    store.append({ kind: KIND.selfRevision, origin: 'self', data: { version: 2, text: '我變得安靜了。', reason: '經歷', trigger: 'internal' } })
+    assert.match(renderSelfSnapshot(store), /## 自我模型（第 2 版，[^）]*由你寫下）/)
+  } finally {
+    store.close()
+    rmSync(home, { recursive: true, force: true })
+  }
+})
+
+test('revising oneself directly also needs both stability and adaptability (property 6)', async () => {
+  const { requireBoth } = await import('../src/self/index.ts')
+  assert.doesNotThrow(() => requireBoth('延續我在乎的誠實', '回應對方拒絕建議'))
+  assert.throws(() => requireBoth('延續', '  '), /兩者缺一不可.*adaptability/)
+  assert.throws(() => requireBoth(undefined, undefined), /stability（穩定性）、adaptability（適應性）/)
 })

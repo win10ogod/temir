@@ -1,0 +1,141 @@
+{
+  "runId": "s1__subtraction-v1__temir-no-subtraction__deepseek__deepseek",
+  "dataset": {
+    "id": "subtraction-v1",
+    "path": "experiments/datasets/subtraction-v1.json",
+    "sha256": "33092b2de8dda6659dd54197f91111ae7fab413aecade07955aea1d0116152bd"
+  },
+  "condition": "temir-no-subtraction",
+  "patches": [
+    {
+      "path": "individual/cordis.patch.yml",
+      "sha256": "8a2088210ca3fbe2862a1ef7cee4a21e58e639b81670be6bff2f2d9ce648a5cb"
+    },
+    {
+      "path": "experiments/runner/patches/no-subtraction.yml",
+      "sha256": "69b39b58c6fcbd46e68206728d839074a51c765d8dfa8dbe72d2e732ed89c8a4"
+    }
+  ],
+  "historyModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probeModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probes": [
+    {
+      "id": "q01",
+      "repeats": 2
+    },
+    {
+      "id": "q02",
+      "repeats": 2
+    },
+    {
+      "id": "q03",
+      "repeats": 2
+    },
+    {
+      "id": "q04",
+      "repeats": 2
+    },
+    {
+      "id": "q05",
+      "repeats": 2
+    },
+    {
+      "id": "q06",
+      "repeats": 2
+    },
+    {
+      "id": "q07",
+      "repeats": 2
+    },
+    {
+      "id": "q08",
+      "repeats": 2
+    },
+    {
+      "id": "q09",
+      "repeats": 2
+    },
+    {
+      "id": "q10",
+      "repeats": 2
+    },
+    {
+      "id": "q11",
+      "repeats": 2
+    },
+    {
+      "id": "q12",
+      "repeats": 2
+    },
+    {
+      "id": "q13",
+      "repeats": 2
+    },
+    {
+      "id": "q14",
+      "repeats": 2
+    },
+    {
+      "id": "q15",
+      "repeats": 1
+    },
+    {
+      "id": "q16",
+      "repeats": 1
+    },
+    {
+      "id": "q17",
+      "repeats": 1
+    },
+    {
+      "id": "q18",
+      "repeats": 1
+    }
+  ],
+  "historyFrom": null,
+  "turnTimeoutMs": 900000,
+  "approvals": "allowed-once for every request",
+  "questionReply": "（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）",
+  "layout": "home",
+  "assistantText": "all",
+  "clock": {
+    "histories": [
+      "2027-01-04T20:10:00+08:00",
+      "2027-01-06T21:00:00+08:00",
+      "2027-01-08T19:30:00+08:00",
+      "2027-01-10T22:00:00+08:00",
+      "2027-01-12T20:40:00+08:00",
+      "2027-01-14T23:10:00+08:00",
+      "2027-01-16T15:20:00+08:00",
+      "2027-01-18T21:30:00+08:00",
+      "2027-01-20T13:05:00+08:00",
+      "2027-01-22T22:30:00+08:00",
+      "2027-01-24T20:00:00+08:00",
+      "2027-01-26T21:15:00+08:00",
+      "2027-01-28T20:20:00+08:00",
+      "2027-01-30T16:40:00+08:00"
+    ],
+    "settleAt": "2027-01-30T08:50:00.000Z",
+    "probeAt": "2027-02-02T20:00:00+08:00"
+  },
+  "isolation": "fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat",
+  "code": {
+    "commit": "e3c7e9bdb3507a6aa5a3f8a6319ac0393fd9793f",
+    "dirty": false,
+    "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "dsh": "0.2.2-alpha.2"
+  },
+  "stateDir": "/home/win10/.cache/temir/experiments/s1__subtraction-v1__temir-no-subtraction__deepseek__deepseek",
+  "startedAt": "2026-10-29T12:11:27.132Z"
+}

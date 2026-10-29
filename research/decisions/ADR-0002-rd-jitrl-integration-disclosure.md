@@ -274,6 +274,7 @@ e2e-14 中，線索理解把繁體的話擷取成簡體的事實（「对方表�
 - e2e-22（DeepSeek）：對方說只想抒發後，四次思考都扣除了「給建議」並寫下理由。
 - dev5：沒有退化。探針中有扣除的思考 87/101；分數最高的做法被扣除、因而改變選擇的 5/101；全部被扣除的 0。
 - 扣除是否改變行為，需要關閉扣除的消融才能回答：以 [subtraction-v1](../../experiments/specs/subtraction-v1.md) 檢驗（預先登記；開關：`temir-rd` 的 `subtraction`）。
+- subtraction-v1 的結果：SA FAIL（17/20 vs 18/20），扣除在運作，但沒有證據顯示它改變了行動。界線在想出做法時就已經被考慮（[報告](../../experiments/results/subtraction-v1-report.md)）。扣除維持預設：它是使用者對公式的定義，也沒有造成傷害（SB、SC PASS）。
 
 ## 成本與延遲
 

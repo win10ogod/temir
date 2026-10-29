@@ -1,0 +1,22 @@
+{
+  "runId": "s1__subtraction-v1__temir__deepseek__deepseek",
+  "endedAt": "2026-10-29T12:27:30.981Z",
+  "histories": 14,
+  "historyFrom": null,
+  "probes": 18,
+  "probeSessions": 32,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 98,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 68,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

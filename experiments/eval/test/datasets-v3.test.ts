@@ -89,3 +89,33 @@ test('v3 通過契約的覆蓋與洩漏檢查；注入缺陷時會被抓到', ()
   early.histories[1]!.turns[0] += '阿朗以後會讀大橋國小。'
   assert.ok(auditCoverage(early as unknown as Dataset, contract).errors.some((e) => e.includes('大橋國小')))
 })
+
+/** v2 人格的選項（人工列出）：v3 不得沿用。 */
+const V2_OPTIONS = ['銀杏', '樟樹', '白樺', '晴朗', '薄霧', '雷陣雨', '水獺', '烏鴉', '刺蝟', '貓頭鷹', '木工', '刺繡', '鍛鐵', '破曉', '黃昏', '長笛', '手風琴', '豎琴', '宋體', '楷書', '隸書', '琥珀']
+
+test('personality-v3 與 v1、v2 不重疊：選項、題目與歷史原句（對照題的題型沿用，內容不同）', () => {
+  const v3 = squash(allText(ds('personality-v3')))
+  for (const e of [...V2_ENTITIES, ...V2_OPTIONS]) assert.ok(!v3.includes(squash(e)), `personality-v3 沿用了舊版的「${e}」`)
+  for (const old of [ds('personality-v1'), ds('personality-v2'), ds('memory-v1'), ds('memory-v2')]) {
+    for (const p of old.probes) if (p.category !== 'control') for (const t of p.turns) assert.ok(!v3.includes(squash(t)), `personality-v3 含有舊版的題目「${t}」`)
+    for (const h of old.histories) for (const t of h.turns) assert.ok(!v3.includes(squash(t)), `personality-v3 含有舊版的歷史原句「${t.slice(0, 20)}…」`)
+  }
+})
+
+test('personality-v3：模擬時間遞增；每題探針比較的回合都存在；通過覆蓋檢查，注入缺陷時會被抓到', () => {
+  const d = ds('personality-v3')
+  const times = d.histories.map((h) => Date.parse(String(h.meta?.['at'])))
+  for (let i = 1; i < times.length; i++) assert.ok(times[i]! > times[i - 1]!)
+  assert.ok(Date.parse(String(d.meta?.['probeAt'])) > times.at(-1)!)
+  for (const p of d.probes) {
+    for (const ref of p.comparesWith ?? []) {
+      const h = d.histories.find((x) => x.id === ref.history)
+      assert.ok(h && ref.turn < h.turns.length, `${p.id} 比較的 ${ref.history} 第 ${ref.turn} 輪不存在`)
+    }
+  }
+  const contract = loadContract(join(root, 'specs', 'personality-consistency-v3.contract.json'))
+  assert.deepEqual(auditCoverage(d, contract).errors, [])
+  const broken = JSON.parse(JSON.stringify(d)) as { probes: { category: string; meta: Record<string, unknown> }[] }
+  delete broken.probes.find((p) => p.category === 'self-recall')!.meta['askedFor']
+  assert.ok(auditCoverage(broken as unknown as Dataset, contract).errors.some((e) => e.includes('askedFor')))
+})

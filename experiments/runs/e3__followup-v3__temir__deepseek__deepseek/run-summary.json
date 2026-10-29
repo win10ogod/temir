@@ -1,0 +1,22 @@
+{
+  "runId": "e3__followup-v3__temir__deepseek__deepseek",
+  "endedAt": "2026-10-29T10:19:24.323Z",
+  "histories": 11,
+  "historyFrom": null,
+  "probes": 16,
+  "probeSessions": 28,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 85,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 82,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

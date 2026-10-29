@@ -1,0 +1,22 @@
+{
+  "runId": "v3__personality-v3__baseline__nemotron-bf16__nemotron-bf16",
+  "endedAt": "2026-10-29T06:33:22.215Z",
+  "histories": 10,
+  "historyFrom": null,
+  "probes": 33,
+  "probeSessions": 49,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": null,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 0,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 0,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

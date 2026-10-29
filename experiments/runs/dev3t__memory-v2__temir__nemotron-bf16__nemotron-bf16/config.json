@@ -1,0 +1,73 @@
+{
+  "runId": "dev3t__memory-v2__temir__nemotron-bf16__nemotron-bf16",
+  "dataset": {
+    "id": "memory-v2",
+    "path": "experiments/datasets/memory-v2.json",
+    "sha256": "4cd7b19a79c2ee95c32661a366d0ed50b5112413a65c6681d6c345affde42ba0"
+  },
+  "condition": "temir",
+  "patches": [
+    {
+      "path": "individual/cordis.patch.yml",
+      "sha256": "6d8f552e376d0d469dfe4bf18bd4e89aea4496c8c66bfefbfa2d138d75b72a32"
+    }
+  ],
+  "historyModel": {
+    "provider": "or-nemotron-bf16",
+    "model": "nvidia/nemotron-3.5-super-vl",
+    "patches": [
+      "/mnt/f/特密爾/dsh/openrouter-bf16.patch.yml"
+    ]
+  },
+  "probeModel": {
+    "provider": "or-nemotron-bf16",
+    "model": "nvidia/nemotron-3.5-super-vl",
+    "patches": [
+      "/mnt/f/特密爾/dsh/openrouter-bf16.patch.yml"
+    ]
+  },
+  "probes": [
+    {
+      "id": "q13",
+      "repeats": 1
+    },
+    {
+      "id": "q16",
+      "repeats": 1
+    },
+    {
+      "id": "q22",
+      "repeats": 1
+    },
+    {
+      "id": "q44",
+      "repeats": 1
+    },
+    {
+      "id": "q45",
+      "repeats": 1
+    },
+    {
+      "id": "q48",
+      "repeats": 1
+    }
+  ],
+  "historyFrom": "dev2__memory-v2__temir__nemotron-bf16__nemotron-bf16",
+  "turnTimeoutMs": 900000,
+  "approvals": "allowed-once for every request",
+  "questionReply": "（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）",
+  "layout": "home",
+  "assistantText": "all",
+  "isolation": "fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat",
+  "code": {
+    "commit": "7faab77c3bc784a9f727fa5d1288ad0bd664da82",
+    "dirty": true,
+    "diffSha256": "2d73ea6b524c1fc0cc2a4ed6a24ae7f6405458effe07a07874a82bc97e6c2e82"
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "dsh": "0.2.2-alpha.2"
+  },
+  "stateDir": "/home/win10/.cache/temir/experiments/dev3t__memory-v2__temir__nemotron-bf16__nemotron-bf16",
+  "startedAt": "2026-10-29T05:15:39.650Z"
+}

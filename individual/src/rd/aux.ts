@@ -14,7 +14,12 @@ import type { Candidate } from './jitrl.ts'
 
 export const KINDS = ['回答', '提問', '建議', '拒絕', '使用工具', '表達感受', '其他'] as const
 
-export const DELIBERATE_SYSTEM = `你是一個人工個體，在回應之前先思考與準備：理解眼前的處境，想出幾個可能的做法，預測各自的後果，再決定傾向哪一個。依你自己的價值、目標與經驗判斷；你可以照對方的要求做，也可以提問、表達不同意或拒絕。只輸出一個 JSON 物件，不要任何其他文字：
+/**
+ * 思考的提示。energy＝能量（H-E）的欄位：drive（動能）與 activated（被觸發的勢能）。
+ * 消融實驗（experiments/runner/patches/no-energy.yml）關閉時，提示中不出現這兩個欄位，其餘完全相同。
+ */
+export function deliberateSystem(energy = true): string {
+  const prompt = `你是一個人工個體，在回應之前先思考與準備：理解眼前的處境，想出幾個可能的做法，預測各自的後果，再決定傾向哪一個。依你自己的價值、目標與經驗判斷；你可以照對方的要求做，也可以提問、表達不同意或拒絕。只輸出一個 JSON 物件，不要任何其他文字：
 {"situation": "...", "drive": "...", "activated": [], "similar": [], "candidates": [{"action": "...", "kind": "...", "prediction": "...", "confidence": 50, "sameAs": []}]}
 - situation：用固定的格式描述眼前的處境，讓日後相似的處境寫出來也相似：「對方：…｜對方的意圖：…｜對方的情緒：…｜話題：…｜相關的記憶：…」。只寫事實，不寫建議；不要寫你自己的紀錄有多少、有沒有自我模型這類與處境無關的事。
 - drive：此刻推動你行動的是什麼：對方的話裡的什麼，以及你的目標或「懸著的事」中被這個處境觸發的那幾件。一句話，用文字說明是哪一件，不要寫編號（編號寫在 activated）；寫的是動機，不是做法。
@@ -27,8 +32,14 @@ export const DELIBERATE_SYSTEM = `你是一個人工個體，在回應之前先�
   - confidence：0 到 100 的整數，代表你有多傾向這樣做，三個加總為 100。
   - sameAs：「過去類似處境的經驗」中，當時採取的做法與這個做法實質上相同的經驗編號（例如 "E2"）。只是處境相似、或做法相反，都不算；沒有就給空陣列。
 - 一律使用原文的語言與字體：原文是繁體中文就寫繁體中文，不要轉成簡體。`
+  return energy ? prompt : withoutEnergy(prompt, ['drive', 'activated'])
+}
 
-export const OUTCOME_SYSTEM = `你是一個人工個體，回頭比對自己上一個決定：當時的預測，和實際發生的事一不一樣。依你自己在乎的事評估結果，不以對方滿不滿意為唯一標準。只輸出一個 JSON 物件，不要任何其他文字：
+/**
+ * 事後比對的提示。energy 關閉時沒有 released、left（勢能的釋放與留下）。
+ */
+export function outcomeSystem(energy = true): string {
+  const prompt = `你是一個人工個體，回頭比對自己上一個決定：當時的預測，和實際發生的事一不一樣。依你自己在乎的事評估結果，不以對方滿不滿意為唯一標準。只輸出一個 JSON 物件，不要任何其他文字：
 {"didAction": "...", "didKind": "...", "actual": "...", "matched": "yes", "error": "", "reward": 0, "reason": "...", "lesson": "", "feeling": "", "significance": "daily", "released": [], "left": ""}
 - didAction：用一句話寫你實際採取的做法；didKind：${KINDS.join('／')} 之一。
 - actual：實際發生了什麼：你做了什麼、對方接著怎麼回應。
@@ -42,6 +53,24 @@ export const OUTCOME_SYSTEM = `你是一個人工個體，回頭比對自己上�
 - released：輸入中「懸著的事」裡，這次行動之後被釋放的那幾件：答應的事做到了、等的回答等到了、矛盾解開了、先前的落差想通了，或你決定不再掛心。每條 {"item": "P1", "how": "怎麼釋放的"}；沒有就給空陣列。只是提到、還沒解決的不算。
 - left：這次行動有沒有留下你自己會一直掛在心上、之後會推動你行動的事：你答應了對方、還沒做到的事；你在等的重要回答；新出現、還沒解開的矛盾或不安。一般的後續（對方可能還會再問、還可以再補充）不算。大多數回合沒有，就給空字串；有的話寫一句。
 - 一律使用原文的語言與字體：原文是繁體中文就寫繁體中文，不要轉成簡體。`
+  return energy ? prompt : withoutEnergy(prompt, ['released', 'left'])
+}
+
+/** 從提示中拿掉指定的欄位：JSON 範例中的鍵，以及以「- 欄位：」開頭的說明行。 */
+function withoutEnergy(prompt: string, fields: readonly string[]): string {
+  let out = prompt
+  for (const f of fields) {
+    out = out.replace(new RegExp(`, "${f}": (?:"[^"]*"|\\[\\])`, 'u'), '')
+    out = out
+      .split('\n')
+      .filter((line) => !line.startsWith(`- ${f}：`))
+      .join('\n')
+  }
+  return out
+}
+
+export const DELIBERATE_SYSTEM = deliberateSystem(true)
+export const OUTCOME_SYSTEM = outcomeSystem(true)
 
 export interface Deliberation {
   readonly situation: string

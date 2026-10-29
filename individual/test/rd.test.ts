@@ -225,3 +225,20 @@ test('the second energy format names items: activated in the deliberation, relea
   const o = parseOutcome('{"reward":0.5,"released":[{"item":"P2","how":"我提醒了他，他說謝謝"},{"item":"","how":"沒有編號的略過"},{"how":"缺 item"}],"left":""}')
   assert.deepEqual([o?.releasedRefs, o?.released], [['P2'], 'P2：我提醒了他，他說謝謝'])
 })
+
+test('the energy ablation removes exactly the energy fields from both prompts; the default prompts are unchanged', async () => {
+  const { deliberateSystem, outcomeSystem, DELIBERATE_SYSTEM, OUTCOME_SYSTEM } = await import('../src/rd/aux.ts')
+  assert.equal(deliberateSystem(), DELIBERATE_SYSTEM)
+  assert.equal(outcomeSystem(), OUTCOME_SYSTEM)
+  const d = deliberateSystem(false)
+  const o = outcomeSystem(false)
+  for (const f of ['"drive"', '"activated"', '- drive：', '- activated：']) assert.ok(!d.includes(f), `deliberation without energy still has ${f}`)
+  for (const f of ['"released"', '"left"', '- released：', '- left：']) assert.ok(!o.includes(f), `outcome without energy still has ${f}`)
+  // 其餘內容逐行相同：只少了能量的那幾行。
+  const lines = (s: string) => s.split('\n')
+  assert.equal(lines(DELIBERATE_SYSTEM).length - lines(d).length, 2)
+  assert.equal(lines(OUTCOME_SYSTEM).length - lines(o).length, 2)
+  assert.ok(lines(d).slice(2).every((l) => DELIBERATE_SYSTEM.includes(l)))
+  assert.match(d, /\{"situation": "\.\.\.", "similar": \[\], "candidates"/)
+  assert.match(o, /"significance": "daily"\}/)
+})

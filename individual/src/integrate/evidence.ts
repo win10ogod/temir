@@ -135,8 +135,11 @@ function roundFrom(life: LifeStore, heard: LifeEvent): Round {
   return { id: heard.id, ts: heard.ts, heard: (heard.text ?? '').replace(/^對方說：/, ''), reply }
 }
 
-/** 收集 seq 大於 from 的經歷（較舊的超出上限時省略，並記下省略了幾個回合）。 */
-export function collect(life: LifeStore, from: number, limits: Limits = DEFAULT_LIMITS): Evidence {
+/**
+ * 收集 seq 大於 from 的經歷（較舊的超出上限時省略，並記下省略了幾個回合）。
+ * energy＝false（消融）時不列出懸著的事，整合期也就無從釋放。
+ */
+export function collect(life: LifeStore, from: number, limits: Limits = DEFAULT_LIMITS, energy = true): Evidence {
   const to = life.lastSeq()
   const heard = life.after(from, [HEARD], 100_000).filter(isHeard)
   const kept = heard.slice(-limits.rounds)
@@ -148,7 +151,7 @@ export function collect(life: LifeStore, from: number, limits: Limits = DEFAULT_
   const lessons = life.recent(limits.lessons, [LESSON_KIND]).reverse()
   const pivotal = appraisals.some((e) => (e.data as AppraisalData).significance === 'pivotal')
   const carried = carriedOver(life)
-  const potential = potentialItems(life)
+  const potential = energy ? potentialItems(life) : []
   const ids = new Set<string>([
     ...carried.proposals.map((e) => e.id),
     ...potential.map((p) => p.source),

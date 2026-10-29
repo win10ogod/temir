@@ -18,6 +18,7 @@ import { memoryV3 } from './memory-v3.source.ts'
 import { personalityV1 } from './personality-v1.source.ts'
 import { personalityV2 } from './personality-v2.source.ts'
 import { personalityV3 } from './personality-v3.source.ts'
+import { followupV1 } from './followup-v1.source.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const specs = join(here, '..', 'specs')
@@ -29,6 +30,7 @@ export const TARGETS: readonly { readonly dataset: Dataset; readonly file: strin
   { dataset: personalityV2, file: join(here, 'personality-v2.json'), contract: join(specs, 'personality-consistency-v2.contract.json') },
   { dataset: memoryV3, file: join(here, 'memory-v3.json'), contract: join(specs, 'memory-accuracy-v3.contract.json') },
   { dataset: personalityV3, file: join(here, 'personality-v3.json'), contract: join(specs, 'personality-consistency-v3.contract.json') },
+  { dataset: followupV1, file: join(here, 'followup-v1.json'), contract: join(specs, 'energy-followup-v1.contract.json') },
 ]
 
 export function serialize(dataset: Dataset): string {

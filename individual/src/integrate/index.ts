@@ -43,6 +43,8 @@ export interface Config {
   readonly pivotal?: boolean
   /** 啟動時補做轉折整合前等待的秒數（預設 10）。 */
   readonly pivotalDelaySeconds?: number
+  /** 能量（H-E，預設開）：證據中的「懸著的事」與 release。消融實驗可關閉。 */
+  readonly energy?: boolean
 }
 
 /** 個體最近使用的模型路由（生命日誌中最後一則回覆的 provider/model）。 */
@@ -79,7 +81,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
     const deep = deepRequested || pivotal
     // 深度整合（H4）重新檢視核心價值、人生敘事與長期目標，需要整段生命的經歷（仍受各類上限約束），
     // 不只是上次整合之後的新事件；一般整合只看新的經歷。排程都推進到現在。
-    const ev = collect(life, deep ? 0 : since)
+    const ev = collect(life, deep ? 0 : since, undefined, config?.energy ?? true)
     if (ev.rounds.length === 0 && ev.appraisals.length === 0 && ev.outcomes.length === 0) return '上次整合以後沒有新的經歷，這次沒有整合。'
     const route = latestRoute(life)
     if (!route) return '找不到可用的模型路由，這次沒有整合。'

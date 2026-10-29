@@ -93,3 +93,12 @@ test('labels never leak into recorded text: P1 becomes a short description of th
     assert.ok(a.id)
   })
 })
+
+test('the energy ablation hides held items from the integration as well', () => {
+  withStore((store) => {
+    outcome(store, 'partly', '答應下次再聊')
+    assert.equal(collect(store, 0).potential.length, 1)
+    assert.equal(collect(store, 0, undefined, false).potential.length, 0)
+    assert.doesNotMatch(renderEvidence(store, collect(store, 0, undefined, false)), /懸著的事/)
+  })
+})

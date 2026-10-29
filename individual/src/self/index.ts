@@ -48,6 +48,8 @@ export interface Config {
   /** 初始人設（PC 的初始狀態）。也可以用 personaFile 或環境變數 TEMIR_PERSONA_FILE 指向 JSON 檔。 */
   readonly persona?: { readonly name?: string; readonly selfModel: string; readonly story?: string }
   readonly personaFile?: string
+  /** 能量（H-E，預設開）：快照中的「懸著的事」與「最近的念頭」。消融實驗可關閉。 */
+  readonly energy?: boolean
 }
 
 /** 讀出設定中的初始人設；沒有設定時回傳 undefined。 */
@@ -100,7 +102,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
       order: 10,
       interpolate: false,
       required: true,
-      text: () => renderSelfSnapshot(life, [...renderPotential(life), ...renderThoughts(life)]),
+      text: () => renderSelfSnapshot(life, (config?.energy ?? true) ? [...renderPotential(life), ...renderThoughts(life)] : []),
     })
   }
 

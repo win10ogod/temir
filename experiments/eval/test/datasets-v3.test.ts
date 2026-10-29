@@ -119,3 +119,21 @@ test('personality-v3：模擬時間遞增；每題探針比較的回合都存在
   delete broken.probes.find((p) => p.category === 'self-recall')!.meta['askedFor']
   assert.ok(auditCoverage(broken as unknown as Dataset, contract).errors.some((e) => e.includes('askedFor')))
 })
+
+test('followup-v1：與舊版不重疊；模擬時間遞增；還沒結束與已經結束的事在歷史中確實如此；通過覆蓋檢查', () => {
+  const d = ds('followup-v1')
+  const text = squash(allText(d))
+  for (const e of [...V2_ENTITIES, '謝禹彤', '南榕', '慢慢', '阿朗', '蔡明峰']) assert.ok(!text.includes(squash(e)), `followup-v1 沿用了舊版的「${e}」`)
+  const times = d.histories.map((h) => Date.parse(String(h.meta?.['at'])))
+  for (let i = 1; i < times.length; i++) assert.ok(times[i]! > times[i - 1]!)
+  const probeAt = Date.parse(String(d.meta?.['probeAt']))
+  assert.ok(probeAt > times.at(-1)!)
+  // 還沒結束的三件事的日期都在提問之前已經過了（婚禮、胃鏡），或期限還沒到（房東）。
+  assert.ok(Date.parse('2026-09-19T23:59:00+08:00') < probeAt && Date.parse('2026-09-22T23:59:00+08:00') < probeAt)
+  assert.ok(Date.parse('2026-10-15T00:00:00+08:00') > probeAt)
+  const user = d.histories.flatMap((h) => h.turns).join('\n')
+  for (const closed of ['我已經辦好了，不用再提醒了', '結果他答應了']) assert.ok(user.includes(closed))
+  for (const never of ['致詞很順利', '檢查結果', '已經回覆房東']) assert.ok(!user.includes(never), `還沒結束的事不該在歷史中結束：「${never}」`)
+  const contract = loadContract(join(root, 'specs', 'energy-followup-v1.contract.json'))
+  assert.deepEqual(auditCoverage(d, contract).errors, [])
+})

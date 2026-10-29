@@ -1,0 +1,14 @@
+# 消融：關閉能量（H-E）——快照沒有「懸著的事」與「最近的念頭」；思考不寫 drive、activated；事後比對不寫 released、left；
+# 整合期不列出懸著的事；沒有閒置時的念頭。其他個體功能（回憶、RD、JitRL、整合期、自我、看法）照舊。
+- id: temir-self
+  config:
+    energy: false
+- id: temir-rd
+  config:
+    energy: false
+- id: temir-integrate
+  config:
+    energy: false
+- id: temir-thought
+  config:
+    automatic: false

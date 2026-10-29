@@ -3,8 +3,10 @@
  *
  * 觸發：
  * - 閒置：每隔 checkMinutes 檢查一次；生命紀錄已有 idleMinutes 沒有新事件，且到期時就在背景整合。
- *   到期的條件：距離上次整合超過 intervalHours 且新回合達到 minRounds，或這段期間有被評為「轉折」的經歷（H4）。
- *   計時器不讓程序多留（unref），所以一次性的 headless 執行不會觸發。
+ *   到期的條件：距離上次整合超過 intervalHours 且新回合達到 minRounds。計時器不讓程序多留（unref）。
+ * - 轉折（性質 4：重大事件可能讓 PC 在短時間內劇烈轉變；H4）：上次整合以後有被評為「轉折」的經歷時，
+ *   不等閒置，在那一回合結束時就以深度模式整合；程序在那之前結束的話，下次啟動時補做。
+ *   轉折與否只由個體自己的評價決定，沒有數值門檻。
  * - 主動：個體自己呼叫 `integrate` 工具。
  * 流程：
  * 1. 收集證據（evidence.ts）。
@@ -37,6 +39,10 @@ export interface Config {
   readonly minRounds?: number
   /** 整合呼叫的逾時（毫秒，預設 180000）。 */
   readonly timeoutMs?: number
+  /** 轉折經歷後立即整合（預設開；H4）。 */
+  readonly pivotal?: boolean
+  /** 啟動時補做轉折整合前等待的秒數（預設 10）。 */
+  readonly pivotalDelaySeconds?: number
 }
 
 /** 個體最近使用的模型路由（生命日誌中最後一則回覆的 provider/model）。 */
@@ -44,6 +50,11 @@ export function latestRoute(life: LifeStore): AuxRoute | undefined {
   const model = life.latest('dsh/assistant/message')?.model
   const slash = model?.indexOf('/') ?? -1
   return model && slash > 0 ? { provider: model.slice(0, slash), model: model.slice(slash + 1) } : undefined
+}
+
+/** 上次整合以後，是否有被個體評為「轉折」的經歷還沒有整合（H4）。 */
+export function pendingPivotal(life: LifeStore): boolean {
+  return life.after(integrationStart(life), [KIND.appraisal], 100_000).some((e) => (e.data as AppraisalData).significance === 'pivotal')
 }
 
 /** 是否到了整合的時候（H5 的排程；H4：轉折經歷讓整合提前並以深度模式進行）。 */
@@ -110,6 +121,26 @@ export function apply(ctx: Context, config: Config | undefined): void {
         running = undefined
       })
     return running
+  }
+
+  // 轉折：回合結束時整合；啟動時若有還沒整合的轉折，稍後補做（不阻塞啟動）。
+  if (config?.pivotal ?? true) {
+    ctx.on('session/event', (_session: unknown, event: { readonly type: string }) => {
+      try {
+        if (event.type === 'turn/end' && !running && life.isOpen && pendingPivotal(life)) void start('pivotal', true)
+      } catch (error) {
+        logger.error('pivotal check failed: %s', error)
+      }
+    })
+    const startup = setTimeout(() => {
+      try {
+        if (!running && life.isOpen && pendingPivotal(life)) void start('pivotal', true)
+      } catch (error) {
+        logger.error('pivotal check failed: %s', error)
+      }
+    }, (config?.pivotalDelaySeconds ?? 10) * 1000)
+    startup.unref()
+    ctx.effect(() => () => clearTimeout(startup), 'temir-integrate: cancel startup pivotal check')
   }
 
   if (config?.automatic ?? true) {

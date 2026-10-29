@@ -1,8 +1,67 @@
 #!/bin/sh
-# 實驗用：讓 date 與模擬時鐘一致（見 ../clock.ts）。沒有指定時間來源（-d、-r、-f、-s）時，以模擬的現在執行 /usr/bin/date。
+# 實驗用：讓 date 與模擬時鐘一致（見 ../clock.ts）。
+# - 沒有指定時間來源時，以模擬的現在執行 /usr/bin/date。
+# - -d／--date 的相對說法（tomorrow、next monday、3 days ago）以模擬的現在為基準：把模擬的現在接在前面試一次，
+#   失敗（例如本來就是絕對日期）就照原樣執行。v3 中原始 DSH 執行 `date -d 'next monday'`，得到的是真實日期的下週一。
+# - -r、-f、-s 照原樣執行。
 for a in "$@"; do
   case "$a" in
-    -d|--date|--date=*|-r|--reference|--reference=*|-f|--file|--file=*|-s|--set|--set=*) exec /usr/bin/date "$@" ;;
+    -r|--reference|--reference=*|-f|--file|--file=*|-s|--set|--set=*) exec /usr/bin/date "$@" ;;
   esac
 done
-exec /usr/bin/date -d "@$(( $(/usr/bin/date +%s) + ${TEMIR_SIM_OFFSET_MS:-0} / 1000 ))" "$@"
+now=$(( $(/usr/bin/date +%s) + ${TEMIR_SIM_OFFSET_MS:-0} / 1000 ))
+# 取出 -d 的值（-d X、-dX、--date X、--date=X）；其餘參數依原順序留在 "$@"（輪轉：每個參數移出一次，要保留的接回尾端）。
+expr=''
+found=0
+n=$#
+i=0
+while [ "$i" -lt "$n" ]; do
+  a=$1
+  shift
+  i=$((i + 1))
+  if [ "$found" = next ]; then
+    expr=$a
+    found=1
+    continue
+  fi
+  case "$a" in
+    -d|--date) found=next ;;
+    --date=*) expr=${a#--date=}; found=1 ;;
+    -d*) expr=${a#-d}; found=1 ;;
+    *) set -- "$@" "$a" ;;
+  esac
+done
+if [ "$found" != 1 ]; then
+  exec /usr/bin/date -d "@$now" "$@"
+fi
+# 星期幾（monday、next friday、last sun……）：GNU date 在指定了日期時會忽略星期項目，所以自己依 GNU 的規則換算：
+# 單獨或 this＝這週以後最近的那一天（今天就是今天），next＝同上但今天的話是下週，last＝之前最近的那一天（今天的話是上週）。
+lower=$(printf '%s' "$expr" | tr 'A-Z' 'a-z' | sed 's/^ *//; s/ *$//; s/  */ /g')
+case "$lower" in
+  'next '*|'last '*|'this '*) mod=${lower%% *}; day=${lower#* } ;;
+  *) mod=''; day=$lower ;;
+esac
+case "$day" in
+  sunday|sun) t=0 ;;
+  monday|mon) t=1 ;;
+  tuesday|tue|tues) t=2 ;;
+  wednesday|wed|wednes) t=3 ;;
+  thursday|thu|thur|thurs) t=4 ;;
+  friday|fri) t=5 ;;
+  saturday|sat) t=6 ;;
+  *) t='' ;;
+esac
+if [ -n "$t" ]; then
+  today=$(/usr/bin/date -d "@$now" +%w)
+  case "$mod" in
+    last) d=$(( (today - t + 7) % 7 )); [ "$d" = 0 ] && d=7; d=$((0 - d)) ;;
+    next) d=$(( (t - today + 7) % 7 )); [ "$d" = 0 ] && d=7 ;;
+    *) d=$(( (t - today + 7) % 7 )) ;;
+  esac
+  exec /usr/bin/date -d "$(/usr/bin/date -d "@$now" +%Y-%m-%d) $d days" "$@"
+fi
+base=$(/usr/bin/date -d "@$now" '+%Y-%m-%d %H:%M:%S %z')
+if /usr/bin/date -d "$base $expr" '+%s' >/dev/null 2>&1; then
+  exec /usr/bin/date -d "$base $expr" "$@"
+fi
+exec /usr/bin/date -d "$expr" "$@"

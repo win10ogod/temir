@@ -156,6 +156,8 @@ export class DeepSeekJudge implements Judge {
   readonly #spec: JudgeSpec
   readonly #cacheFile: string
   readonly #cache: Map<string, CacheEntry>
+  /** 輸出檔中已有最終判定的 key：從其他快取檔取用的判定也寫進輸出檔，讓結果目錄自成一份可重放的紀錄。 */
+  readonly #written: Set<string>
   readonly #maxUsd: number
   readonly #fetch: FetchLike
   readonly #apiKey: string | undefined
@@ -168,6 +170,7 @@ export class DeepSeekJudge implements Judge {
     this.#spec = options.spec
     this.#cacheFile = options.cacheFile
     this.#cache = readCache([...(options.readCacheFiles ?? []), options.cacheFile])
+    this.#written = new Set(readCache([options.cacheFile]).keys())
     this.#maxUsd = options.maxUsd
     this.#fetch = options.fetchImpl ?? (fetch as unknown as FetchLike)
     this.#apiKey = options.apiKey ?? process.env['DEEPSEEK_API_KEY']
@@ -190,12 +193,20 @@ export class DeepSeekJudge implements Judge {
   #record(entry: Omit<CacheEntry, 'at' | 'model'>): void {
     const full: CacheEntry = { ...entry, model: this.#spec.model, at: new Date().toISOString() }
     appendFileSync(this.#cacheFile, `${JSON.stringify(full)}\n`)
-    if (full.final) this.#cache.set(full.key, full)
+    if (full.final) {
+      this.#cache.set(full.key, full)
+      this.#written.add(full.key)
+    }
   }
 
   async judge(req: JudgeRequest): Promise<JudgeOutcome> {
     const key = requestKey(this.#spec, req.pair)
     const hit = this.#cache.get(key)
+    if (hit && hit.status === 'ok' && hit.value && !this.#written.has(key)) {
+      // 2026-10-29：v3 的計分沿用先前的判定時，輸出檔只有新的呼叫，結果目錄無法單獨重放（v3-report §5.5）。
+      appendFileSync(this.#cacheFile, `${JSON.stringify(hit)}\n`)
+      this.#written.add(key)
+    }
     if (hit && hit.status === 'ok' && hit.value) {
       return { status: 'ok', key, value: hit.value, raw: hit.raw, attempts: 0, cached: true }
     }

@@ -173,7 +173,7 @@ test('turnReply finds what I actually said after the decision, skipping injected
 
 test('the preparation lists candidates, the experience correction, the choice and past outcomes', () => {
   const near = neighbors('對方腳踝受傷想出門', [experience('good', '對方腳踝受傷想出門', '推薦可以坐著的活動', 1)], DEFAULT_PARAMS)
-  const delib = { situation: '對方腳踝受傷想出門', drive: '對方想出門，我在乎對方的腳傷', similar: [], candidates: [candidate('推薦爬山', 70), candidate('推薦可以坐著的活動', 30)] }
+  const delib = { situation: '對方腳踝受傷想出門', drive: '對方想出門，我在乎對方的腳傷', activated: [], similar: [], candidates: [candidate('推薦爬山', 70), candidate('推薦可以坐著的活動', 30)] }
   const correction = correct(delib.candidates, near, DEFAULT_PARAMS, () => 0.99)
   const text = renderPreparation(delib, correction, near)
   assert.match(text, /不是對方說的話/)
@@ -203,7 +203,7 @@ test('the preparation leaves out the summarized memory, so the reply uses the fu
   const { preparedSituation } = await import('../src/rd/memory.ts')
   const s = '對方：子珩｜對方的意圖：想知道醫囑｜對方的情緒：平靜｜話題：醫囑｜相關的記憶：只記得膝傷'
   assert.equal(preparedSituation(s), '對方：子珩｜對方的意圖：想知道醫囑｜對方的情緒：平靜｜話題：醫囑')
-  const delib = { situation: s, drive: '', similar: [], candidates: [candidate('完整列出我記得的所有醫囑', 60), candidate('先問膝蓋', 40)] }
+  const delib = { situation: s, drive: '', activated: [], similar: [], candidates: [candidate('完整列出我記得的所有醫囑', 60), candidate('先問膝蓋', 40)] }
   const text = renderPreparation(delib, uncorrected(delib.candidates), [])
   assert.doesNotMatch(text, /只記得膝傷/)
   assert.match(text, /回應的內容以回憶與對話為準/)
@@ -215,6 +215,13 @@ test('the deliberation and the outcome carry kinetic energy and the release or c
   assert.equal(d?.drive, '對方又在抒發；我懸著的「先分清楚要建議還是傾聽」被觸發')
   assert.equal(parseDeliberation('{"situation":"x","candidates":[{"action":"a"},{"action":"b"}]}', new Map())?.drive, '', 'older outputs without a drive still parse')
   const o = parseOutcome('{"didAction":"先聽","actual":"對方說謝謝","matched":"yes","reward":0.6,"reason":"r","released":"先分清楚對方要什麼的目標有了進展","left":"答應下次問對方想不想聽建議"}')
-  assert.deepEqual([o?.released, o?.left], ['先分清楚對方要什麼的目標有了進展', '答應下次問對方想不想聽建議'])
+  assert.deepEqual([o?.released, o?.releasedRefs, o?.left], ['先分清楚對方要什麼的目標有了進展', [], '答應下次問對方想不想聽建議'], 'the first format (one sentence) still parses')
   assert.deepEqual([parseOutcome('{"reward":0}')?.released, parseOutcome('{"reward":0}')?.left], ['', ''])
+})
+
+test('the second energy format names items: activated in the deliberation, released in the outcome', () => {
+  const d = parseDeliberation('{"situation":"x","drive":"對方又提到轉職，我答應過要提醒他","activated":["P2","g:3fa1c2d4"],"candidates":[{"action":"a"},{"action":"b"}]}', new Map())
+  assert.deepEqual(d?.activated, ['P2', 'g:3fa1c2d4'], 'labels are kept as written; the caller resolves them to keys')
+  const o = parseOutcome('{"reward":0.5,"released":[{"item":"P2","how":"我提醒了他，他說謝謝"},{"item":"","how":"沒有編號的略過"},{"how":"缺 item"}],"left":""}')
+  assert.deepEqual([o?.releasedRefs, o?.released], [['P2'], 'P2：我提醒了他，他說謝謝'])
 })

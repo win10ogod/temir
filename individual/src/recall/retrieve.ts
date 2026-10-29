@@ -271,6 +271,8 @@ const KIND_LABEL: Record<string, string> = {
   'self/integration': '整合',
   'memory/lesson': '教訓',
   'goal/change': '目標',
+  'self/opinion': '看法',
+  'self/thought': '念頭',
   appraisal: '感受',
 }
 

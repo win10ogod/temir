@@ -14,6 +14,7 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import type { LifeStore } from '../life/store.ts'
 import { extractJson, strings } from '../recall/aux.ts'
 import { OUTDATED_KIND, type OutdatedData } from '../recall/retrieve.ts'
+import { REVALUATION_KIND, type OutcomeData, type RevaluationData } from '../rd/memory.ts'
 import {
   GOAL_STATUS_LABEL,
   KIND,
@@ -22,11 +23,13 @@ import {
   TRIGGERS,
   currentNarrative,
   currentSelfModel,
+  opinions,
   goals,
   type AppraisalData,
   type GoalChangeData,
   type GoalStatus,
   type NarrativeData,
+  type OpinionChangeData,
   type SelfRevisionData,
   type Significance,
   type Trigger,
@@ -34,19 +37,22 @@ import {
 import { INTEGRATION_KIND, LESSON_KIND, PROPOSAL_KIND, observe, type Evidence, type IntegrationData, type LessonData, type IntegrationTrigger } from './evidence.ts'
 
 const FORMAT = `只輸出一個 JSON 物件，不要任何其他文字：
-{"lessons": [], "reappraisals": [], "selfRevision": null, "story": null, "goals": [], "outdated": [], "contradictions": [], "change": "..."}
+{"lessons": [], "reappraisals": [], "revaluations": [], "selfRevision": null, "story": null, "goals": [], "opinions": [], "outdated": [], "contradictions": [], "release": [], "change": "..."}
 - lessons：從這些經歷學到、以後用得上的教訓，特別是預測與實際不符的地方。每條 {"text": "一句話", "evidence": ["事件 id"]}；不要重複「已有的教訓」。
 - reappraisals：現在回頭看，對某段經歷的感受有沒有改變。每條 {"event": "事件 id", "feeling": "...", "significance": "daily|notable|major|pivotal", "reason": "..."}。
+- revaluations：現在依你在乎的事（特別是自我模型改變之後）回頭看，「預測與實際」中某個結果對你的好壞，和當時評的不一樣嗎？每條 {"outcome": "事件 id", "reward": -1 到 1 之間的數, "reason": "..."}；一樣就不用寫。
 - selfRevision：如果這些經歷讓你對「自己是誰、在乎什麼、傾向怎麼做」有新的理解，寫出完整的新版自我模型 {"text": "...", "reason": "...", "causes": ["事件 id"], "trigger": "internal|external|both", "stability": {...}, "adaptability": {...}}，causes 至少一個；不需要修改就給 null。trigger：這個改變來自你自己的思考與反省（internal）、外界的回饋或事件（external），或兩者（both）。
 - story：如果你的人生敘事需要改寫（加入這段經歷、或重新理解過去），寫出完整的新版本，欄位同 selfRevision；敘事用第一人稱，引用具體經歷；不需要就給 null。
 - goals：目標的變更。每條 {"op": "add|pause|abandon|achieve|resume", "goal": "既有目標 id（add 時省略）", "text": "...", "reason": "...", "stability": {...}, "adaptability": {...}}。
-- stability 與 adaptability：自我修復要同時兼顧穩定性與適應性，兩者缺一不可。selfRevision、story 與每個 goals 項目都要寫這兩項，格式 {"holds": true, "reason": "...", "evidence": ["事件 id"]}：
+- opinions：你持有的看法或價值（例如什麼重要、某類事該怎麼做）。只寫你真的持有、而且有經歷支持的。每條 {"op": "add|revise|drop", "opinion": "既有看法 id（add 時省略）", "text": "看法本身（drop 時可省略）", "reason": "...", "evidence": ["支持它的事件 id"], "stability": {...}, "adaptability": {...}}。
+- stability 與 adaptability：自我修復要同時兼顧穩定性與適應性，兩者缺一不可。selfRevision、story 與每個 goals、opinions 項目都要寫這兩項，格式 {"holds": true, "reason": "...", "evidence": ["事件 id"]}：
   - stability：這個改變如何與你原本在乎的事、你的故事保持連貫，而不是無端的跳躍；evidence 可以是任何時候的事件（包括目前自我模型、人生敘事的 id）。
   - adaptability：這個改變如何回應這段期間的經歷：預測與實際的落差、目標的進展、對方的回饋；evidence 只能用這段期間的事件。
   - holds 照你的真實判斷寫。兩項都成立、也都有證據，修訂才會採用；不成立的會保留為提案，之後可以再提。
 - outdated：「關於對方的長期事實」中已經不再成立的。每條 {"fact": "原句，一字不差", "replacedBy": "新的事實，沒有就給空字串", "evidence": ["事件 id"]}。
-- contradictions：你持有的看法或價值之間，彼此衝突、還沒解決的地方，每條一句。「上次整合留下的」矛盾，這次解開了就不要再列；還沒解開就再列一次。
-- 「上次整合留下的」沒有採用的修訂：想採用就照上面的格式重新提出（兩項判準都要寫）；不再需要就不提。
+- contradictions：你持有的看法或價值之間，彼此衝突、還沒解決的地方，每條一句。「懸著的事」中上次整合留下的矛盾，這次解開了就不要再列；還沒解開就再列一次。
+- 「懸著的事」中上次沒有採用的修訂：想採用就照上面的格式重新提出（兩項判準都要寫）；不再需要就不提。
+- release：「懸著的事」中，你決定可以放下的（已經解決、不再需要，或決定不再掛心）。每條 {"item": "P1", "reason": "..."}；沒有列出的會繼續懸著。
 - change：用幾句話說明這段時間你有沒有改變、怎麼改變，引用具體經歷。
 - 所有「事件 id」都只能用下面列出的 id（方括號中的字串）。可以什麼都不改：沒有就給空陣列或 null。
 - 一律使用原文的語言與字體：原文是繁體中文就寫繁體中文，不要轉成簡體。`
@@ -81,14 +87,30 @@ export interface GoalProposal {
   readonly adaptability: Criterion
 }
 
+export interface OpinionProposal {
+  readonly op: 'add' | 'revise' | 'drop'
+  readonly opinion: string
+  readonly text: string
+  readonly reason: string
+  readonly evidence: readonly string[]
+  readonly stability: Criterion
+  readonly adaptability: Criterion
+}
+
 export interface Proposal {
   readonly lessons: readonly { readonly text: string; readonly evidence: readonly string[] }[]
   readonly reappraisals: readonly { readonly event: string; readonly feeling: string; readonly significance: Significance; readonly reason: string }[]
+  /** 依現在的自我重新評估過去結果的回報（H2；ADR-0002 D3 的衝突）。 */
+  readonly revaluations: readonly { readonly outcome: string; readonly reward: number; readonly reason: string }[]
   readonly selfRevision: Revision | null
   readonly story: Revision | null
   readonly goals: readonly GoalProposal[]
+  /** 價值與看法（H1-2）。 */
+  readonly opinions: readonly OpinionProposal[]
   readonly outdated: readonly { readonly fact: string; readonly replacedBy: string; readonly evidence: readonly string[] }[]
   readonly contradictions: readonly string[]
+  /** 決定放下的懸著的事（H-E）：模型寫的 P 編號，驗證後換成 key。 */
+  readonly release: readonly { readonly item: string; readonly reason: string }[]
   readonly change: string
 }
 
@@ -140,6 +162,10 @@ export function parseProposal(output: string): Proposal | undefined {
         significance: (SIGNIFICANCE as readonly string[]).includes(text(r['significance'], 10)) ? (text(r['significance'], 10) as Significance) : 'notable',
         reason: text(r['reason'], 300),
       })),
+    revaluations: objects(obj['revaluations'])
+      .slice(0, 12)
+      .filter((r) => typeof r['reward'] === 'number' && Number.isFinite(r['reward']))
+      .map((r) => ({ outcome: text(r['outcome'], 200), reward: Math.min(Math.max(r['reward'] as number, -1), 1), reason: text(r['reason'], 300) })),
     selfRevision: revision(obj['selfRevision']),
     story: revision(obj['story']),
     goals: objects(obj['goals'])
@@ -153,10 +179,26 @@ export function parseProposal(output: string): Proposal | undefined {
         stability: criterion(g['stability']),
         adaptability: criterion(g['adaptability']),
       })),
+    opinions: objects(obj['opinions'])
+      .slice(0, 8)
+      .filter((o) => ['add', 'revise', 'drop'].includes(text(o['op'], 10)))
+      .map((o) => ({
+        op: text(o['op'], 10) as OpinionProposal['op'],
+        opinion: text(o['opinion'], 40),
+        text: text(o['text'], 400),
+        reason: text(o['reason'], 300),
+        evidence: strings(o['evidence'], 10, 200),
+        stability: criterion(o['stability']),
+        adaptability: criterion(o['adaptability']),
+      })),
     outdated: objects(obj['outdated'])
       .slice(0, 12)
       .map((o) => ({ fact: text(o['fact'], 300), replacedBy: text(o['replacedBy'], 300), evidence: strings(o['evidence'], 10, 200) })),
     contradictions: strings(obj['contradictions'], 8, 300),
+    release: objects(obj['release'])
+      .slice(0, 16)
+      .map((r) => ({ item: text(r['item'], 40), reason: text(r['reason'], 300) }))
+      .filter((r) => r.item),
     change: text(obj['change'], 1500),
   }
 }
@@ -168,8 +210,8 @@ export interface Rejection {
 
 /** 內容合格、但個體自己的穩定性或適應性判斷不成立（或沒有證據）的 PC 修訂，保留為提案。 */
 export interface Deferral {
-  readonly kind: 'selfRevision' | 'story' | 'goal'
-  readonly item: Revision | GoalProposal
+  readonly kind: 'selfRevision' | 'story' | 'goal' | 'opinion'
+  readonly item: Revision | GoalProposal | OpinionProposal
   readonly reason: string
 }
 
@@ -245,6 +287,43 @@ export function validate(life: LifeStore, ev: Evidence, proposal: Proposal): { a
     if (failed) deferred.push({ kind: 'goal', item: g, reason: failed })
     return !failed
   })
+  const held = new Map(opinions(life).filter((o) => o.status === 'held').map((o) => [o.id, o]))
+  const opinionOps = proposal.opinions.filter((o) => {
+    const reason = !o.reason
+      ? '沒有寫理由'
+      : o.op === 'add'
+        ? !o.text
+          ? '新看法沒有內容'
+          : o.evidence.length === 0 || !o.evidence.every((id) => life.get(id) !== undefined)
+            ? '看法沒有可查的經歷支持'
+            : ''
+        : !held.has(o.opinion)
+          ? '找不到這個看法'
+          : o.op === 'revise' && !o.text
+            ? '改寫沒有內容'
+            : ''
+    if (reason) {
+      rejected.push({ item: `opinion:${o.op}:${o.opinion || o.text.slice(0, 30)}`, reason })
+      return false
+    }
+    const failed = dualCheck(life, ev, o)
+    if (failed) deferred.push({ kind: 'opinion', item: o, reason: failed })
+    return !failed
+  })
+  const outcomeIds = new Set(ev.outcomes.map((e) => e.id))
+  const revaluations = proposal.revaluations.filter((r) => {
+    const reason = !outcomeIds.has(r.outcome) ? '不是這次列出的事後比對' : !r.reason ? '沒有寫理由' : ''
+    if (reason) rejected.push({ item: `revaluation:${r.outcome}`, reason })
+    return !reason
+  })
+  const release = proposal.release.flatMap((r) => {
+    const key = ev.potentialLabels.get(r.item.toUpperCase())
+    if (!key) {
+      rejected.push({ item: `release:${r.item}`, reason: '不是這次列出的懸著的事' })
+      return []
+    }
+    return [{ item: key, reason: r.reason }]
+  })
   const facts = new Set(ev.person.map((f) => f.text))
   const outdated = proposal.outdated.filter((o) => {
     const reason = !facts.has(o.fact) ? '不是目前列出的長期事實' : !grounded(o.evidence) ? '證據不在這次整合的範圍內' : ''
@@ -252,13 +331,13 @@ export function validate(life: LifeStore, ev: Evidence, proposal: Proposal): { a
     return !reason
   })
   return {
-    accepted: { ...proposal, lessons, reappraisals, selfRevision, story, goals: goalOps, outdated },
+    accepted: { ...proposal, lessons, reappraisals, revaluations, selfRevision, story, goals: goalOps, opinions: opinionOps, outdated, release },
     rejected,
     deferred,
   }
 }
 
-const DEFERRAL_LABEL = { selfRevision: '自我模型', story: '人生敘事', goal: '目標' } as const
+const DEFERRAL_LABEL = { selfRevision: '自我模型', story: '人生敘事', goal: '目標', opinion: '看法' } as const
 
 export interface Applied {
   readonly integration: string
@@ -312,6 +391,13 @@ export function applyProposal(
       causes: accepted.story.causes,
     })
   }
+  // 重新評估回報要在自我模型修訂之後寫入，記下評估時的自我模型版本（H2：回報依個體現在在乎的事）。
+  for (const r of accepted.revaluations) {
+    const outcome = life.get(r.outcome)
+    const previous = outcome ? (outcome.data as OutcomeData).reward : null
+    const data: RevaluationData = { outcome: r.outcome, decision: outcome ? (outcome.data as OutcomeData).decision : '', reward: r.reward, previous, reason: r.reason, selfVersion: currentSelfModel(life)?.version ?? 0, integration }
+    add({ kind: REVALUATION_KIND, origin: 'self', data, text: `我重新評估了一個行動的結果：回報 ${previous === null ? '—' : previous.toFixed(2)} → ${r.reward.toFixed(2)}。${r.reason}`, causes: [r.outcome] })
+  }
   const byId = new Map(goals(life).map((g) => [g.id, g]))
   const goalStatuses: string[] = []
   for (const g of accepted.goals) {
@@ -326,8 +412,22 @@ export function applyProposal(
     })
     goalStatuses.push(status)
   }
+  const heldById = new Map(opinions(life).map((o) => [o.id, o]))
+  for (const o of accepted.opinions) {
+    const opinionId = o.op === 'add' ? `o:${randomBytes(4).toString('hex')}` : o.opinion
+    const status = o.op === 'drop' ? 'dropped' : 'held'
+    const textNow = o.text || heldById.get(opinionId)?.text || ''
+    const data: OpinionChangeData = { opinionId, text: textNow, status, reason: o.reason, evidence: o.evidence }
+    add({
+      kind: KIND.opinion,
+      origin: 'self',
+      data: { ...data, stability: o.stability, adaptability: o.adaptability, integration },
+      text: status === 'dropped' ? `我放下了一個看法：${textNow}。理由：${o.reason}` : `我的看法${o.op === 'revise' ? '（改寫）' : ''}：${textNow}。理由：${o.reason}`,
+      causes: o.evidence,
+    })
+  }
   for (const d of deferred) {
-    const summary = 'op' in d.item ? `${d.item.op}「${d.item.text || d.item.goal}」` : d.item.text
+    const summary = 'op' in d.item ? `${d.item.op}「${d.item.text || ('goal' in d.item ? d.item.goal : d.item.opinion)}」` : d.item.text
     add({
       kind: PROPOSAL_KIND,
       origin: 'self',
@@ -354,15 +454,17 @@ export function applyProposal(
       contradictions: accepted.contradictions.length,
       cited,
       goalOps: goalStatuses,
-      adopted: (accepted.selfRevision ? 1 : 0) + (accepted.story ? 1 : 0) + accepted.goals.length,
+      adopted: (accepted.selfRevision ? 1 : 0) + (accepted.story ? 1 : 0) + accepted.goals.length + accepted.opinions.length,
       deferred: deferred.length,
+      potential: ev.potential.length,
+      released: accepted.release.length,
     }),
   }
   life.append({
     id: integration,
     kind: INTEGRATION_KIND,
     origin: 'self',
-    data: { ...data, contradictions: accepted.contradictions, change: accepted.change },
+    data: { ...data, contradictions: accepted.contradictions, released: accepted.release.map((r) => ({ key: r.item, reason: r.reason })), change: accepted.change },
     text: accepted.change ? `我整理了一段時間以來的經歷。${accepted.change}` : undefined,
     causes: applied,
   })

@@ -7,6 +7,7 @@
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import { clip, clipEnds, isHeard, personFacts, replyOf, type PersonFact } from '../recall/retrieve.ts'
 import { OUTCOME_KIND, type OutcomeData } from '../rd/memory.ts'
+import { labelPotential, potentialItems, type PotentialItem, type PotentialKind } from '../self/energy.ts'
 import {
   GOAL_STATUS_LABEL,
   KIND,
@@ -15,17 +16,25 @@ import {
   currentSelfModel,
   formatTime,
   goals,
+  opinions,
   type AppraisalData,
   type GoalChangeData,
 } from '../self/state.ts'
 
-export const INTEGRATION_KIND = 'self/integration'
-export const LESSON_KIND = 'memory/lesson'
-/** 整合期中沒有通過穩定性與適應性判斷、保留下來的修訂提案。 */
-export const PROPOSAL_KIND = 'self/proposal'
+// 種類常數與「上次整合留下的」放在 carried.ts，讓 self/energy.ts 不必反向依賴本檔。
+import { INTEGRATION_KIND, LESSON_KIND, PROPOSAL_KIND, carriedOver } from './carried.ts'
+export { INTEGRATION_KIND, LESSON_KIND, PROPOSAL_KIND, carriedOver }
 
 const HEARD = 'dsh/user/message'
 const SAID = 'dsh/assistant/message'
+
+const POTENTIAL_LABEL: Record<PotentialKind, string> = {
+  contradiction: '上次整合留下的未解矛盾',
+  proposal: '上次沒有採用的修訂',
+  left: '行動留下的懸念',
+  surprise: '和預期不一樣的事',
+  intention: '念頭留下、想對對方做的事',
+}
 
 /** 整合的觸發方式（不是 H3 的修訂觸發來源）。 */
 export type IntegrationTrigger = 'idle' | 'pivotal' | 'voluntary'
@@ -41,9 +50,12 @@ export interface Observables {
   readonly contradictions: number
   /** s2：這次的自我修訂與人生敘事引用的經歷數。 */
   readonly citedExperiences: number
-  /** 提出的 PC 修訂（自我模型、人生敘事、目標）中，通過兩項判斷而採用的數量與保留為提案的數量。 */
+  /** 提出的 PC 修訂（自我模型、人生敘事、目標、看法）中，通過兩項判斷而採用的數量與保留為提案的數量。 */
   readonly adopted: number
   readonly deferred: number
+  /** H-E：整合時懸著的事的件數，以及這次整合釋放的件數（描述性）。 */
+  readonly potential?: number
+  readonly released?: number
   readonly rounds: number
   readonly outcomes: number
 }
@@ -88,6 +100,9 @@ export interface Evidence {
   readonly lessons: readonly LifeEvent[]
   /** 上次整合留下的未解矛盾與保留的提案。 */
   readonly carried: ReturnType<typeof carriedOver>
+  /** 整合時懸著的事（H-E），以及提示中的編號（P1…）。 */
+  readonly potential: readonly PotentialItem[]
+  readonly potentialLabels: ReadonlyMap<string, string>
   readonly pivotal: boolean
   /** 提示中列出、proposal 可以引用的事件 id。 */
   readonly ids: ReadonlySet<string>
@@ -101,17 +116,6 @@ export interface Limits {
 }
 
 const DEFAULT_LIMITS: Limits = { rounds: 40, appraisals: 30, outcomes: 40, lessons: 30 }
-
-/**
- * 最近一次整合留下、還沒有處理的：未解的矛盾與保留下來的修訂提案（H-E 的勢能之一，見 self/energy.ts）。
- * 下一次整合會在證據中看到它們，可以解開、重新提出或放下。
- */
-export function carriedOver(life: LifeStore): { readonly integration: LifeEvent | undefined; readonly contradictions: readonly string[]; readonly proposals: readonly LifeEvent[] } {
-  const integration = life.latest(INTEGRATION_KIND)
-  const contradictions = (integration?.data as { contradictions?: readonly string[] } | undefined)?.contradictions ?? []
-  const proposals = (integration?.causes ?? []).map((id) => life.get(id)).filter((e): e is LifeEvent => e?.kind === PROPOSAL_KIND)
-  return { integration, contradictions, proposals }
-}
 
 /** 上次完成的整合涵蓋到哪個 seq（從未整合為 0）。 */
 export function integrationStart(life: LifeStore): number {
@@ -144,15 +148,32 @@ export function collect(life: LifeStore, from: number, limits: Limits = DEFAULT_
   const lessons = life.recent(limits.lessons, [LESSON_KIND]).reverse()
   const pivotal = appraisals.some((e) => (e.data as AppraisalData).significance === 'pivotal')
   const carried = carriedOver(life)
+  const potential = potentialItems(life)
   const ids = new Set<string>([
     ...carried.proposals.map((e) => e.id),
+    ...potential.map((p) => p.source),
     ...rounds.map((r) => r.id),
     ...appraisals.map((e) => e.id),
     ...outcomes.map((e) => e.id),
     ...goalChanges.map((e) => e.id),
     ...lessons.map((e) => e.id),
   ])
-  return { from, to, rounds, omittedRounds: heard.length - kept.length, appraisals, outcomes, goalChanges, person, lessons, carried, pivotal, ids }
+  return {
+    from,
+    to,
+    rounds,
+    omittedRounds: heard.length - kept.length,
+    appraisals,
+    outcomes,
+    goalChanges,
+    person,
+    lessons,
+    carried,
+    potential,
+    potentialLabels: labelPotential(potential),
+    pivotal,
+    ids,
+  }
 }
 
 /** 整合提示的輸入：目前的自我、上次整合以後的經歷與比對，每一項都附上可引用的 id。 */
@@ -166,10 +187,14 @@ export function renderEvidence(life: LifeStore, ev: Evidence): string {
   const current = goals(life).filter((g) => g.status === 'active' || g.status === 'paused')
   if (current.length === 0) lines.push('目前沒有目標。')
   for (const g of current) lines.push(`- [${g.id}] ${GOAL_STATUS_LABEL[g.status]}：${g.text}`)
-  if (ev.carried.contradictions.length + ev.carried.proposals.length > 0) {
-    lines.push('', '## 上次整合留下的（還懸著的矛盾與沒有採用的修訂）')
-    for (const c of ev.carried.contradictions) lines.push(`- 未解的矛盾：${clip(c, 300)}`)
-    for (const e of ev.carried.proposals) lines.push(`- [${e.id}] ${clip(e.text ?? '', 400)}`)
+  lines.push('', '## 目前的看法')
+  const held = opinions(life).filter((o) => o.status === 'held')
+  if (held.length === 0) lines.push('（還沒有寫下任何看法）')
+  for (const o of held) lines.push(`- [${o.id}] ${o.text}（依據：${o.evidence.join('、') || '—'}）`)
+  if (ev.potential.length > 0) {
+    // 全部懸著的事都列出（H-E）：上次留下的矛盾與提案，以及之後的懸念、和預期不一樣的事、念頭留下的打算。
+    lines.push('', '## 懸著的事（勢能；P 編號用於 release，方括號中的 id 可以引用）')
+    ev.potential.forEach((p, i) => lines.push(`- [P${i + 1}｜${p.source}｜${formatTime(p.ts)}] ${POTENTIAL_LABEL[p.kind]}：${clip(p.text, 400)}`))
   }
   lines.push('', '## 關於對方的長期事實')
   if (ev.person.length === 0) lines.push('（沒有）')
@@ -210,7 +235,15 @@ export function renderEvidence(life: LifeStore, ev: Evidence): string {
 /** H5 的觀測量（描述性）。 */
 export function observe(
   ev: Evidence,
-  accepted: { readonly contradictions: number; readonly cited: number; readonly goalOps: readonly string[]; readonly adopted: number; readonly deferred: number },
+  accepted: {
+    readonly contradictions: number
+    readonly cited: number
+    readonly goalOps: readonly string[]
+    readonly adopted: number
+    readonly deferred: number
+    readonly potential?: number
+    readonly released?: number
+  },
 ): Observables {
   const outcomes = ev.outcomes.map((e) => e.data as OutcomeData)
   const goalChanges: Record<string, number> = {}
@@ -226,6 +259,8 @@ export function observe(
     contradictions: accepted.contradictions,
     citedExperiences: accepted.cited,
     adopted: accepted.adopted,
+    potential: accepted.potential ?? 0,
+    released: accepted.released ?? 0,
     deferred: accepted.deferred,
     rounds: ev.rounds.length,
     outcomes: outcomes.length,

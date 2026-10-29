@@ -13,6 +13,8 @@ import { discountedReturns, jaccard, termSet, type Correction, type Experience, 
 
 export const DECISION_KIND = 'rd/decision'
 export const OUTCOME_KIND = 'rd/outcome'
+/** 整合期依現在的自我重新評估某個結果的回報（H2；ADR-0002 D3 的衝突）。 */
+export const REVALUATION_KIND = 'rd/revaluation'
 
 export interface DecisionData {
   readonly cue: string
@@ -31,6 +33,8 @@ export interface DecisionData {
   readonly narrativeVersion?: number
   /** 動能：此刻推動這次行動的是什麼（H-E），個體自己寫的；舊紀錄沒有這個欄位。 */
   readonly drive?: string
+  /** 被這個處境觸發的勢能（self/energy.ts 的 key，或 goal:<目標 id>）。 */
+  readonly activated?: readonly string[]
 }
 
 export interface OutcomeData {
@@ -45,19 +49,41 @@ export interface OutcomeData {
   readonly lesson: string
   readonly feeling?: string
   readonly significance?: Significance
-  /** H-E：這次行動釋放了哪件懸著的事、留下了什麼新的懸念（個體自己寫的）；舊紀錄沒有這兩個欄位。 */
+  /** H-E：這次行動釋放了哪件懸著的事（說明與 key）、留下了什麼新的懸念（個體自己寫的）；舊紀錄沒有這些欄位。 */
   readonly released?: string
+  readonly releasedItems?: readonly string[]
   readonly left?: string
   readonly selfVersion: number
   readonly heard: string
 }
 
-/** 從生命日誌推導 JitRL 的記憶：每個 session 內依時間計算折扣回報，只保留回報已知的決定。 */
+export interface RevaluationData {
+  readonly outcome: string
+  readonly decision: string
+  readonly reward: number
+  /** 被取代的回報（原本的事後比對）。 */
+  readonly previous: number | null
+  readonly reason: string
+  /** 重新評估時的自我模型版本。 */
+  readonly selfVersion: number
+  readonly integration: string
+}
+
+/**
+ * 從生命日誌推導 JitRL 的記憶：每個 session 內依時間計算折扣回報，只保留回報已知的決定。
+ * 回報以最新的評估為準：事後比對之後，整合期可能依改變後的自我重新評估（rd/revaluation）。
+ * JitRL 論文的回報來自固定的評估者；這裡的評估者是個體自己，它的價值會改變，所以舊的回報可以重新評估（本專案的延伸）。
+ */
 export function experiences(life: LifeStore, gamma: number): Experience[] {
   const outcomes = new Map<string, OutcomeData>()
   for (const event of life.all(OUTCOME_KIND)) {
     const data = event.data as OutcomeData
     outcomes.set(data.decision, data) // 同一個決定若被評估多次，以最新的為準
+  }
+  for (const event of life.all(REVALUATION_KIND)) {
+    const r = event.data as RevaluationData
+    const outcome = outcomes.get(r.decision)
+    if (outcome) outcomes.set(r.decision, { ...outcome, reward: r.reward })
   }
   const bySession = new Map<string, LifeEvent[]>()
   for (const event of life.all(DECISION_KIND)) {

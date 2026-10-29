@@ -129,6 +129,23 @@ export function pendingSelfStatements(lifeDb: string): number {
   }
 }
 
+/**
+ * 上次整合以後，是否有被評為「轉折」的經歷還沒有整合（與 individual/src/integrate/index.ts 的 pendingPivotal 一致）。
+ * 個體在轉折後會立即做深度整合（性質 4）；歷史結束時若還沒做完，沉澱階段要等它完成，探針才從同一個完整的快照開始。
+ */
+export function pendingPivotal(lifeDb: string): boolean {
+  if (!existsSync(lifeDb)) return false
+  const db = new DatabaseSync(lifeDb, { readOnly: true })
+  try {
+    const last = db.prepare(`SELECT data FROM events WHERE kind = 'self/integration' ORDER BY seq DESC LIMIT 1`).get() as { data: string } | undefined
+    const from = last ? ((JSON.parse(last.data) as { range?: [number, number] }).range?.[1] ?? 0) : 0
+    const rows = db.prepare(`SELECT data FROM events WHERE kind = 'appraisal' AND seq > ?`).all(from) as { data: string }[]
+    return rows.some((r) => (JSON.parse(r.data) as { significance?: string }).significance === 'pivotal')
+  } finally {
+    db.close()
+  }
+}
+
 interface Layout {
   /** 拍快照與還原時複製的頂層目錄。 */
   readonly parts: readonly string[]
@@ -415,11 +432,13 @@ async function main(): Promise<void> {
     let unsettled: number | null = null
     if (condition !== 'baseline') {
       const lifeDb = layout.lifeDb(live)
-      unsettled = pendingSelfStatements(lifeDb)
+      // 待處理的自我陳述擷取，加上還沒整合的轉折（個體啟動後會自己補做深度整合）。
+      const pending = () => pendingSelfStatements(lifeDb) + (pendingPivotal(lifeDb) ? 1 : 0)
+      unsettled = pending()
       if (unsettled > 0) {
         const settler = await launch(historyModel, live, 'settle', settleAt)
         const deadline = Date.now() + 15 * 60_000
-        while ((unsettled = pendingSelfStatements(lifeDb)) > 0 && Date.now() < deadline) await sleep(2000)
+        while ((unsettled = pending()) > 0 && Date.now() < deadline) await sleep(2000)
         await settler.close()
       }
     }

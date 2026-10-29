@@ -14,7 +14,7 @@ export const TEMIR_SOURCE_PREFIX = 'temir-'
  * 個體記憶與自我的工具。它們的結果是回想到的內容或寫入的確認；寫入的紀錄本身（self/revision、memory/lesson……）
  * 另外建立索引，所以這些結果只保存不索引，避免回憶到回憶與重複的確認訊息。
  */
-export const MEMORY_TOOLS: ReadonlySet<string> = new Set(['recall', 'integrate', 'narrate', 'self_revise', 'goal', 'appraise'])
+export const MEMORY_TOOLS: ReadonlySet<string> = new Set(['recall', 'integrate', 'narrate', 'self_revise', 'goal', 'opinion', 'appraise'])
 
 /** 追蹤記憶工具的呼叫，讓對應的 tool/result 只保存不索引。每個 DSH 程序一份。 */
 export class IngestState {

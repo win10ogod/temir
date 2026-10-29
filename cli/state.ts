@@ -12,17 +12,28 @@ import { INTEGRATION_KIND, LESSON_KIND, PROPOSAL_KIND, type IntegrationData, typ
 import type { DecisionData, OutcomeData } from '../individual/src/rd/memory.ts'
 import { clipEnds, replyOf } from '../individual/src/recall/retrieve.ts'
 import { recentCycles, type Cycle } from '../individual/src/self/cycle.ts'
-import { renderPotential } from '../individual/src/self/energy.ts'
+import { describeKeys, renderPotential, type ThoughtData } from '../individual/src/self/energy.ts'
+import { renderThoughts } from '../individual/src/thought/thought.ts'
 import { formatTime, renderSelfSnapshot } from '../individual/src/self/state.ts'
 
-function renderCycle(c: Cycle): string[] {
+function renderCycle(life: LifeStore, c: Cycle): string[] {
+  if (c.source === 'internal') {
+    const t = c.thought.data as ThoughtData
+    const about = t.item ? describeKeys(life, [t.item])[0] : '（沒有）'
+    const lines = [`- ${formatTime(c.ts)}｜內部刺激（念頭）`]
+    lines.push(`    E   浮上心頭：${about}`)
+    lines.push(`    ST  ${clipEnds(t.thought, 160)}`)
+    if (t.intention) lines.push(`    RD  打算：${clipEnds(t.intention, 120)}`)
+    lines.push(`    A   寫下念頭${t.releasedItems.length > 0 ? '｜放下了這件事' : ''}`)
+    return lines
+  }
   const lines = [`- ${formatTime(c.start.ts)}｜${c.session.slice(-8)}｜四段${c.complete.E && c.complete.STRD && c.complete.A ? '齊全' : `缺 ${[!c.complete.E && 'E', !c.complete.STRD && 'ST/RD', !c.complete.A && 'A'].filter(Boolean).join('、')}`}${c.ending === 'completed' ? '' : `｜回合結束：${c.ending}`}`]
   const heard = c.heard.map((e) => (e.text ?? '').replace(/^對方說：/, '')).join(' ')
   if (heard) lines.push(`    E   對方說：${clipEnds(heard, 120)}${c.recall ? `（回憶 ${((c.recall.data as { hits?: unknown[] }).hits ?? []).length} 筆）` : ''}`)
   if (c.decision) {
     const d = c.decision.data as DecisionData
     const chosen = d.candidates[d.chosen]
-    lines.push(`    ST  ${clipEnds(d.situation, 160)}${d.drive ? `｜動能：${clipEnds(d.drive, 100)}` : ''}`)
+    lines.push(`    ST  ${clipEnds(d.situation, 160)}${d.drive ? `｜動能：${clipEnds(d.drive, 100)}` : ''}${d.activated?.length ? `（觸發：${describeKeys(life, d.activated).join('、')}）` : ''}`)
     lines.push(`    RD  準備：${clipEnds(chosen?.action ?? '', 100)}｜預期：${clipEnds(chosen?.prediction ?? '', 100)}${d.value === null ? '' : `｜V̂ ${d.value.toFixed(2)}，${d.neighbors.length} 個相似經驗`}`)
   }
   const said = c.replies.map((e) => replyOf(e)).join(' ')
@@ -32,7 +43,7 @@ function renderCycle(c: Cycle): string[] {
     const matched = o.matched === 'yes' ? '符合' : o.matched === 'partly' ? '部分符合' : '不符'
     lines.push(
       `    回饋 ${matched}｜回報 ${o.reward.toFixed(2)}${o.lesson ? `｜教訓：${clipEnds(o.lesson, 100)}` : ''}${o.feeling ? `｜感受：${clipEnds(o.feeling, 80)}` : ''}` +
-        `${o.released ? `｜釋放：${clipEnds(o.released, 80)}` : ''}${o.left ? `｜留下：${clipEnds(o.left, 80)}` : ''}`,
+        `${o.releasedItems?.length ? `｜釋放：${describeKeys(life, o.releasedItems).join('、')}` : o.released ? `｜釋放：${clipEnds(o.released, 80)}` : ''}${o.left ? `｜留下：${clipEnds(o.left, 80)}` : ''}`,
     )
   }
   return lines
@@ -47,7 +58,7 @@ function main(): void {
     return
   }
   try {
-    const lines = [`個體 ${life.individualId}（${life.path}）`, '', renderSelfSnapshot(life, renderPotential(life)).replace(/^（以下是你的生命紀錄中目前的自我狀態，由系統自動附上。）\n\n/, '')]
+    const lines = [`個體 ${life.individualId}（${life.path}）`, '', renderSelfSnapshot(life, [...renderPotential(life), ...renderThoughts(life)]).replace(/^（以下是你的生命紀錄中目前的自我狀態，由系統自動附上。）\n\n/, '')]
     const lessons = life.recent(5, [LESSON_KIND]).reverse()
     lines.push('', '## 教訓（最近）')
     if (lessons.length === 0) lines.push('還沒有。')
@@ -70,7 +81,7 @@ function main(): void {
     const cycles = recentCycles(life, Number(values.cycles))
     lines.push('', `## 最近的 PC 循環（PC＝ST＋E−RD＝A；E 刺激、ST 思考、RD 準備與預測、A 行動）`)
     if (cycles.length === 0) lines.push('還沒有。')
-    for (const c of cycles) lines.push(...renderCycle(c))
+    for (const c of cycles) lines.push(...renderCycle(life, c))
     console.log(lines.join('\n'))
   } finally {
     life.close()

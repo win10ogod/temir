@@ -19,7 +19,7 @@ import type { LifeEvent } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { callModel, type AuxRoute } from '../recall/aux.ts'
 import { clip, clipEnds } from '../recall/retrieve.ts'
-import { renderPotential } from '../self/energy.ts'
+import { labelPotential, potentialItems, renderPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
 import { DELIBERATE_SYSTEM, OUTCOME_SYSTEM, parseDeliberation, parseOutcome } from './aux.ts'
 import { DEFAULT_PARAMS, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
@@ -113,15 +113,18 @@ export function apply(ctx: Context, config: Config | undefined): void {
       const planned = data.candidates[data.chosen]
       const self = currentSelfModel(life)
       const turn = decisionTurn(life, decision)
-      const held = renderPotential(life)
+      // 懸著的事加上編號，事後比對才能指名釋放了哪一件（self/energy.ts）。
+      const held = potentialItems(life)
+      const labels = labelPotential(held)
+      const heldLines = renderPotential(life, { labels: true })
       const active = goals(life).filter((g) => g.status === 'active')
       const input = [
         '## 你目前的自我模型',
         self ? self.text : '（尚未書寫）',
         '',
         '## 你的目標與懸著的事',
-        ...(active.length > 0 ? active.map((g) => `- 目標：${g.text}`) : ['（沒有進行中的目標）']),
-        ...held.slice(2),
+        ...(active.length > 0 ? active.map((g) => `- [${g.id}] 目標：${g.text}`) : ['（沒有進行中的目標）']),
+        ...(heldLines.length > 0 ? heldLines.slice(2) : ['（沒有懸著的事）']),
         '',
         '## 你當時對處境的判斷',
         data.situation,
@@ -139,7 +142,17 @@ export function apply(ctx: Context, config: Config | undefined): void {
       const output = await call('outcome', route, OUTCOME_SYSTEM, input, decision.session ?? undefined, [decision.id])
       const judged = output === undefined ? undefined : parseOutcome(output)
       if (!judged || !life.isOpen) return
-      const outcome: OutcomeData = { decision: decision.id, ...judged, selfVersion: self?.version ?? 0, heard: clip(heard, 500) }
+      const { releasedRefs, ...rest } = judged
+      const releasedItems = resolvePotential(releasedRefs, labels).filter((k) => !k.startsWith('goal:'))
+      const outcome: OutcomeData = {
+        decision: decision.id,
+        ...rest,
+        released: unlabel(rest.released, labels, held),
+        left: unlabel(rest.left, labels, held),
+        ...(releasedItems.length > 0 ? { releasedItems } : {}),
+        selfVersion: self?.version ?? 0,
+        heard: clip(heard, 500),
+      }
       const recorded = life.append({
         kind: OUTCOME_KIND,
         origin: 'self',
@@ -194,9 +207,13 @@ export function apply(ctx: Context, config: Config | undefined): void {
           .join('\n')
         // ST 想像得到的行動要包括真的能做的事：e2e-15 中思考不知道有 integrate 工具，準備了「告知沒有這個工具」。
         const tools = ctx.tools.definitions(payload.agent).map((t) => t.name)
+        // 懸著的事加上編號，思考才能指名被觸發的是哪一件（self/energy.ts）。
+        const heldNow = potentialItems(life)
+        const potentialLabels = labelPotential(heldNow)
+        const goalIds = new Set(goals(life).filter((g) => g.status === 'active' || g.status === 'paused').map((g) => g.id))
         const input = [
           '## 你目前的自我狀態',
-          renderSelfSnapshot(life, renderPotential(life)),
+          renderSelfSnapshot(life, renderPotential(life, { labels: true })),
           '',
           '## 你現在可以使用的工具',
           tools.length > 0 ? tools.join('、') : '（沒有）',
@@ -211,8 +228,10 @@ export function apply(ctx: Context, config: Config | undefined): void {
           clip(cue, 3000),
         ].join('\n')
         const output = await call('deliberate', route, DELIBERATE_SYSTEM, input, session, [], payload.signal)
-        const deliberation = output === undefined ? undefined : parseDeliberation(output, labels)
-        if (!deliberation) return decision
+        const parsed = output === undefined ? undefined : parseDeliberation(output, labels)
+        if (!parsed) return decision
+        // drive 會進入準備訊息與紀錄：把編號換成那件事的描述（編號只在這次思考的輸入中有意義）。
+        const deliberation = { ...parsed, drive: unlabel(parsed.drive, potentialLabels, heldNow) }
 
         const near = jitrl ? neighbors(deliberation.situation, memory, params, deliberation.similar) : []
         const correction = jitrl ? correct(deliberation.candidates, near, params) : uncorrected(deliberation.candidates)
@@ -221,6 +240,10 @@ export function apply(ctx: Context, config: Config | undefined): void {
           cue: clip(cue, 500),
           situation: deliberation.situation,
           ...(deliberation.drive ? { drive: deliberation.drive } : {}),
+          ...(() => {
+            const activated = resolvePotential(deliberation.activated, potentialLabels, goalIds)
+            return activated.length > 0 ? { activated } : {}
+          })(),
           candidates: correction.scored,
           chosen: correction.chosen,
           value: correction.value,

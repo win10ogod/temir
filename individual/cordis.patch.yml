@@ -17,3 +17,5 @@
       name: ./src/rd/index.ts
     - id: temir-integrate
       name: ./src/integrate/index.ts
+    - id: temir-thought
+      name: ./src/thought/index.ts

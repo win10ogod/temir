@@ -14,12 +14,14 @@ import { randomBytes } from 'node:crypto'
 import type {} from '../life/index.ts'
 import { readFileSync } from 'node:fs'
 import { resolveIds } from '../recall/retrieve.ts'
+import { renderThoughts } from '../thought/thought.ts'
 import { renderPotential } from './energy.ts'
 import { situation } from './situation.ts'
 import {
   GOAL_STATUS,
   GOAL_STATUS_LABEL,
   KIND,
+  OPINION_STATUS,
   SIGNIFICANCE,
   SIGNIFICANCE_LABEL,
   TRIGGERS,
@@ -27,10 +29,12 @@ import {
   currentNarrative,
   currentSelfModel,
   goals,
+  opinions,
   renderSelfSnapshot,
   type AppraisalData,
   type GoalChangeData,
   type NarrativeData,
+  type OpinionChangeData,
   type PersonaData,
   type SelfRevisionData,
 } from './state.ts'
@@ -62,7 +66,7 @@ export function configuredPersona(config: Config | undefined, env: NodeJS.Proces
 }
 
 /**
- * 性質 6：自我修復的判準是穩定性與適應性，兩者缺一不可。直接修訂自己（self_revise、narrate、goal）時也要寫出兩者，
+ * 性質 6：自我修復的判準是穩定性與適應性，兩者缺一不可。直接修訂自己（self_revise、narrate、goal、opinion）時也要寫出兩者，
  * 和整合期一致；判斷由個體自己做，這裡只確認兩者都有寫，不設任何門檻。
  */
 const STABILITY = '穩定性：這個改變如何與你原本在乎的事、你的故事保持連貫，而不是無端的跳躍'
@@ -96,7 +100,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
       order: 10,
       interpolate: false,
       required: true,
-      text: () => renderSelfSnapshot(life, renderPotential(life)),
+      text: () => renderSelfSnapshot(life, [...renderPotential(life), ...renderThoughts(life)]),
     })
   }
 
@@ -211,6 +215,52 @@ export function apply(ctx: Context, config: Config | undefined): void {
           text: `目標「${data.text}」${GOAL_STATUS_LABEL[data.status]}。理由：${data.reason}`,
         })
         return `${existing ? '已更新' : '已建立'}目標 ${goalId}：${GOAL_STATUS_LABEL[data.status]}（${event.id}）。`
+      },
+    }),
+  )
+
+  ctx.tools.register(
+    defineTool({
+      name: 'opinion',
+      description:
+        '寫下、改寫或放下你的一個看法或價值（例如什麼重要、某類事該怎麼做），並引用支持它的經歷（生命紀錄事件 id，回憶中方括號內的 id）。省略 opinion_id 表示新的看法；帶 opinion_id 表示改寫或放下既有的看法。每次都要寫理由，以及這個改變的穩定性與適應性。',
+      parameters: {
+        opinion_id: { type: 'string', description: '既有看法的 id，例如 o:3fa1c2d4；新的看法時省略' },
+        text: { type: 'string', description: '看法本身（新的或改寫時必填；放下時可省略）' },
+        status: { type: 'string', enum: OPINION_STATUS, required: true, description: 'held＝持有（新的或改寫）；dropped＝放下' },
+        reason: { type: 'string', required: true, description: '為什麼持有、改寫或放下' },
+        evidence: { type: 'array', items: { type: 'string' }, description: '支持它的生命紀錄事件 id（新的看法至少一個）' },
+        stability: { type: 'string', required: true, description: STABILITY },
+        adaptability: { type: 'string', required: true, description: ADAPTABILITY },
+      },
+      output: textOutput,
+      async execute(args, exec) {
+        const existing = args.opinion_id ? opinions(life).find((o) => o.id === args.opinion_id) : undefined
+        if (args.opinion_id && !existing) throw new Error(`找不到看法 ${args.opinion_id}`)
+        if (args.status === 'held' && !args.text && !existing) throw new Error('新的看法需要 text')
+        if (args.status === 'dropped' && !existing) throw new Error('放下看法需要 opinion_id')
+        const evidence = resolveIds(life, args.evidence ?? [])
+        const missing = evidence.filter((id) => !life.get(id))
+        if (missing.length > 0) throw new Error(`生命紀錄中沒有這些事件：${missing.join(', ')}`)
+        if (!existing && evidence.length === 0) throw new Error('新的看法要引用至少一段支持它的經歷（evidence）')
+        requireBoth(args.stability, args.adaptability)
+        const opinionId = existing?.id ?? `o:${randomBytes(4).toString('hex')}`
+        const data: OpinionChangeData = {
+          opinionId,
+          text: args.text ?? existing?.text ?? '',
+          status: args.status as OpinionChangeData['status'],
+          reason: args.reason,
+          evidence,
+        }
+        const event = life.append({
+          kind: KIND.opinion,
+          origin: 'self',
+          session: exec.agent?.session.id,
+          data: { ...data, stability: args.stability.trim(), adaptability: args.adaptability.trim() },
+          text: data.status === 'dropped' ? `我放下了一個看法：${data.text}。理由：${data.reason}` : `我的看法${existing ? '（改寫）' : ''}：${data.text}。理由：${data.reason}`,
+          causes: evidence,
+        })
+        return `${data.status === 'dropped' ? '已放下' : existing ? '已改寫' : '已寫下'}看法 ${opinionId}（${event.id}）。`
       },
     }),
   )

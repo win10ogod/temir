@@ -139,3 +139,26 @@ test('沒有金鑰 → unavailable（不會送出請求）', async () => {
     if (saved !== undefined) process.env['DEEPSEEK_API_KEY'] = saved
   }
 })
+
+test('decisions taken from another cache file are copied into the output file, so the output alone can be replayed', async () => {
+  const { mkdtempSync, readFileSync, writeFileSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const { DeepSeekJudge, ReplayJudge, readCache, requestKey } = await import('../lib/judge.ts')
+  const dir = mkdtempSync(join(tmpdir(), 'temir-judge-copy-'))
+  const spec = { model: 'deepseek-v4-pro', endpoint: 'https://example.invalid', temperature: 0, maxTokens: 400, thinking: 'disabled' as const, maxAttempts: 1, pricesUsdPerMillion: { cacheHit: 0, cacheMiss: 0, output: 0 }, maxUsdPerRun: 0 }
+  const pair = { system: 's', user: 'u' }
+  const req = { prompt: 'mem-default' as const, context: 'c', pair, parse: PARSERS.yesNo }
+  const key = requestKey(spec, pair)
+  const earlier = join(dir, 'earlier.jsonl')
+  writeFileSync(earlier, `${JSON.stringify({ key, prompt: 'mem-default', context: 'c', attempt: 1, final: false, status: 'api-error', raw: '' })}\n${JSON.stringify({ key, prompt: 'mem-default', context: 'c', attempt: 2, final: true, status: 'ok', raw: '{"label":"yes","reason":"r"}', value: { label: 'yes', reason: 'r' } })}\n`)
+  const out = join(dir, 'out.jsonl')
+  const judge = new DeepSeekJudge({ spec, cacheFile: out, readCacheFiles: [earlier], maxUsd: 0, fetchImpl: async () => { throw new Error('no network in this test') } })
+  const first = await judge.judge(req)
+  const again = await judge.judge(req)
+  assert.deepEqual([first.status, first.cached, again.status], ['ok', true, 'ok'])
+  assert.equal(readFileSync(out, 'utf8').trim().split('\n').length, 1, 'copied once, the final decision only')
+  assert.equal(readCache([out]).get(key)?.status, 'ok')
+  const replay = await new ReplayJudge(spec, [out]).judge(req)
+  assert.equal(replay.status, 'ok')
+})

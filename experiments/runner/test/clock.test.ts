@@ -22,3 +22,21 @@ test('a child node process and the date shim both see the simulated time', () =>
   assert.equal(shown, '2026-06-05 12')
   assert.equal(execFileSync(join(runner, 'sim-bin', 'date'), ['-u', '-d', '2020-01-02', '+%F'], { env, encoding: 'utf8' }).trim(), '2020-01-02', 'an explicit date is passed through')
 })
+
+test('relative date expressions are computed from the simulated now; weekday items follow GNU date', () => {
+  const env = { ...process.env, ...clockEnv('2026-07-22T21:00:00+08:00', process.env) }
+  const sim = (...args: string[]) => execFileSync(join(runner, 'sim-bin', 'date'), args, { env, encoding: 'utf8' }).trim()
+  assert.equal(sim('-d', 'next monday', '+%F %a'), '2026-07-27 Mon', 'v3: the raw harness ran this and got the real next Monday')
+  assert.equal(sim('-d', 'monday', '+%F'), '2026-07-27')
+  assert.equal(sim('-d', 'wednesday', '+%F'), '2026-07-22', 'a bare weekday that is today is today')
+  assert.equal(sim('-d', 'last wednesday', '+%F'), '2026-07-15')
+  assert.equal(sim('--date=tomorrow', '+%F'), '2026-07-23')
+  assert.equal(sim('--date', '3 days ago', '+%F'), '2026-07-19')
+  assert.equal(sim('-d', '2026-06-13', '+%A'), 'Saturday', 'absolute dates are untouched')
+  // 偏移為 0 時，星期項目的結果必須和真正的 GNU date 完全相同。
+  const zero = { ...process.env, TEMIR_SIM_OFFSET_MS: '0' }
+  for (const e of ['monday', 'next friday', 'last sunday', 'this thursday', 'Sat']) {
+    const real = execFileSync('/usr/bin/date', ['-d', e, '+%F %H'], { encoding: 'utf8' }).trim()
+    assert.equal(execFileSync(join(runner, 'sim-bin', 'date'), ['-d', e, '+%F %H'], { env: zero, encoding: 'utf8' }).trim(), real, e)
+  }
+})

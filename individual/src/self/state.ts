@@ -36,6 +36,8 @@ export const KIND = {
   narrative: 'self/narrative',
   goalChange: 'goal/change',
   appraisal: 'appraisal',
+  /** 價值與看法（H1-2）：個體形成的判斷，連到支持它的經歷。 */
+  opinion: 'self/opinion',
 } as const
 
 export interface SelfRevisionData {
@@ -107,6 +109,28 @@ export interface GoalChangeData {
   readonly reason: string
 }
 
+/** 價值與看法的一次變化（H1-2）。看法以 id 串起歷史：持有（新增或改寫）或放下；不設信心分數。 */
+export const OPINION_STATUS = ['held', 'dropped'] as const
+export type OpinionStatus = (typeof OPINION_STATUS)[number]
+
+export interface OpinionChangeData {
+  readonly opinionId: string
+  readonly text: string
+  readonly status: OpinionStatus
+  readonly reason: string
+  /** 支持（或促成這次改變）的經歷。 */
+  readonly evidence: readonly string[]
+}
+
+export interface Opinion {
+  readonly id: string
+  readonly text: string
+  readonly status: OpinionStatus
+  readonly since: number
+  readonly evidence: readonly string[]
+  readonly history: readonly { readonly ts: number; readonly status: OpinionStatus; readonly text: string; readonly reason: string }[]
+}
+
 export interface AppraisalData {
   readonly feeling: string
   readonly significance: Significance
@@ -146,6 +170,25 @@ export function goals(life: LifeStore): Goal[] {
       status: change.status,
       since: previous?.status === change.status ? previous.since : event.ts,
       history: [...(previous?.history ?? []), { ts: event.ts, status: change.status, reason: change.reason }],
+    })
+  }
+  return [...byId.values()]
+}
+
+/** 依事件順序折疊出每個看法的現況與歷史（與 goals 相同的做法）。 */
+export function opinions(life: LifeStore): Opinion[] {
+  const byId = new Map<string, Opinion>()
+  for (const event of life.all(KIND.opinion)) {
+    const change = event.data as OpinionChangeData
+    const previous = byId.get(change.opinionId)
+    const text = change.text || previous?.text || ''
+    byId.set(change.opinionId, {
+      id: change.opinionId,
+      text,
+      status: change.status,
+      since: event.ts,
+      evidence: change.evidence.length > 0 ? change.evidence : (previous?.evidence ?? []),
+      history: [...(previous?.history ?? []), { ts: event.ts, status: change.status, text, reason: change.reason }],
     })
   }
   return [...byId.values()]
@@ -219,6 +262,14 @@ export function renderSelfSnapshot(life: LifeStore, extra: readonly string[] = [
   if (current.length === 0) lines.push('目前沒有目標。')
   for (const goal of current) {
     lines.push(`- [${goal.id}] ${GOAL_STATUS_LABEL[goal.status]}：${goal.text}（自 ${formatTime(goal.since)}）`)
+  }
+  const held = opinions(life)
+    .filter((o) => o.status === 'held')
+    .sort((a, b) => a.since - b.since)
+  if (held.length > 0) {
+    const shown = held.slice(-8)
+    lines.push('', `## 我的看法${held.length > shown.length ? `（較早的 ${held.length - shown.length} 條沒有列出）` : ''}`)
+    for (const o of shown) lines.push(`- [${o.id}] ${o.text}（${formatTime(o.since)}）`)
   }
   const weighty = weightyAppraisals(life)
   if (weighty.length > 0) {

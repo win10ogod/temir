@@ -23,3 +23,5 @@
       name: ./src/skill/index.ts
     - id: temir-plugin
       name: ./src/plugin/index.ts
+    - id: temir-panel
+      name: ./src/panel/index.ts

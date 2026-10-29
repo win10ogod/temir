@@ -130,6 +130,7 @@ export function renderOwnPlugins(life: LifeStore): string[] {
   const own = ownPlugins(life)
   if (own.length === 0) return []
   return [
+    '',
     '## 你寫給自己的插件（程式碼；每個版本啟用前都要經過創造你的人核准）',
     ...own.map((p) => `- ${p.name}：${p.purpose}（${formatDay(p.writtenAt)} 寫的版本，${p.approved ? '已核准，每段對話都會啟用' : '還沒有核准'}）`),
   ]

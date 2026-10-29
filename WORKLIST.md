@@ -127,7 +127,11 @@
 - [ ] 由真實模型的判斷主動開口並送出（e2e 中個體都選擇不開口）：在長時間的真實使用中觀察。
 - [ ] 拒絕與異議紀錄分析
 - [ ] 身份連續性實驗（H-ID）
-- [ ] Web client 插件：內在狀態面板、生命日誌時間軸、記憶瀏覽；Telegram／LINE／Discord 插件
+- [x] Web 的內在狀態面板（temir-panel）：
+  - 掛在 DSH 自己的 Web 伺服器上：`/temir/`（狀態）、`/temir/timeline`（生命日誌）、`/temir/search`（回憶搜尋）；
+  - 唯讀，只回應本機，並檢查 Host 標頭（擋下 DNS rebinding）；
+  - 單元測試，以及真實的 `dsh web`：本機 200、假冒 Host 403。
+- [ ] Telegram／LINE／Discord 插件：需要使用者的機器人帳號與金鑰。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-M1、H-ID

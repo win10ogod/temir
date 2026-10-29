@@ -432,5 +432,5 @@ export function recordProposal(life: LifeStore, p: ProposalData): LifeEvent {
 export function renderOwnSkills(life: LifeStore): string[] {
   const own = ownSkills(life)
   if (own.length === 0) return []
-  return ['## 你寫給自己的技能（需要時用 skill 工具載入）', ...own.map(renderSkillLine)]
+  return ['', '## 你寫給自己的技能（需要時用 skill 工具載入）', ...own.map(renderSkillLine)]
 }

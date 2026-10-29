@@ -18,6 +18,7 @@ import { randomBytes } from 'node:crypto'
 import type {} from '../life/index.ts'
 import { readFileSync } from 'node:fs'
 import { resolveIds } from '../recall/retrieve.ts'
+import { renderOwnSkills } from '../skill/skill.ts'
 import { renderThoughts } from '../thought/thought.ts'
 import { renderPotential } from './energy.ts'
 import { SILENCE_KIND, SILENCE_NOTE, SilenceWatch } from './silence.ts'
@@ -126,7 +127,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
       order: 10,
       interpolate: false,
       required: true,
-      text: () => renderSelfSnapshot(life, (config?.energy ?? true) ? [...renderPotential(life), ...renderThoughts(life)] : []),
+      text: () => renderSelfSnapshot(life, [...((config?.energy ?? true) ? [...renderPotential(life), ...renderThoughts(life)] : []), ...renderOwnSkills(life)]),
     })
   }
 

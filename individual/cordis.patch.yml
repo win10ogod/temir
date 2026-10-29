@@ -19,3 +19,5 @@
       name: ./src/integrate/index.ts
     - id: temir-thought
       name: ./src/thought/index.ts
+    - id: temir-skill
+      name: ./src/skill/index.ts

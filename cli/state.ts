@@ -1,5 +1,5 @@
 /**
- * 唯讀檢視個體的內在狀態：自我模型、人生敘事、目標、重要感受、教訓、最近一次整合、最近的 PC 循環。
+ * 唯讀檢視個體的內在狀態：自我模型、人生敘事、目標、重要感受、技能與它們的帳本、教訓、最近一次整合、最近的 PC 循環。
  * 不呼叫模型，也不寫入生命日誌（個體還沒誕生時不會讓它誕生）。
  *
  * 用法：scripts/temir.sh state [--cycles 3]
@@ -14,6 +14,7 @@ import { clipEnds, replyOf } from '../individual/src/recall/retrieve.ts'
 import { recentCycles, type Cycle } from '../individual/src/self/cycle.ts'
 import { describeKeys, renderPotential, type ThoughtData } from '../individual/src/self/energy.ts'
 import { renderThoughts } from '../individual/src/thought/thought.ts'
+import { SKILL_KIND, renderLedger, renderOwnSkills } from '../individual/src/skill/skill.ts'
 import { formatTime, renderSelfSnapshot } from '../individual/src/self/state.ts'
 
 function renderCycle(life: LifeStore, c: Cycle): string[] {
@@ -60,7 +61,8 @@ function main(): void {
     return
   }
   try {
-    const lines = [`個體 ${life.individualId}（${life.path}）`, '', renderSelfSnapshot(life, [...renderPotential(life), ...renderThoughts(life)]).replace(/^（以下是你的生命紀錄中目前的自我狀態，由系統自動附上。）\n\n/, '')]
+    const lines = [`個體 ${life.individualId}（${life.path}）`, '', renderSelfSnapshot(life, [...renderPotential(life), ...renderThoughts(life), ...renderOwnSkills(life)]).replace(/^（以下是你的生命紀錄中目前的自我狀態，由系統自動附上。）\n\n/, '')]
+    if (life.all(SKILL_KIND.decision).length > 0) lines.push('', '## 技能的帳本（最近；閘門＝行為對照，未經量測）', ...renderLedger(life, 8))
     const lessons = life.recent(5, [LESSON_KIND]).reverse()
     lines.push('', '## 教訓（最近）')
     if (lessons.length === 0) lines.push('還沒有。')

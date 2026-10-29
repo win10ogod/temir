@@ -100,8 +100,14 @@
 - [ ] 價值改變後重新評估舊的回報（ADR-0002 D3 的衝突）
 
 ## M3 技能與自我改進
-- [ ] 個體自己寫 skill 與插件（DSH skill 目錄、Cordis 插件、HMR）
-- [ ] WikiSkill 迴圈、Harness² Propose–Probe–Compose＋EXPERIENCE 函式庫、RRSI 帳本／δ／成本規則／退火預算
+- [x] 個體自己寫技能（ADR-0003）：
+  - 生命日誌中的帳本投影成 DSH 執行期技能；
+  - `skill_propose` 與閒置時的回顧；
+  - Propose–Probe–Compose 閘門（行為對照，未經量測）；
+  - 單元測試；e2e-24（DeepSeek：個體自己提出並採用，閘門擋下過度的修改）。
+- [ ] 技能是否讓行為變好（H-S）：預先登記的實驗（有／拿掉技能，全新的同類處境）。
+- [ ] 個體寫插件（Harness² 的 middleware、DSH Cordis 插件）：需要使用者核准的路徑。
+- [ ] 量測閘門（WikiSkill 驗證集、RRSI 的 δ 與成本規則、退火預算）：只在個體有可驗證任務集時。
 
 ## M4 自主性
 - [ ] 閒置認知與自發行動、拒絕與異議紀錄分析

@@ -3,7 +3,8 @@
  *
  * 每個含有對方新訊息的步驟（DSH `agent/pre-step`）：
  * 1. 事後比對（背景，不阻塞回覆）：本 session 上一個決定的預測，對照我實際說的話與對方接著說的話，
- *    依我目前的自我模型評估回報與教訓，寫成 `rd/outcome`。
+ *    依我目前的自我模型評估回報與教訓，寫成 `rd/outcome`。必填的判斷不合格時附上問題重問一次，
+ *    仍不合格（或呼叫失敗）就寫成 `rd/outcome-failed`，那個決定沒有回報（parseOutcome）。
  * 2. 思考與準備：以自我狀態、自動回憶與過去類似處境的經驗為條件，產生處境描述與 3 個候選做法
  *    （預期後果、口述信心），以 JitRL 經驗修正選出做法，寫成 `rd/decision`。
  * 3. 準備訊息（source.kind=temir-rd；ingest 不為 temir 來源建立回憶索引）放在對方的話之後，主模型據此行動，
@@ -27,11 +28,12 @@ import { modelCaller, type AuxRoute, type CallModel, type Log } from '../recall/
 import { clip, clipEnds, sessionSoFar } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
-import { DELIBERATION_RETRY_NOTE, REVISION_SYSTEM, deliberateSystem, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, revisionRetryNote, withoutExclusions } from './aux.ts'
+import { DELIBERATION_RETRY_NOTE, REVISION_SYSTEM, deliberateSystem, outcomeRetryNote, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, revisionRetryNote, withoutExclusions } from './aux.ts'
 import { DEFAULT_PARAMS, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
 import { REPLAY_KIND, adoptedParams } from './replay.ts'
 import {
   DECISION_KIND,
+  OUTCOME_FAILED_KIND,
   OUTCOME_KIND,
   experiences,
   experiencesOfRecalled,
@@ -47,6 +49,7 @@ import {
   renderPreparation,
   type DecisionData,
   type OutcomeData,
+  type OutcomeFailedData,
 } from './memory.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
@@ -222,9 +225,26 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         '## 對方接著說了什麼',
         clip(heard, 1500),
       ].join('\n')
-      const output = await call('outcome', route, outcomeSystem(energy), input, decision.session ?? undefined, [decision.id])
-      const judged = output === undefined ? undefined : parseOutcome(output)
-      if (!judged || !life.isOpen) return
+      const system = outcomeSystem(energy)
+      const session = decision.session ?? undefined
+      const output = await call('outcome', route, system, input, session, [decision.id])
+      let parsed = output === undefined ? undefined : parseOutcome(output)
+      const problems: string[] = output === undefined ? ['比對的呼叫失敗'] : []
+      // 強制判斷：不合格時附上問題重問一次（呼叫失敗時不重問，與思考相同）；仍不合格就記下失敗，不寫 rd/outcome。
+      if (parsed && !parsed.ok && life.isOpen) {
+        problems.push(...parsed.problems.map((p) => `第 1 次：${p}`))
+        const again = await call('outcome', route, `${system}\n${outcomeRetryNote(parsed.problems)}`, input, session, [decision.id])
+        parsed = again === undefined ? undefined : parseOutcome(again)
+        if (!parsed) problems.push('第 2 次：比對的呼叫失敗')
+        else if (!parsed.ok) problems.push(...parsed.problems.map((p) => `第 2 次：${p}`))
+      }
+      if (!life.isOpen) return
+      if (!parsed?.ok) {
+        const failed: OutcomeFailedData = { decision: decision.id, problems, ...(provisional ? { provisional: true } : {}) }
+        life.append({ kind: OUTCOME_FAILED_KIND, origin: 'self', session, data: failed, text: `事後比對沒有結果：${problems.join('；')}`, causes: [decision.id] })
+        return
+      }
+      const judged = parsed.judgment
       const { releasedRefs, ...rest } = judged
       const releasedItems = resolvePotential(releasedRefs, labels).filter((k) => !k.startsWith('goal:'))
       const outcome: OutcomeData = {
@@ -245,7 +265,7 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
       const recorded = life.append({
         kind: OUTCOME_KIND,
         origin: 'self',
-        session: decision.session ?? undefined,
+        session,
         data: outcome,
         text: [provisional && '（暫時的比對：對方還沒有回話）', `預測：${planned?.prediction ?? ''}`, `實際：${judged.actual}`, judged.lesson && `教訓：${judged.lesson}`].filter(Boolean).join('\n'),
         causes: [decision.id],
@@ -257,7 +277,7 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         life.append({
           kind: KIND.appraisal,
           origin: 'self',
-          session: decision.session ?? undefined,
+          session,
           data: { ...appraisal, source: OUTCOME_KIND },
           text: `我的感受（${SIGNIFICANCE_LABEL[judged.significance]}）：${judged.feeling}`,
           causes: [...(turn.heard ? [turn.heard.id] : []), ...(turn.reply ? [turn.reply.id] : []), recorded.id],
@@ -281,7 +301,8 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
       if (!last || now - last.ts < silenceMs) return
       const session = life.latest(DECISION_KIND)?.session
       const decision = session ? openDecision(life, session) : undefined
-      if (!decision || life.referencing(decision.id, OUTCOME_KIND).length > 0) return
+      // 已經比對過（包括沒有結果的比對：rd/outcome-failed）就不再做暫時的比對，免得每分鐘重做一次。
+      if (!decision || life.referencing(decision.id).some((e) => e.kind === OUTCOME_KIND || e.kind === OUTCOME_FAILED_KIND)) return
       const route = latestRoute(life)
       if (route) evaluate(decision, SILENT_OTHER, route, true)
     } catch (error) {

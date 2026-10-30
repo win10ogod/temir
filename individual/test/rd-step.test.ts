@@ -5,10 +5,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { LifeStore } from '../src/life/store.ts'
 import type { CallModel } from '../src/recall/aux.ts'
-import { DELIBERATION_RETRY_NOTE, REVISION_SYSTEM, revisionRetryNote } from '../src/rd/aux.ts'
+import { DELIBERATION_RETRY_NOTE, REVISION_SYSTEM, outcomeRetryNote, revisionRetryNote } from '../src/rd/aux.ts'
 import { createRd, type Config, type StepInput } from '../src/rd/index.ts'
 import { DEFAULT_PARAMS } from '../src/rd/jitrl.ts'
-import { DECISION_KIND, OUTCOME_KIND, type DecisionData, type OutcomeData } from '../src/rd/memory.ts'
+import { DECISION_KIND, OUTCOME_FAILED_KIND, OUTCOME_KIND, type DecisionData, type OutcomeData, type OutcomeFailedData } from '../src/rd/memory.ts'
 
 type Purpose = 'deliberate' | 'revise' | 'outcome'
 type Reply = string | Error | (() => Promise<string>)
@@ -256,4 +256,52 @@ test('race (item 1): the real comparison is never duplicated', () =>
     await rd.settle()
     assert.equal(calls.length, 2, 'one provisional and one real comparison')
     assert.deepEqual(outcomesOf(store, old).map((o) => o.provisional ?? false), [true, false])
+  }))
+
+const failuresOf = (store: LifeStore, id: string) => store.referencing(id, OUTCOME_FAILED_KIND).map((e) => e.data as OutcomeFailedData)
+
+test('outcome (item 2): an incomplete comparison is asked again with its problems; the valid answer is the one outcome', () =>
+  withStore(async (store) => {
+    const old = lastTurn(store)
+    const incomplete = JSON.stringify({ didAction: '', actual: '他說謝謝', matched: 'maybe', reward: 0.5, significance: 'daily' })
+    const { call, calls } = scripted({ outcome: [incomplete, OUTCOME('他說謝謝', 0.5)] })
+    const rd = createRd({ life: store, call, logger: recorder().logger }, CONFIG)
+    rd.evaluate(store.get(old)!, '謝謝', ROUTE)
+    await rd.settle()
+    assert.equal(calls.length, 2)
+    assert.equal(calls[1]!.system, `${calls[0]!.system}\n${outcomeRetryNote(['matched 不是 yes、partly 或 no', 'didAction 是空的'])}`)
+    assert.equal(calls[0]!.input, calls[1]!.input)
+    assert.deepEqual(outcomesOf(store, old).map((o) => [o.didAction, o.matched, o.reward]), [['答應想好名字再告訴他', 'partly', 0.5]])
+    assert.deepEqual(failuresOf(store, old), [])
+  }))
+
+test('outcome (item 2): two invalid answers write a failure record with both problems and no outcome', () =>
+  withStore(async (store) => {
+    const old = lastTurn(store)
+    const { call, calls } = scripted({ outcome: ['我覺得還不錯', JSON.stringify({ didAction: 'a', matched: 'yes', reward: 'good', significance: 'daily' })] })
+    const rd = createRd({ life: store, call, logger: recorder().logger }, CONFIG)
+    rd.evaluate(store.get(old)!, '謝謝', ROUTE)
+    await rd.settle()
+    assert.equal(calls.length, 2)
+    assert.deepEqual(outcomesOf(store, old), [])
+    assert.deepEqual(failuresOf(store, old), [{ decision: old, problems: ['第 1 次：不是 JSON 物件', '第 2 次：reward 不是數'] }])
+  }))
+
+test('outcome (item 2): a failed call is not asked again and is recorded; a failed provisional comparison is not redone every minute', () =>
+  withStore(async (store) => {
+    const old = lastTurn(store)
+    const { call, calls } = scripted({ outcome: [new Error('逾時')] })
+    const rd = createRd({ life: store, call, logger: recorder().logger }, { silenceMinutes: 10 })
+    rd.checkSilence(SILENT_LATER())
+    await rd.settle()
+    rd.checkSilence(SILENT_LATER())
+    await rd.settle()
+    assert.equal(calls.length, 1)
+    assert.deepEqual(failuresOf(store, old), [{ decision: old, problems: ['比對的呼叫失敗'], provisional: true }])
+    // 對方之後回話時仍會正式比對。
+    const again = scripted({ outcome: [OUTCOME('他說謝謝', 0.5)], deliberate: [DELIBERATION] })
+    const rd2 = createRd({ life: store, call: again.call, logger: recorder().logger }, CONFIG)
+    await rd2.step(input('謝謝你'))
+    await rd2.settle()
+    assert.deepEqual(outcomesOf(store, old).map((o) => o.provisional ?? false), [false])
   }))

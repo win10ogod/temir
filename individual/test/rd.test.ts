@@ -116,12 +116,30 @@ test('parseDeliberation maps experience labels, clamps confidence, and refuses f
   assert.equal(parseDeliberation('不是 JSON', labels), undefined)
 })
 
-test('parseOutcome requires a finite reward and clamps it to [-1, 1]', () => {
-  const o = parseOutcome('{"didAction":"推薦坐竹筏","didKind":"建議","actual":"對方很開心","matched":"maybe","reward":3,"reason":"符合我在乎的事","lesson":""}')
-  assert.equal(o?.reward, 1)
-  assert.equal(o?.matched, 'partly')
-  assert.equal(parseOutcome('{"reward":"好"}'), undefined)
-  assert.equal(parseOutcome('{}'), undefined)
+/** 事後比對的必填欄位都合格時的解析結果（不合格時測試失敗）。 */
+function judged(raw: string) {
+  const parsed = parseOutcome(raw)
+  assert.ok(parsed.ok, `expected a valid outcome: ${parsed.ok ? '' : parsed.problems.join('；')}`)
+  return parsed.judgment
+}
+/** 必填欄位（didAction、matched、reward、significance）都合格的事後比對，加上要測的欄位。 */
+const required = (fields: Record<string, unknown>) => JSON.stringify({ didAction: '先聽', matched: 'yes', reward: 0, significance: 'daily', ...fields })
+
+test('parseOutcome: the judgment is mandatory; every missing or invalid required field is listed, and the reward is clamped to [-1, 1]', () => {
+  const o = judged('{"didAction":"推薦坐竹筏","didKind":"建議","actual":"對方很開心","matched":"partly","reward":3,"reason":"符合我在乎的事","lesson":"","significance":"notable"}')
+  assert.deepEqual([o.reward, o.matched, o.significance], [1, 'partly', 'notable'])
+  assert.equal(judged(required({ didKind: '奇怪' })).didKind, '其他', 'didKind is not required')
+  const problems = (raw: string) => {
+    const parsed = parseOutcome(raw)
+    return parsed.ok ? [] : parsed.problems
+  }
+  assert.deepEqual(problems('{"didAction":"推薦坐竹筏","matched":"maybe","reward":3,"significance":"daily"}'), ['matched 不是 yes、partly 或 no'], 'no default is filled in for the model')
+  assert.deepEqual(problems(required({ reward: '好' })), ['reward 不是數'])
+  assert.deepEqual(problems(required({ reward: Number.NaN })), ['reward 不是數'])
+  assert.deepEqual(problems(required({ didAction: '  ' })), ['didAction 是空的'])
+  assert.deepEqual(problems(required({ significance: 'huge' })), ['significance 不是 daily、notable、major、pivotal 之一'])
+  assert.deepEqual(problems('{}'), ['reward 不是數', 'matched 不是 yes、partly 或 no', 'didAction 是空的', 'significance 不是 daily、notable、major、pivotal 之一'])
+  assert.deepEqual(problems('不是 JSON'), ['不是 JSON 物件'])
 })
 
 function decision(store: LifeStore, session: string, situation: string, action: string): ReturnType<LifeStore['append']> {
@@ -214,16 +232,16 @@ test('the deliberation and the outcome carry kinetic energy and the release or c
   const d = parseDeliberation('{"situation":"x","drive":"對方又在抒發；我懸著的「先分清楚要建議還是傾聽」被觸發","candidates":[{"action":"先聽","confidence":60},{"action":"給建議","confidence":40}]}', new Map())
   assert.equal(d?.drive, '對方又在抒發；我懸著的「先分清楚要建議還是傾聽」被觸發')
   assert.equal(parseDeliberation('{"situation":"x","candidates":[{"action":"a"},{"action":"b"}]}', new Map())?.drive, '', 'older outputs without a drive still parse')
-  const o = parseOutcome('{"didAction":"先聽","actual":"對方說謝謝","matched":"yes","reward":0.6,"reason":"r","released":"先分清楚對方要什麼的目標有了進展","left":"答應下次問對方想不想聽建議"}')
-  assert.deepEqual([o?.released, o?.releasedRefs, o?.left], ['先分清楚對方要什麼的目標有了進展', [], [{ text: '答應下次問對方想不想聽建議', type: 'unresolved' }]], 'the first format (one sentence) still parses, as one item')
-  assert.deepEqual([parseOutcome('{"reward":0}')?.released, parseOutcome('{"reward":0}')?.left], ['', []])
+  const o = judged('{"didAction":"先聽","actual":"對方說謝謝","matched":"yes","reward":0.6,"reason":"r","significance":"daily","released":"先分清楚對方要什麼的目標有了進展","left":"答應下次問對方想不想聽建議"}')
+  assert.deepEqual([o.released, o.releasedRefs, o.left], ['先分清楚對方要什麼的目標有了進展', [], [{ text: '答應下次問對方想不想聽建議', type: 'unresolved' }]], 'the first format (one sentence) still parses, as one item')
+  assert.deepEqual([judged(required({})).released, judged(required({})).left], ['', []])
 })
 
 test('the second energy format names items: activated in the deliberation, released in the outcome', () => {
   const d = parseDeliberation('{"situation":"x","drive":"對方又提到轉職，我答應過要提醒他","activated":["P2","g:3fa1c2d4"],"candidates":[{"action":"a"},{"action":"b"}]}', new Map())
   assert.deepEqual(d?.activated, ['P2', 'g:3fa1c2d4'], 'labels are kept as written; the caller resolves them to keys')
-  const o = parseOutcome('{"reward":0.5,"released":[{"item":"P2","how":"我提醒了他，他說謝謝"},{"item":"","how":"沒有編號的略過"},{"how":"缺 item"}],"left":""}')
-  assert.deepEqual([o?.releasedRefs, o?.released], [['P2'], 'P2：我提醒了他，他說謝謝'])
+  const o = judged(required({ reward: 0.5, released: [{ item: 'P2', how: '我提醒了他，他說謝謝' }, { item: '', how: '沒有編號的略過' }, { how: '缺 item' }], left: '' }))
+  assert.deepEqual([o.releasedRefs, o.released], [['P2'], 'P2：我提醒了他，他說謝謝'])
 })
 
 test('the energy ablation removes exactly the energy fields from both prompts; the default prompts are unchanged', async () => {
@@ -244,13 +262,13 @@ test('the energy ablation removes exactly the energy fields from both prompts; t
 })
 
 test('energy v3: what an action leaves is recorded item by item, each with its kind; unknown kinds become unresolved', () => {
-  const o = parseOutcome('{"reward":0.5,"left":[{"text":"答應婚禮後問他致詞順不順利","type":"promise"},{"text":"等他胃鏡的結果","type":"waiting"},{"text":"不確定該不該一直追問","type":"worry"},{"text":""}]}')
-  assert.deepEqual(o?.left, [
+  const o = judged(required({ reward: 0.5, left: [{ text: '答應婚禮後問他致詞順不順利', type: 'promise' }, { text: '等他胃鏡的結果', type: 'waiting' }, { text: '不確定該不該一直追問', type: 'worry' }, { text: '' }] }))
+  assert.deepEqual(o.left, [
     { text: '答應婚禮後問他致詞順不順利', type: 'promise' },
     { text: '等他胃鏡的結果', type: 'waiting' },
     { text: '不確定該不該一直追問', type: 'unresolved' },
   ])
-  assert.deepEqual(parseOutcome('{"reward":0,"left":[]}')?.left, [])
+  assert.deepEqual(judged(required({ left: [] })).left, [])
 })
 
 test('PC = ST + E − RD = A: RD subtracts candidates the individual rules out; the action is chosen from what remains', async () => {

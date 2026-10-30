@@ -267,26 +267,49 @@ function releases(value: unknown): { text: string; refs: string[] } {
   return { text: items.map((v) => (v.how ? `${v.item}：${v.how}` : v.item)).join('；'), refs: items.map((v) => v.item) }
 }
 
-/** 解析事後比對；reward 不是有限數值時回傳 undefined（不當成經驗）。 */
-export function parseOutcome(output: string): OutcomeJudgement | undefined {
+/**
+ * 事後比對的強制判斷（使用者 2026-10-30「有問題的是沒有作強制要求判斷」）：程式不替模型填預設值。
+ * 必填：reward 是數（夾到 [-1, 1]）、matched 是 yes／partly／no、didAction 不是空的、significance 合法。
+ * matched 會進入意外的勢能（self/energy.ts）與 D20「預測有沒有成真」（memory.ts），significance 決定感受紀錄與深度整合，
+ * 所以缺了就列出問題，由呼叫端附上 outcomeRetryNote 重問；仍不合格就記下失敗，不當成經驗。
+ * didKind 不在必填之列（改進清單第 2 項的範圍），認不得時仍記為「其他」。
+ */
+export type OutcomeParse = { readonly ok: true; readonly judgment: OutcomeJudgement } | { readonly ok: false; readonly problems: readonly string[] }
+
+export function parseOutcome(output: string): OutcomeParse {
   const obj = extractJson(output)
-  if (!obj) return undefined
+  if (!obj) return { ok: false, problems: ['不是 JSON 物件'] }
+  const problems: string[] = []
   const reward = obj['reward']
-  if (typeof reward !== 'number' || !Number.isFinite(reward)) return undefined
-  const matched = obj['matched'] === 'yes' || obj['matched'] === 'partly' || obj['matched'] === 'no' ? obj['matched'] : 'partly'
+  if (typeof reward !== 'number' || !Number.isFinite(reward)) problems.push('reward 不是數')
+  const matched = obj['matched']
+  if (matched !== 'yes' && matched !== 'partly' && matched !== 'no') problems.push('matched 不是 yes、partly 或 no')
+  const didAction = text(obj['didAction'], 200)
+  if (!didAction) problems.push('didAction 是空的')
+  const significance = text(obj['significance'], 10)
+  if (!(SIGNIFICANCE as readonly string[]).includes(significance)) problems.push(`significance 不是 ${SIGNIFICANCE.join('、')} 之一`)
+  if (problems.length > 0 || typeof reward !== 'number' || (matched !== 'yes' && matched !== 'partly' && matched !== 'no')) return { ok: false, problems }
   return {
-    didAction: text(obj['didAction'], 200),
-    didKind: kindOf(obj['didKind']),
-    actual: text(obj['actual'], 400),
-    matched,
-    error: text(obj['error'], 300),
-    reward: Math.min(Math.max(reward, -1), 1),
-    reason: text(obj['reason'], 300),
-    lesson: text(obj['lesson'], 300),
-    feeling: text(obj['feeling'], 300),
-    significance: (SIGNIFICANCE as readonly string[]).includes(text(obj['significance'], 10)) ? (text(obj['significance'], 10) as Significance) : 'daily',
-    released: releases(obj['released']).text,
-    releasedRefs: releases(obj['released']).refs,
-    left: lefts(obj['left']),
+    ok: true,
+    judgment: {
+      didAction,
+      didKind: kindOf(obj['didKind']),
+      actual: text(obj['actual'], 400),
+      matched,
+      error: text(obj['error'], 300),
+      reward: Math.min(Math.max(reward, -1), 1),
+      reason: text(obj['reason'], 300),
+      lesson: text(obj['lesson'], 300),
+      feeling: text(obj['feeling'], 300),
+      significance: significance as Significance,
+      released: releases(obj['released']).text,
+      releasedRefs: releases(obj['released']).refs,
+      left: lefts(obj['left']),
+    },
   }
+}
+
+/** 事後比對不合格時重問一次所附的說明，列出缺少或不合格的部分（提示本來就要求這些欄位）。 */
+export function outcomeRetryNote(problems: readonly string[]): string {
+  return `（重寫一次：上一次的比對不完整。只輸出一個完整的 JSON 物件；didAction 不能是空的，matched 只能是 yes、partly 或 no，reward 是 -1 到 1 之間的數，significance 只能是 ${SIGNIFICANCE.join('、')} 之一。不合格的地方：${problems.join('；')}）`
 }

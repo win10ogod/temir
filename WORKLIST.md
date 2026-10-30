@@ -203,6 +203,11 @@
   - 暫時比對進行中對方回話時，正式比對排在它之後執行（`rd/index.ts` 的 `evaluating`），不再被丟掉；正式比對進行中或已排隊時不重複。
   - 測試（可控的 promise，測試替身）：回話時最後有一筆非 provisional 的 `rd/outcome`；沒有回話只有暫時比對；沒有重複的正式比對。修正前的程式跑這組測試有兩則失敗。
   - 效果未驗證（需真實測試）：之前被吃掉的正式比對現在會寫進經驗。
+- [x] 第 2 項：事後比對改為強制判斷。
+  - `parseOutcome` 回傳 `{ ok, judgment } | { ok: false, problems }`，不再替模型填 matched、significance 的預設值；必填：reward 是數、matched、didAction、significance。didKind 不在必填之列，認不得時仍記為「其他」（範圍照清單；是否也要強制，待決定）。
+  - 不合格時附 `outcomeRetryNote(problems)` 重問一次；仍不合格或呼叫失敗時寫 `rd/outcome-failed`（決定 id 與兩次的 problems），不寫 `rd/outcome`。沉默計時器看到失敗紀錄就不再每分鐘重做暫時比對；對方回話時仍會正式比對。提示內容不變。
+  - 測試：每一種缺漏的 problems；第一次壞、第二次好時一筆 outcome；兩次都壞時一筆失敗紀錄、沒有 outcome；呼叫失敗。
+  - 效果未驗證（需真實測試）：重問會多一次模型呼叫，不合格的比對不再以預設值成為經驗。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID

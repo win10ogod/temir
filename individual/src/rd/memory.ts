@@ -73,6 +73,19 @@ export interface OutcomeData {
   readonly provisional?: boolean
 }
 
+/**
+ * 事後比對沒有結果（改進清單第 2 項）：兩次的輸出都不合格（parseOutcome 的 problems），或比對的呼叫失敗。
+ * 這時不寫 rd/outcome，那個決定沒有回報，不成為經驗；problems 依序是第一次與第二次的問題。
+ */
+export const OUTCOME_FAILED_KIND = 'rd/outcome-failed'
+
+export interface OutcomeFailedData {
+  readonly decision: string
+  readonly problems: readonly string[]
+  /** 暫時的比對（對方還沒有回話）；沉默計時器不再為這個決定重做暫時的比對。 */
+  readonly provisional?: true
+}
+
 export interface RevaluationData {
   readonly outcome: string
   readonly decision: string

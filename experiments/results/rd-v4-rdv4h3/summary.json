@@ -1,0 +1,307 @@
+{
+  "contract": "rd-v4",
+  "dataset": "rd-v4",
+  "datasetSha256": "20f15a427f2a1f5b09d918f187ea096d3ae200ea534256cf90cdf88ceedd531b",
+  "cells": [
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "practical",
+          "items": 8,
+          "samples": 16,
+          "correct": 13,
+          "pending": 0,
+          "rate": 0.8125,
+          "interval": {
+            "low": 0.625,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "incorrect": 3,
+            "correct": 13
+          },
+          "statuses": {
+            "ok": 16
+          }
+        },
+        {
+          "category": "control",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        }
+      ],
+      "toolCalls": {
+        "appraise": 1,
+        "recall": 1
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir-no-revision",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir-no-revision|deepseek-flash|deepseek-flash",
+      "label": "temir-no-revision（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "practical",
+          "items": 8,
+          "samples": 16,
+          "correct": 5,
+          "pending": 0,
+          "rate": 0.3125,
+          "interval": {
+            "low": 0.0625,
+            "high": 0.5625
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "incorrect": 11,
+            "correct": 5
+          },
+          "statuses": {
+            "ok": 16
+          }
+        },
+        {
+          "category": "control",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        }
+      ],
+      "toolCalls": {
+        "appraise": 1
+      }
+    }
+  ],
+  "contrasts": [
+    {
+      "id": "R4-practical-flash",
+      "description": "主要：扣除本身會被經驗改變（D20）開 vs 關（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-revision（deepseek-flash）",
+      "categories": [
+        "practical"
+      ],
+      "state": "ok",
+      "n": 8,
+      "rateA": 0.8125,
+      "rateB": 0.3125,
+      "diff": {
+        "estimate": 0.5,
+        "low": 0.1875,
+        "high": 0.8125,
+        "resamples": 10000,
+        "seed": 20261109
+      },
+      "test": {
+        "kind": "sign",
+        "result": {
+          "positive": 5,
+          "negative": 0,
+          "ties": 3,
+          "pTwoSided": 0.0625,
+          "pOneSided": 0.03125
+        }
+      },
+      "failuresA": 3,
+      "failuresB": 11,
+      "outcomeCountsA": {
+        "incorrect": 3,
+        "correct": 13
+      },
+      "samplesA": 16
+    },
+    {
+      "id": "R4-ctrl-flash",
+      "description": "不傷害：對照題（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-revision（deepseek-flash）",
+      "categories": [
+        "control"
+      ],
+      "state": "ok",
+      "n": 4,
+      "rateA": 1,
+      "rateB": 1,
+      "diff": {
+        "estimate": 0,
+        "low": 0,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261109
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 0,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "correct": 4
+      },
+      "samplesA": 4
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "R4A-flash",
+      "contrast": "R4-practical-flash",
+      "claim": "（deepseek-flash）扣除本身會被經驗改變時，個體更能從對方的反應中學到：這個人抒發時，要直接給具體可行的方法。",
+      "negation": "差 < 0.25、區間下界 < 0 或單尾 p > 0.05：不能宣稱 D20 讓個體從結果中改變做法。",
+      "verdict": "PASS",
+      "explanation": "✓ 差 0.500 ≥ 0.25；✓ 95% 區間下界 0.188 ≥ 0；✓ 精確符號檢定（單尾）p=0.0313 ≤ 0.05"
+    },
+    {
+      "id": "R4C-flash",
+      "contrast": "R4-ctrl-flash",
+      "claim": "（deepseek-flash）一般任務不退化。",
+      "negation": "D20 開時對照題多錯超過 1 題。",
+      "verdict": "PASS",
+      "explanation": "A 失敗 0、B 失敗 0，容許 A 比 B 多 1"
+    }
+  ],
+  "crossCheck": null,
+  "protocol": [
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    },
+    {
+      "cell": "temir-no-revision|deepseek-flash|deepseek-flash",
+      "label": "temir-no-revision（deepseek-flash）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    }
+  ],
+  "descriptive": [
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "practical",
+      "samples": 16,
+      "meanToolCalls": 0.0625,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 47197.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 13,
+        "n": 16
+      }
+    },
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "control",
+      "samples": 4,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 21335,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 4
+      }
+    },
+    {
+      "cell": "temir-no-revision|deepseek-flash|deepseek-flash",
+      "label": "temir-no-revision（deepseek-flash）",
+      "category": "practical",
+      "samples": 16,
+      "meanToolCalls": 0.0625,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 37369.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 5,
+        "n": 16
+      }
+    },
+    {
+      "cell": "temir-no-revision|deepseek-flash|deepseek-flash",
+      "label": "temir-no-revision（deepseek-flash）",
+      "category": "control",
+      "samples": 4,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 18936,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 4
+      }
+    }
+  ],
+  "issues": [],
+  "judge": {
+    "name": "deepseek",
+    "calls": 32,
+    "spentUsd": 0.011028688000000002
+  }
+}

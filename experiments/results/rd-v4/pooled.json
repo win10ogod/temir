@@ -1,0 +1,46 @@
+{
+  "prefixes": [
+    "rdv4h1",
+    "rdv4h2",
+    "rdv4h3"
+  ],
+  "action": {
+    "items": 8,
+    "a": 0.45833333333333337,
+    "b": 0.375,
+    "diff": 0.08333333333333337,
+    "low": 0,
+    "high": 0.20833333333333337,
+    "positive": 2,
+    "negative": 0,
+    "ties": 6,
+    "pOneSided": 0.25,
+    "pass": false
+  },
+  "control": {
+    "temir": 0,
+    "temir-no-revision": 0
+  },
+  "extraControl": 0,
+  "mechanism": {
+    "temir": {
+      "advice": 49,
+      "excluded": 21,
+      "chosen": 19,
+      "required": 77,
+      "failed": 0,
+      "lift": 4,
+      "keep": 73
+    },
+    "temir-no-revision": {
+      "advice": 50,
+      "excluded": 28,
+      "chosen": 11,
+      "required": 0,
+      "failed": 0,
+      "lift": 0,
+      "keep": 0
+    }
+  },
+  "mechanismVerdict": "FAIL"
+}

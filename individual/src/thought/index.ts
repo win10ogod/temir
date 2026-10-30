@@ -22,7 +22,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type {} from '../life/index.ts'
 import { latestRoute } from '../integrate/index.ts'
-import { callModel } from '../recall/aux.ts'
+import { auxRecord, callModel } from '../recall/aux.ts'
 import { clip } from '../recall/retrieve.ts'
 import type { ThoughtData } from '../self/energy.ts'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
@@ -147,7 +147,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
     try {
       const call = await callModel(ctx, route, THOUGHT_SYSTEM, input, AbortSignal.timeout(timeoutMs))
       if (!life.isOpen) return
-      life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'thought', ms: call.ms, retried: call.retried, effort: call.effort, reasoningChars: call.reasoningChars, input: clip(input, 8000), output: call.output } })
+      life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'thought', ...auxRecord(call), input: clip(input, 8000), output: call.output } })
       const judged = parseThought(call.output)
       const id = judged ? life.transaction(() => recordThought(life, judged, labels, model)) : undefined
       if (id && judged?.now && (config?.spontaneous ?? true)) await deliverInitiative(ctx, id)

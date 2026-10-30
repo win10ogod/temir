@@ -23,7 +23,7 @@ import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
-import { modelCaller, runAux, type AuxCall, type AuxPurpose, type AuxRoute, type CallModel, type Log } from './aux.ts'
+import { auxRecord, modelCaller, runAux, type AuxCall, type AuxPurpose, type AuxRoute, type CallModel, type Log } from './aux.ts'
 import { FACTS_KIND, clip, hybridRecall, knownFacts, recalledOf, recentPages, renderRecall, resolveIds, selectFacts, shadowedIds, workingSetDue, type FactsData } from './retrieve.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
@@ -135,7 +135,7 @@ export function createRecall(deps: RecallDeps, config: Config | undefined): Reca
         origin: 'self',
         session,
         model,
-        data: { purpose, ms: call.ms, retried: call.retried, effort: call.effort, reasoningChars: call.reasoningChars, input: clip(input, 4000), output: call.output, parsed: call.result ?? null },
+        data: { purpose, ...auxRecord(call), input: clip(input, 4000), output: call.output, parsed: call.result ?? null },
         causes,
       })
       return call

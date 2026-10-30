@@ -21,7 +21,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
-import { callModel, type AuxRoute } from '../recall/aux.ts'
+import { auxRecord, callModel, type AuxRoute } from '../recall/aux.ts'
 import { clip, isHeard } from '../recall/retrieve.ts'
 import { KIND, type AppraisalData } from '../self/state.ts'
 import { INTEGRATION_KIND, collect, integrationStart, renderEvidence, type IntegrationTrigger } from './evidence.ts'
@@ -97,7 +97,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
       // 會推理的模型可能把大部分 token 用在推理（e2e-13 中 Nemotron 在 8192 上限下只輸出 287 字的殘缺 JSON），所以上限放寬。
       const call = await callModel(ctx, route, deep ? DEEP_SYSTEM : INTEGRATE_SYSTEM, input, AbortSignal.timeout(timeoutMs), 32_000)
       output = call.output
-      life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'integrate', ms: call.ms, retried: call.retried, effort: call.effort, reasoningChars: call.reasoningChars, input: clip(input, 12_000), output } })
+      life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'integrate', ...auxRecord(call), input: clip(input, 12_000), output } })
     } catch (error) {
       if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'integrate', error: String(error), input: clip(input, 12_000) } })
       return `整合的模型呼叫失敗（${String(error)}），這次沒有修改任何紀錄。`

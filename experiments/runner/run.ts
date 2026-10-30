@@ -92,6 +92,8 @@ export interface TurnRecord {
   error: string | null
   ms: number
   usage: unknown[]
+  /** 模擬使用者產生這句話的那次呼叫的用量（回應的 usage 原樣保留；simulator.ts）。舊紀錄沒有這個欄位。 */
+  simulatorUsage?: unknown
 }
 
 const sha256 = (data: string | Buffer) => createHash('sha256').update(data).digest('hex')
@@ -346,15 +348,25 @@ async function main(): Promise<void> {
     })
     try {
       // 固定台詞之後，由模擬使用者依個體實際的回應產生接下來的話（E-RD；資料集的 meta.simulatedUser）。
-      async function* utterances(): AsyncGenerator<{ readonly user: string; readonly simulated: boolean }> {
+      async function* utterances(): AsyncGenerator<{ readonly user: string; readonly simulated: boolean; readonly usage?: unknown }> {
         for (const user of turns) yield { user, simulated: false }
         for (let i = 0; i < simulate; i++) {
           if (!simulatedUser) throw new Error('資料集沒有 meta.simulatedUser')
-          yield { user: await simulateNext(simulatedUser, records, { apiKey: process.env['DEEPSEEK_API_KEY'] ?? '', signal: AbortSignal.timeout(60_000) }), simulated: true }
+          const next = await simulateNext(simulatedUser, records, { apiKey: process.env['DEEPSEEK_API_KEY'] ?? '', signal: AbortSignal.timeout(60_000) })
+          yield { user: next.utterance, simulated: true, usage: next.usage }
         }
       }
-      for await (const { user, simulated: isSimulated } of utterances()) {
-        const turn: TurnRecord = { ...(isSimulated ? { simulated: true } : {}), user, assistant: '', toolCalls: [], recallInjected: condition === 'baseline' ? null : 0, error: null, ms: 0, usage: [] }
+      for await (const { user, simulated: isSimulated, usage: simulatorUsage } of utterances()) {
+        const turn: TurnRecord = {
+          ...(isSimulated ? { simulated: true, simulatorUsage: simulatorUsage ?? null } : {}),
+          user,
+          assistant: '',
+          toolCalls: [],
+          recallInjected: condition === 'baseline' ? null : 0,
+          error: null,
+          ms: 0,
+          usage: [],
+        }
         current = turn
         records.push(turn)
         const started = Date.now()

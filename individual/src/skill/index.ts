@@ -19,7 +19,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '../life/index.ts'
 import type { LifeEvent } from '../life/store.ts'
 import { latestRoute } from '../integrate/index.ts'
-import { callModel, type AuxRoute } from '../recall/aux.ts'
+import { auxRecord, callModel, type AuxRoute } from '../recall/aux.ts'
 import { clip, resolveIds } from '../recall/retrieve.ts'
 import {
   REVIEW_SYSTEM,
@@ -103,7 +103,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
     return async (system, input, purpose) => {
       try {
         const call = await callModel(ctx, route, system, input, AbortSignal.timeout(timeoutMs))
-        if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose, ms: call.ms, retried: call.retried, effort: call.effort, reasoningChars: call.reasoningChars, input: clip(input, 8000), output: call.output } })
+        if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose, ...auxRecord(call), input: clip(input, 8000), output: call.output } })
         return call.output
       } catch (error) {
         if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose, error: String(error), input: clip(input, 8000) } })

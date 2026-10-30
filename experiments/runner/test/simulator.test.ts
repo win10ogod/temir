@@ -23,11 +23,18 @@ test('simulateNext sends one non-streaming flash request with thinking enabled (
   // 測試替身（單元測試專用）：記下請求，回傳固定的回覆。
   const fetchImpl = (async (url: string, init: { body: string; headers: Record<string, string> }) => {
     seen.push({ url, body: JSON.parse(init.body), auth: init.headers['authorization']! })
-    return new Response(JSON.stringify({ choices: [{ message: { content: '「喔。」' } }] }), { status: 200 })
+    return new Response(JSON.stringify({ choices: [{ message: { content: '「喔。」' } }], usage: { prompt_tokens: 300, completion_tokens: 80, prompt_cache_hit_tokens: 256, prompt_cache_miss_tokens: 44 } }), { status: 200 })
   }) as unknown as typeof fetch
   const next = await simulateNext(USER, [{ user: 'a', assistant: 'b' }], { apiKey: 'test-key', fetchImpl })
-  assert.equal(next, '喔。')
+  assert.equal(next.utterance, '喔。')
+  assert.deepEqual(next.usage, { prompt_tokens: 300, completion_tokens: 80, prompt_cache_hit_tokens: 256, prompt_cache_miss_tokens: 44 }, 'the usage is kept as returned')
   assert.equal(seen[0]!.url, 'https://api.deepseek.com/chat/completions')
   assert.deepEqual([seen[0]!.body['model'], seen[0]!.body['temperature'], (seen[0]!.body['thinking'] as { type: string }).type, seen[0]!.body['stream']], ['deepseek-flash', 0, 'enabled', false])
   assert.equal(seen[0]!.auth, 'Bearer test-key')
+})
+
+test('simulateNext: a response without usage records null', async () => {
+  // 測試替身（單元測試專用）：沒有 usage 的回覆。
+  const fetchImpl = (async () => new Response(JSON.stringify({ choices: [{ message: { content: '嗯' } }] }), { status: 200 })) as unknown as typeof fetch
+  assert.deepEqual(await simulateNext(USER, [], { apiKey: 'k', fetchImpl }), { utterance: '嗯', usage: null })
 })

@@ -48,11 +48,20 @@ export function cleanUtterance(text: string): string {
     .trim()
 }
 
+/**
+ * 模擬使用者的下一句話與這次呼叫的用量。usage 是回應中的 `usage` 物件，原樣保留（OpenAI 相容格式；
+ * 欄位的解讀在 experiments/eval/lib/cost.ts）；回應沒有 usage 時為 null。
+ */
+export interface Simulated {
+  readonly utterance: string
+  readonly usage: unknown
+}
+
 export async function simulateNext(
   user: SimulatedUser,
   transcript: readonly { readonly user: string; readonly assistant: string }[],
   options: { readonly apiKey: string; readonly signal?: AbortSignal; readonly fetchImpl?: typeof fetch },
-): Promise<string> {
+): Promise<Simulated> {
   const prompt = simulatorPrompt(user, transcript)
   const res = await (options.fetchImpl ?? fetch)(ENDPOINT, {
     method: 'POST',
@@ -73,8 +82,8 @@ export async function simulateNext(
   })
   const text = await res.text()
   if (!res.ok) throw new Error(`模擬使用者 HTTP ${res.status}：${text.replaceAll(options.apiKey, '[redacted]').slice(0, 200)}`)
-  const json = JSON.parse(text) as { choices?: { message?: { content?: string } }[] }
+  const json = JSON.parse(text) as { choices?: { message?: { content?: string } }[]; usage?: unknown }
   const utterance = cleanUtterance(json.choices?.[0]?.message?.content ?? '')
   if (!utterance) throw new Error('模擬使用者沒有產生句子')
-  return utterance
+  return { utterance, usage: json.usage ?? null }
 }

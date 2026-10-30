@@ -13,7 +13,7 @@ function scripted(output: string): { call: CallModel; inputs: string[] } {
   const inputs: string[] = []
   const call: CallModel = async (_route, _system, input) => {
     inputs.push(input)
-    return { output, ms: 1, retried: false, effort: 'low', reasoningChars: 0 }
+    return { output, ms: 1, retried: false, effort: 'low', reasoningChars: 0, usage: null, finish: 'stop' }
   }
   return { call, inputs }
 }

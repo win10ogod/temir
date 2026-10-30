@@ -24,7 +24,7 @@ import { createUserMessage, type ContextFormed } from '@deepseek-ai/dsh-llm'
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { latestRoute } from '../integrate/index.ts'
-import { modelCaller, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
+import { auxRecord, modelCaller, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
 import { clip, clipEnds, sessionSoFar } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
@@ -174,9 +174,9 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
     const deadline = signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs)
     const model = `${route.provider}/${route.model}`
     try {
-      const { output, ms, retried, effort, reasoningChars } = await deps.call(route, system, input, deadline)
-      life.append({ kind: 'memory/aux', origin: 'self', session, model, data: { purpose, ms, retried, effort, reasoningChars, input: clip(input, 8000), output }, causes })
-      return output
+      const result = await deps.call(route, system, input, deadline)
+      life.append({ kind: 'memory/aux', origin: 'self', session, model, data: { purpose, ...auxRecord(result), input: clip(input, 8000), output: result.output }, causes })
+      return result.output
     } catch (error) {
       if (!life.isOpen) return undefined
       life.append({ kind: 'memory/aux', origin: 'self', session, model, data: { purpose, error: String(error), input: clip(input, 8000) }, causes })

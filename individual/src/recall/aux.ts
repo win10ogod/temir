@@ -10,7 +10,7 @@
  * 自己說的話先寫結論，因為 v2 實驗中結論常在回覆最後，被截斷後個體記錯自己的立場。
  */
 import type { Context } from '@deepseek-ai/cordis'
-import { BlockAssembler, createUserMessage, type ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import { BlockAssembler, createUserMessage, type ReasoningEffortId, type TokenUsage } from '@deepseek-ai/dsh-llm'
 import { SCRIPT_RETRY_NOTE, driftedToSimplified } from './script.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
@@ -117,17 +117,10 @@ export function auxEffort(efforts: readonly { readonly id: ReasoningEffortId }[]
 /** 思考的 token 也算在輸出上限內，所以輔助呼叫的預設上限要留給思考（原本 4096）。 */
 export const AUX_MAX_TOKENS = 16_384
 
-export interface AuxCall {
+export interface AuxCall extends ModelResult {
   readonly purpose: AuxPurpose
   readonly route: AuxRoute
   readonly input: string
-  readonly output: string
-  readonly ms: number
-  /** 字體檢查觸發重試。 */
-  readonly retried: boolean
-  /** 實際用的推理等級（沒有指定時為 null）與思考的字數。 */
-  readonly effort: string | null
-  readonly reasoningChars: number
   readonly result: AuxResult | undefined
 }
 
@@ -138,6 +131,39 @@ export interface ModelResult {
   readonly retried: boolean
   readonly effort: string | null
   readonly reasoningChars: number
+  /**
+   * 模型端點回報的 token 用量（DSH 串流的 `usage` chunk；dsh-llm lib/types/types.d.ts 的 TokenUsage）。
+   * 字體檢查重試時是兩次呼叫的合計。端點沒有回報時為 null。
+   */
+  readonly usage: TokenUsage | null
+  /**
+   * 結束的原因（`finish` chunk 的 kind：stop、max-tokens、error……）；重試時是第二次的。
+   * 用來分辨「格式錯」與「思考吃掉輸出上限被截斷」（max-tokens；D21 不關思考的主要風險）。
+   */
+  readonly finish: string
+}
+
+/** memory/aux 紀錄中與呼叫本身有關的欄位（rd、recall、integrate、thought、skill 共用）。 */
+export function auxRecord(r: ModelResult): { ms: number; retried: boolean; effort: string | null; reasoningChars: number; usage: TokenUsage | null; finish: string } {
+  return { ms: r.ms, retried: r.retried, effort: r.effort, reasoningChars: r.reasoningChars, usage: r.usage, finish: r.finish }
+}
+
+/** 兩次呼叫的用量合計（任一次沒有回報時，合計只含有回報的那次；都沒有就是 null）。 */
+export function addUsage(a: TokenUsage | null, b: TokenUsage | null): TokenUsage | null {
+  if (!a || !b) return a ?? b
+  const sum = (x: number | undefined, y: number | undefined) => (x === undefined && y === undefined ? undefined : (x ?? 0) + (y ?? 0))
+  const optional = (key: 'totalTokens' | 'cacheReadTokens' | 'cacheWriteTokens' | 'reasoningTokens') => {
+    const v = sum(a[key], b[key])
+    return v === undefined ? {} : { [key]: v }
+  }
+  return {
+    inputTokens: a.inputTokens + b.inputTokens,
+    outputTokens: a.outputTokens + b.outputTokens,
+    ...optional('totalTokens'),
+    ...optional('cacheReadTokens'),
+    ...optional('cacheWriteTokens'),
+    ...optional('reasoningTokens'),
+  }
 }
 
 /**
@@ -172,12 +198,12 @@ export async function callModel(
 ): Promise<ModelResult> {
   const started = Date.now()
   const first = await callOnce(ctx, route, system, input, signal, maxTokens)
-  if (!driftedToSimplified(input, first.text)) return { output: first.text, ms: Date.now() - started, retried: false, effort: first.effort, reasoningChars: first.reasoningChars }
+  if (!driftedToSimplified(input, first.text)) return { output: first.text, ms: Date.now() - started, retried: false, effort: first.effort, reasoningChars: first.reasoningChars, usage: first.usage, finish: first.finish }
   const second = await callOnce(ctx, route, `${system}\n${SCRIPT_RETRY_NOTE}`, input, signal, maxTokens)
-  return { output: second.text, ms: Date.now() - started, retried: true, effort: second.effort, reasoningChars: second.reasoningChars }
+  return { output: second.text, ms: Date.now() - started, retried: true, effort: second.effort, reasoningChars: second.reasoningChars, usage: addUsage(first.usage, second.usage), finish: second.finish }
 }
 
-/** 一次呼叫：輸出的文字，以及實際用的推理等級與思考的字數（記進 memory/aux，看得到思考有沒有開著）。 */
+/** 一次呼叫：輸出的文字，實際用的推理等級與思考的字數（記進 memory/aux，看得到思考有沒有開著），以及用量與結束的原因。 */
 async function callOnce(
   ctx: Context,
   route: AuxRoute,
@@ -185,7 +211,7 @@ async function callOnce(
   input: string,
   signal: AbortSignal,
   maxTokens: number,
-): Promise<{ readonly text: string; readonly effort: string | null; readonly reasoningChars: number }> {
+): Promise<{ readonly text: string; readonly effort: string | null; readonly reasoningChars: number; readonly usage: TokenUsage | null; readonly finish: string }> {
   let used: string | null = null
   const call = await ctx.llm.prepareCall({ ...route, maxTokens }, signal, (controls, info) => {
     const effort = auxEffort(info.reasoning?.efforts)
@@ -204,7 +230,7 @@ async function callOnce(
     .map((b) => (b as { text: string }).text)
     .join('')
   const reasoningChars = blocks.filter((b) => b.type === 'reasoning').reduce((n, b) => n + ((b as { text?: string }).text ?? '').length, 0)
-  return { text, effort: used, reasoningChars }
+  return { text, effort: used, reasoningChars, usage: assembler.usage ? { ...assembler.usage } : null, finish: assembler.finish.kind }
 }
 
 /** 線索理解或自我陳述擷取的輔助呼叫。 */
@@ -215,6 +241,6 @@ export async function runAux(
   input: string,
   signal: AbortSignal,
 ): Promise<AuxCall> {
-  const { output, ms, retried, effort, reasoningChars } = await call(route, SYSTEM[purpose], input, signal)
-  return { purpose, route, input, output, ms, retried, effort, reasoningChars, result: parseAux(output) }
+  const result = await call(route, SYSTEM[purpose], input, signal)
+  return { ...result, purpose, route, input, result: parseAux(result.output) }
 }

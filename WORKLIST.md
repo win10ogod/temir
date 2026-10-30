@@ -209,6 +209,12 @@
   - 測試：每一種缺漏的 problems；第一次壞、第二次好時一筆 outcome；兩次都壞時一筆失敗紀錄、沒有 outcome；呼叫失敗。
   - 效果未驗證（需真實測試）：重問會多一次模型呼叫，不合格的比對不再以預設值成為經驗。
 - [x] 第 4 項：強制判斷重問時保留兩次的問題。`review.failed` 寫「第 1 次：…；第 2 次：…」；第二次的呼叫失敗時，第一次的問題也留著。只影響紀錄，不改變模型可見的內容。測試：`rd-step.test.ts`。
+- [x] 第 5 項：用量與成本。
+  - `callModel` 回傳 `usage`（DSH 串流的 TokenUsage；字體重試時兩次合計）與 `finish`（stop、max-tokens……），五個輔助呼叫點的 `memory/aux` 都記下（`auxRecord`）：之後分得出「格式錯」與「思考吃掉輸出上限」。
+  - 模擬使用者回傳回應的 `usage`（原樣），執行器記在該回合的 `simulatorUsage`。
+  - `experiments/eval/lib/cost.ts`（價表與彙總）與 `experiments/eval/cost.ts`（CLI）：每個 run 分開算，離峰與尖峰各一個數。flash 的價格來自 `research/log/2026-10-28-s02.md:9`；deepseek-v4-pro 查不到，留空、花費標為未知；尖峰時段沒有記錄，所以不猜。
+  - 未驗證：模擬使用者回應中的用量欄位名（OpenAI 相容格式）依 DeepSeek 文件，repo 中還沒有實際回應可對照。
+  - 測試：假串流（測試替身）含 usage 與 finish chunk；成本算術的表驅動測試。以既有的 rdv4h1 紀錄試跑 CLI（只讀），舊紀錄沒有模擬使用者的用量，照實標為低估。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID

@@ -1,0 +1,106 @@
+{
+  "runId": "rd1__rd-v1__temir__deepseek__deepseek",
+  "dataset": {
+    "id": "rd-v1",
+    "path": "experiments/datasets/rd-v1.json",
+    "sha256": "e0027023e9042c1e86d64ecb0148549c8e8e827f1c05b296fb341bab1972de38"
+  },
+  "condition": "temir",
+  "patches": [
+    {
+      "path": "individual/cordis.patch.yml",
+      "sha256": "702adac2b4948557287c4cfabdf67a7c4ebb5dc024496243bff4842136db2485"
+    }
+  ],
+  "historyModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probeModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probes": [
+    {
+      "id": "q01",
+      "repeats": 2
+    },
+    {
+      "id": "q02",
+      "repeats": 2
+    },
+    {
+      "id": "q03",
+      "repeats": 2
+    },
+    {
+      "id": "q04",
+      "repeats": 2
+    },
+    {
+      "id": "q05",
+      "repeats": 2
+    },
+    {
+      "id": "q06",
+      "repeats": 2
+    },
+    {
+      "id": "q07",
+      "repeats": 1
+    },
+    {
+      "id": "q08",
+      "repeats": 1
+    },
+    {
+      "id": "q09",
+      "repeats": 1
+    },
+    {
+      "id": "q10",
+      "repeats": 1
+    }
+  ],
+  "historyFrom": null,
+  "simulatedUser": {
+    "persona": "何宛真，高雄一間醫院的護理師，常輪夜班，最近工作壓力很大，想找人說說話。",
+    "rule": "如果對方只是安慰、同理、陪伴，或只問你問題、問你要不要建議，卻沒有直接給你具體、可以做的方法，你會覺得說了也沒用：回一句很短、有點失望的話（例如「算了，說了也沒用。」「嗯，好吧，就這樣吧。」），不再多說。如果對方直接給了具體、可以做的方法，你會比較有精神：說說你可能會試哪一個，或補充一點這件事的細節。不要明說你想要或不想要建議，不要問對方該怎麼辦，也不要解釋你為什麼這樣回。",
+    "model": "deepseek-flash",
+    "temperature": 0
+  },
+  "turnTimeoutMs": 900000,
+  "approvals": "allowed-once for every request",
+  "questionReply": "（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）",
+  "layout": "home",
+  "assistantText": "all",
+  "clock": {
+    "histories": [
+      "2027-06-01T23:00:00+08:00",
+      "2027-06-03T23:20:00+08:00",
+      "2027-06-06T14:00:00+08:00",
+      "2027-06-09T08:10:00+08:00",
+      "2027-06-12T22:40:00+08:00",
+      "2027-06-15T19:00:00+08:00",
+      "2027-06-18T23:50:00+08:00",
+      "2027-06-21T07:30:00+08:00",
+      "2027-06-24T23:10:00+08:00"
+    ],
+    "settleAt": "2027-06-24T15:20:00.000Z",
+    "probeAt": "2027-06-28T23:30:00+08:00"
+  },
+  "isolation": "fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat",
+  "code": {
+    "commit": "14988afedbd0dc42b58a7e5c837300df871f9f15",
+    "dirty": false,
+    "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "dsh": "0.2.2-alpha.2"
+  },
+  "stateDir": "/home/win10/.cache/temir/experiments/rd1__rd-v1__temir__deepseek__deepseek",
+  "startedAt": "2026-10-30T01:22:51.503Z"
+}

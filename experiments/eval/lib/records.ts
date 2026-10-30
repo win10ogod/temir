@@ -20,6 +20,8 @@ export interface RecordTurn {
   readonly error: string | null
   /** 選用（執行器的額外欄位）：這一輪花了幾毫秒；只用於 v2 的描述性指標。 */
   readonly ms?: unknown
+  /** 選用：這句話由模擬使用者產生（experiments/runner/simulator.ts），不是資料集的固定台詞。 */
+  readonly simulated?: boolean
 }
 
 export interface RunRecord {
@@ -81,6 +83,7 @@ function validateTurn(t: unknown, i: number): string | undefined {
   if (!(ri === null || (typeof ri === 'number' && Number.isFinite(ri)))) return `turns[${i}].recallInjected 必須是數字或 null`
   const err = o['error']
   if (!(err === null || isString(err))) return `turns[${i}].error 必須是字串或 null`
+  if (o['simulated'] !== undefined && typeof o['simulated'] !== 'boolean') return `turns[${i}].simulated 必須是布林值`
   return undefined
 }
 

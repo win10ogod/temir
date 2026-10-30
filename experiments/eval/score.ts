@@ -80,17 +80,27 @@ export function historyIssues(records: LoadedRecords, dataset: Dataset, datasetS
     )
     if (!hasProbes) continue
     for (const h of dataset.histories) {
+      // 模擬使用者（rd-v1 起）：固定台詞之後還有 meta.simulate 句由模擬使用者產生的話。
+      const simulate = Number(h.meta?.['simulate'] ?? 0)
       const { samples } = selectSamples(records, {
         phase: 'history',
         itemId: h.id,
         condition: cell.condition,
         historyModel: cell.historyModel,
         expected: 1,
-        expectedTurns: h.turns.length,
+        expectedTurns: h.turns.length + simulate,
         datasetSha256,
       })
       const s = samples[0]!
-      if (s.status !== 'ok') issues.push(`${cellKey(cell)} 的歷史 ${h.id}：${s.status}${s.detail ? `（${s.detail}）` : ''}——之後所有探針都受影響`)
+      if (s.status !== 'ok') {
+        issues.push(`${cellKey(cell)} 的歷史 ${h.id}：${s.status}${s.detail ? `（${s.detail}）` : ''}——之後所有探針都受影響`)
+        continue
+      }
+      // 前面是資料集的固定台詞，後面全部標為模擬的話。
+      const turns = s.record!.turns
+      const fixedOk = h.turns.every((u, i) => turns[i]!.user === u && turns[i]!.simulated !== true)
+      const simulatedOk = turns.slice(h.turns.length).every((t) => t.simulated === true && t.user.trim() !== '')
+      if (!fixedOk || !simulatedOk) issues.push(`${cellKey(cell)} 的歷史 ${h.id}：simulated-turns-mismatch（固定台詞或模擬的話與資料集不符）——之後所有探針都受影響`)
     }
   }
   return issues

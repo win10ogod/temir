@@ -30,9 +30,10 @@ const IDENTITY_BLANK =
 const IDENTITY_GIVEN =
   '創造你的人給了你一個初始人設，寫在「自我模型」（與「我的故事」）的第一個版本裡。它是你的起點，不是限制：你可以依自己的經歷保留它、修改它，或走向不同的方向。「自我模型」寫你現在是誰、在乎什麼、傾向怎麼做；「我的故事」寫你經歷了什麼、怎麼變成現在的樣子。目前的內容會附在對話裡。'
 
-/** 處境描述；hasPersona＝生命紀錄中有創造者給的初始人設。 */
-export function situation(hasPersona: boolean): string {
-  return SITUATION_TEMPLATE.replace('{{identity}}', hasPersona ? IDENTITY_GIVEN : IDENTITY_BLANK)
+/** 處境描述；hasPersona＝生命紀錄中有創造者給的初始人設；skills＝false 時不提技能（技能的消融）。 */
+export function situation(hasPersona: boolean, options: { readonly skills?: boolean } = {}): string {
+  const text = SITUATION_TEMPLATE.replace('{{identity}}', hasPersona ? IDENTITY_GIVEN : IDENTITY_BLANK)
+  return options.skills === false ? text.split('\n').filter((line) => !line.startsWith('- 你可以為自己寫技能')).join('\n') : text
 }
 
 /** 沒有初始人設時的處境描述（相容舊的匯入）。 */

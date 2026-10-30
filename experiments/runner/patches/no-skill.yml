@@ -1,0 +1,8 @@
+# 消融：拿掉個體寫給自己的技能（H-S，ADR-0003）——技能不註冊到 DSH 的技能目錄，自我快照與處境描述不提技能，
+# 也沒有 skill_propose 與閒置時的回顧。其餘照舊。只在探針時使用（沿用有技能的那個條件的歷史快照）。
+- id: temir-skill
+  config:
+    enabled: false
+- id: temir-self
+  config:
+    skills: false

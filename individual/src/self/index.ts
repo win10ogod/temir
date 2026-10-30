@@ -56,6 +56,8 @@ export const name = 'temir-self'
 export const inject = ['life', 'systemPrompt', 'tools']
 
 export interface Config {
+  /** 自我快照與處境描述中的技能（預設開；技能的消融 patches/no-skill.yml 關閉）。 */
+  readonly skills?: boolean
   /** 是否每步附上自我狀態快照（消融實驗可關閉；預設開）。 */
   readonly snapshot?: boolean
   /** 初始人設（PC 的初始狀態）。也可以用 personaFile 或環境變數 TEMIR_PERSONA_FILE 指向 JSON 檔。 */
@@ -108,7 +110,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
     if (written.length > 0) logger.info('initial persona written as self model version 1 (%s)', persona.source)
     else if (!life.latest(KIND.persona)) logger.warn('initial persona not applied: the individual has already revised itself')
   }
-  ctx.systemPrompt.section({ name: 'temir:situation', order: 1, text: situation(life.latest(KIND.persona) !== undefined) })
+  ctx.systemPrompt.section({ name: 'temir:situation', order: 1, text: situation(life.latest(KIND.persona) !== undefined, { skills: config?.skills ?? true }) })
 
   // 沉默的回合：整個回合只有推理、沒有說出話就要結束時，steer 一次讓回合多跑一步（silence.ts）。
   const silence = new SilenceWatch()
@@ -128,7 +130,12 @@ export function apply(ctx: Context, config: Config | undefined): void {
       order: 10,
       interpolate: false,
       required: true,
-      text: () => renderSelfSnapshot(life, [...((config?.energy ?? true) ? [...renderPotential(life), ...renderThoughts(life)] : []), ...renderOwnSkills(life), ...renderOwnPlugins(life)]),
+      text: () =>
+        renderSelfSnapshot(life, [
+          ...((config?.energy ?? true) ? [...renderPotential(life), ...renderThoughts(life)] : []),
+          ...((config?.skills ?? true) ? renderOwnSkills(life) : []),
+          ...renderOwnPlugins(life),
+        ]),
     })
   }
 

@@ -234,3 +234,13 @@ test('silent turn: reasoning only with nothing said gets one nudge; turns with t
   assert.equal(w.claim(s, 3), false, 'something was already said in this turn')
   assert.equal(w.claim({}, 3), false, 'unknown session')
 })
+
+test('situation without skills (the skill ablation) drops exactly the skill line', async () => {
+  const { situation } = await import('../src/self/situation.ts')
+  const on = situation(false)
+  const off = situation(false, { skills: false })
+  assert.match(on, /你可以為自己寫技能/u)
+  assert.doesNotMatch(off, /skill_propose|為自己寫技能/u)
+  assert.equal(off.split('\n').length, on.split('\n').length - 1)
+  assert.match(off, /plugin_write/u, 'plugins are not part of the skill ablation')
+})

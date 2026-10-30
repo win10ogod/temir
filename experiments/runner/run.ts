@@ -69,6 +69,7 @@ export const CONDITIONS = {
   'temir-no-energy': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-energy.yml')],
   'temir-no-subtraction': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-subtraction.yml')],
   'temir-no-perperson': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-perperson.yml')],
+  'temir-no-skill': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-skill.yml')],
 } as const
 export type Condition = keyof typeof CONDITIONS
 
@@ -212,6 +213,8 @@ async function main(): Promise<void> {
       probes: { type: 'string' },
       'run-id': { type: 'string' },
       'from-run': { type: 'string' },
+      // 沿用另一個條件的歷史快照（只在探針時消融的設計用，例如 temir-no-skill 沿用 temir 的歷史）：要明寫那個條件。
+      'history-condition': { type: 'string' },
       layout: { type: 'string', default: 'adjacent' },
       // 'last'（v1）：只記每輪最後一則可見文字；'all'（v2）：每輪所有可見文字依序以空行連接。
       'assistant-text': { type: 'string', default: 'last' },
@@ -261,7 +264,8 @@ async function main(): Promise<void> {
       dataset: { sha256: string }
       layout?: string
     }
-    if (from.condition !== condition) throw new Error(`--from-run 的條件是 ${from.condition}，不是 ${condition}`)
+    const expected = values['history-condition'] ?? condition
+    if (from.condition !== expected) throw new Error(`--from-run 的條件是 ${from.condition}，不是 ${expected}（沿用別的條件的歷史要寫 --history-condition）`)
     if ((from.layout ?? 'adjacent') !== layoutName) throw new Error(`--from-run 的目錄配置是 ${from.layout ?? 'adjacent'}，不是 ${layoutName}`)
     if (from.historyModel.model !== MODELS[historyModel].model) throw new Error(`--from-run 的歷史模型是 ${from.historyModel.model}`)
     if (from.dataset.sha256 !== sha256(datasetRaw)) throw new Error('--from-run 使用的資料集版本不同')
@@ -288,6 +292,7 @@ async function main(): Promise<void> {
     probeModel: MODELS[probeModel],
     probes: probes.map((p) => ({ id: p.id, repeats: p.meta?.repeats ?? 1 })),
     historyFrom: fromRun ?? null,
+    ...(values['history-condition'] ? { historyCondition: values['history-condition'] } : {}),
     turnTimeoutMs,
     // 所有條件相同：工具審核一律允許一次（記在 logs/approvals.log），受試者提問一律回覆同一句話（logs/questions.log）。
     approvals: 'allowed-once for every request',

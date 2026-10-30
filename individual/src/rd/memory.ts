@@ -213,7 +213,7 @@ export function renderPreparation(delib: Deliberation, correction: Correction, n
     // 摘要可能不完整（見 preparedSituation），所以明寫回憶中還有的也要用。只涉及一個人時不列，避免把回應框窄。
     ...(delib.people.length >= 2
       ? [
-          '這次涉及的人，以及你思考時想到、各自與這次有關的事（至少要顧到這些；回憶中還有的也要用，不要只顧其中一個人）：',
+          '這次涉及的人，以及你思考時想到、各自與這次有關的事。回應時每一項都要顧到，包括題目沒有問到、但也在場的人（例如對方自己）；回憶中還有的也要用：',
           ...delib.people.map((p) => `- ${p.who}${p.relevant.length > 0 ? `：${p.relevant.join('；')}` : ''}`),
         ]
       : []),

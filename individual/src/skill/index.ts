@@ -9,7 +9,8 @@
  * - skill_propose：個體自己提出新增、修改或移除；閘門在背景執行，結果寫進生命紀錄。
  * - 使用紀錄：主模型用 skill 工具載入自己的技能時記一筆 skill/use，回顧與帳本看得到哪些技能有在用。
  *
- * 設定：automatic（預設開）、checkMinutes（5）、idleMinutes（20）、minLessons（2）、timeoutMs（120000）。
+ * 設定：automatic（預設開）、checkMinutes（5）、idleMinutes（20）、minLessons（2）、timeoutMs（120000）、
+ * enabled（預設開；消融 patches/no-skill.yml 關閉：不註冊技能、沒有 skill_propose 與回顧）。
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-skill'
@@ -38,6 +39,7 @@ export const name = 'temir-skill'
 export const inject = ['life', 'llm', 'tools', 'skills']
 
 export interface Config {
+  readonly enabled?: boolean
   readonly automatic?: boolean
   readonly checkMinutes?: number
   readonly idleMinutes?: number
@@ -46,6 +48,7 @@ export interface Config {
 }
 
 export function apply(ctx: Context, config: Config | undefined): void {
+  if (config?.enabled === false) return
   const life = ctx.life
   const logger = ctx.logger('temir-skill')
   const checkMs = (config?.checkMinutes ?? 5) * 60_000

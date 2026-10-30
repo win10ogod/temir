@@ -337,7 +337,7 @@ test('per-person check: the situation lists each person the other mentions; the 
   const d = parseDeliberation('{"situation":"x","people":[{"who":"對方自己","relevant":["對蝦蟹過敏","在戒含糖飲料"]},{"who":"對方的媽媽","relevant":["有糖尿病"]},"對方的兒子"],"candidates":[{"action":"分開講","confidence":60},{"action":"只講媽媽","confidence":40}]}', new Map())!
   assert.deepEqual(d.people, [{ who: '對方自己', relevant: ['對蝦蟹過敏', '在戒含糖飲料'] }, { who: '對方的媽媽', relevant: ['有糖尿病'] }, { who: '對方的兒子', relevant: [] }])
   const prep = renderPreparation(d, uncorrected(d.candidates), [])
-  assert.match(prep, /至少要顧到這些；回憶中還有的也要用/u)
+  assert.match(prep, /回應時每一項都要顧到，包括題目沒有問到、但也在場的人/u)
   assert.match(prep, /- 對方自己：對蝦蟹過敏；在戒含糖飲料\n- 對方的媽媽：有糖尿病\n- 對方的兒子\n/u)
   const alone = parseDeliberation('{"situation":"x","people":[{"who":"對方自己","relevant":["膝傷"]}],"candidates":[{"action":"a","confidence":60},{"action":"b","confidence":40}]}', new Map())!
   assert.doesNotMatch(renderPreparation(alone, uncorrected(alone.candidates), []), /這次涉及的人/u, 'one person: no reminder')

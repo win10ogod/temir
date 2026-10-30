@@ -208,3 +208,22 @@ test('multiperson-v1：與之前的資料集不重疊；每題的證據原文都
   assert.ok(s.probes.filter((x) => x.category === 'multi-person').every((p) => (p.meta?.criteria ?? []).length >= 2))
   assert.deepEqual(auditCoverage(s, loadContract(join(root, 'specs', 'multiperson-v1.contract.json'))).errors, [])
 })
+
+for (const id of ['multiperson-v2', 'skills-v1']) {
+  test(`${id}：與之前的資料集不重疊；證據原文都在歷史中；通過覆蓋檢查`, () => {
+    const s = ds(id)
+    const text = squash(allText(s))
+    for (const e of [...V2_ENTITIES, '葉承恩', '品妍', '江柏睿', '謝禹彤', '許家豪', '溫雅筑', '周敏華', '志遠', '小晴']) assert.ok(!text.includes(squash(e)), `${id} 沿用了舊版的「${e}」`)
+    for (const old of [ds('followup-v1'), ds('followup-v2'), ds('followup-v3'), ds('memory-v3'), ds('personality-v3'), ds('subtraction-v1'), ds('multiperson-v1')]) {
+      for (const p of old.probes) if (p.category !== 'control') for (const t of p.turns) assert.ok(!text.includes(squash(t)), `${id} 含有舊版的題目「${t}」`)
+      for (const h of old.histories) for (const t of h.turns) assert.ok(!text.includes(squash(t)))
+    }
+    for (const p of s.probes.filter((x) => x.category !== 'control')) {
+      for (const ev of p.meta?.evidence ?? []) {
+        const h = s.histories.find((x) => x.id === ev.history)!
+        assert.ok(h.turns.some((t) => t.includes(ev.text)), `${p.id} 的證據原文不在 ${h.id}`)
+      }
+    }
+    assert.deepEqual(auditCoverage(s, loadContract(join(root, 'specs', `${id}.contract.json`))).errors, [])
+  })
+}

@@ -230,3 +230,15 @@ test('integration: a procedure revision without the criteria holding is kept as 
     assert.match(result, /保留為提案 1 項（procedure：穩定性不成立）/u)
     assert.equal(currentProcedure(store, 'thought').version, 1)
   }))
+
+test('integration: a proposal whose gate was interrupted (no decision) is compared at the next integration', () =>
+  withStore(async (store) => {
+    seedProcedures(store)
+    lived(store)
+    const pending = proposeThought(store, NEW_THOUGHT)
+    const adopt = '{"verdict":"adopt","reasons":[{"situation":"S1","observation":"提案的版本先想了他方不方便"}],"revised":null}'
+    const { call } = scripted([JSON.stringify({ change: '' }), '現行', '提案', adopt])
+    const result = await runIntegration({ life: store, call, logger: quiet }, { replay: false }, 'voluntary', false)
+    assert.match(result, /念頭做法的修改採用（第 2 版）/u)
+    assert.equal((store.all(PROCEDURE_KIND.decision)[0]!.data as ProcedureDecisionData).proposal, pending.id)
+  }))

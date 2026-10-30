@@ -23,7 +23,7 @@ import type { LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { auxRecord, modelCaller, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
 import { clipKeepLines, isHeard } from '../recall/retrieve.ts'
-import { currentProcedure, procedureVersions } from '../self/procedure.ts'
+import { currentProcedure, pendingProcedureProposals, procedureVersions } from '../self/procedure.ts'
 import { INTEGRATION_KIND, collect, integrationStart, reconsiderSince, renderEvidence, type IntegrationTrigger } from './evidence.ts'
 import { applyProposal, integrateRetryNote, integrateSystem, parseProposal, proposalProblems, validate } from './proposal.ts'
 import { describeGate, runProcedureGate, type GateCall } from './procedure-gate.ts'
@@ -128,13 +128,15 @@ export async function runIntegration(deps: IntegrateDeps, config: Config | undef
   const { accepted, rejected, deferred } = validate(life, ev, proposal)
   const result = life.transaction(() => applyProposal(life, ev, accepted, rejected, deferred, { trigger, deep, model, output }))
   // 做法的修訂（ADR-0008 §3）：通過兩項判準的提案進入閘門（探測、合成）；revise 時修改後的版本再對照一輪。失敗時提案留著，沒有決定。
+  // 每次整合最多一個提案進入閘門：這次的新提案優先；沒有新提案時，對照上次中斷、還沒有決定的最舊一個（e2e-40：程序結束時閘門還在探測）。
   const gated: string[] = []
   const gateCall: GateCall = async (prompt, probeInput, purpose) => {
     const call = await deps.call(route, prompt, probeInput, AbortSignal.timeout(timeoutMs), purpose === 'procedure-probe' ? 32_000 : undefined)
     if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose, ...auxRecord(call), input: clipKeepLines(probeInput, 20_000), output: call.output } })
     return call.output
   }
-  for (const id of result.procedureProposals) {
+  const toGate = result.procedureProposals.length > 0 ? result.procedureProposals : pendingProcedureProposals(life).slice(0, 1).map((e) => e.id)
+  for (const id of toGate) {
     try {
       let proposalEvent = life.get(id)
       for (let round = 0; proposalEvent && round < 2 && life.isOpen; round++) {

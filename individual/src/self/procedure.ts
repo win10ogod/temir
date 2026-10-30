@@ -12,7 +12,7 @@
  * 純函式（依賴 LifeStore，不依賴 DSH），可單獨測試。
  */
 import { Projection } from '../life/projection.ts'
-import type { LifeStore } from '../life/store.ts'
+import type { LifeEvent, LifeStore } from '../life/store.ts'
 
 export const PROCEDURE_NAMES = ['deliberate', 'subtract', 'outcome', 'integrate', 'thought'] as const
 export type ProcedureName = (typeof PROCEDURE_NAMES)[number]
@@ -167,6 +167,14 @@ export interface ProcedureDecisionData {
   readonly problems?: readonly string[]
   /** 個體沒有可重複評估的任務集，量不出雜訊下限（ADR-0008 §3；與 ADR-0003 相同）。 */
   readonly gate: 'contrast' | 'none'
+}
+
+/**
+ * 還沒有決定的做法提案，由舊到新：閘門中途中斷（例如程序在探測時結束）時，提案留著，下次整合再對照（ADR-0008 §3）。
+ */
+export function pendingProcedureProposals(life: LifeStore): LifeEvent[] {
+  const decided = new Set(life.all(PROCEDURE_KIND.decision).map((e) => (e.data as ProcedureDecisionData).proposal))
+  return life.all(PROCEDURE_KIND.proposal).filter((e) => !decided.has(e.id))
 }
 
 /** 整合的輸入：目前的五個做法（全文、版本與事件 id）。without＝消融時不列的行（含有這些字詞的，withoutLines）。 */

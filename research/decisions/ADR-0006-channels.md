@@ -4,7 +4,7 @@
 - 狀態：
   - 已安裝在正式的 web profile（`~/.cache/temir/dsh-home/profiles/web`）。
   - 與個體一起執行已驗證。
-  - **未驗證**：真的在 IM 上對話。需要使用者接入機器人（掃碼或憑據），CLAUDE.md 規則 2：端到端驗收一律用真實的 API。
+  - 2026-10-30 以使用者提供的 Telegram 機器人驗證（測試用的 DSH_HOME 與 TEMIR_HOME；e2e-38）：IM 上的對話，以及主動開口送到 Telegram。
 - 觸發：
   - plan v2 M4「Telegram／LINE／Discord 作為插件」；
   - 使用者 2026-10-30：「通道功能可以從 https://github.com/xmanrui/dsh-im 直接複製（但我更建議直接用這個插件就是了）」。
@@ -48,7 +48,17 @@
   - 面板顯示「已載入，還沒有接入機器人」；
   - dsh-im 的投遞 API 對假的 bot 回 `unknown-bot`；
   - 插件頁列出完整程式碼；跨站核准 403；本機核准 303，記下 `via: panel`。
-- **待使用者**：在 DSH 的「設定 → IM機器人」接入一個機器人，對它說一句話；要讓主動開口也送到 IM，把 `botId + targetId` 寫進 `temir-thought` 的 `imTargets`。
+- **Telegram（e2e-38，2026-10-30）**：
+  - 綁定：以 dsh-im 的本機管理 API 綁定使用者的機器人，立刻設為安全模式：私聊白名單只有使用者，群組全部拒絕。token 與使用者的 User ID 只存在 secrets.env。
+  - 對話：使用者傳「你好」，個體從 Telegram 回覆。同一回合寫下 RD 的思考、自動回憶與擷取的事實。
+  - 主動開口：
+    - 以 dsh-im 的 `target.create` 建立使用者私聊的投遞目標 `creator-dm`，寫進 `temir-thought` 的 `imTargets`；
+    - 念頭由標明的測試替身寫下；
+    - 個體說「這是一則測試，確認我主動開口時，IM 也收得到。」，經 `ctx.dshIm.send` 送到 Telegram，`self/initiative-im` 記為 ok。
+  - 測試中發現並修正兩個問題（ADR-0004）：
+    - DSH 重啟之後無法開口（改為重新載入對話）；
+    - `automatic: false` 連 relay 也關掉了。
+- **待使用者**：正式的 web profile 要不要接這個機器人。
 
 ## 限制
 

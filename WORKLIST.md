@@ -171,7 +171,8 @@
   - IM 上的話照常進入個體的回憶與 RD；
   - 主動開口可經 `imTargets` 送到 IM；
   - 插件改在本機面板核准；
-  - 與個體一起執行已驗證。真的在 IM 上對話，要等使用者接入機器人。
+  - 與個體一起執行已驗證。
+  - 2026-10-30 Telegram（e2e-38）：IM 上的對話與主動開口送到 Telegram 都已驗證；測試中修正了重啟後無法開口、關閉自動念頭時 relay 也關掉這兩個問題。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID

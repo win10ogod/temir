@@ -1,0 +1,318 @@
+{
+  "contract": "rd-v2",
+  "dataset": "rd-v2",
+  "datasetSha256": "962194a520c728f61d127122e6bda469477eb21cd37fe729cf9cd83f4c3e10cc",
+  "cells": [
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "practical",
+          "items": 8,
+          "samples": 16,
+          "correct": 4,
+          "pending": 0,
+          "rate": 0.25,
+          "interval": {
+            "low": 0.0625,
+            "high": 0.5
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "correct": 4,
+            "incorrect": 12
+          },
+          "statuses": {
+            "ok": 16
+          }
+        },
+        {
+          "category": "control",
+          "items": 4,
+          "samples": 4,
+          "correct": 3,
+          "pending": 0,
+          "rate": 0.75,
+          "interval": {
+            "low": 0.19412044968324338,
+            "high": 0.9936905367902902
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 3,
+            "incorrect": 1
+          },
+          "statuses": {
+            "ok": 4
+          }
+        }
+      ],
+      "toolCalls": {
+        "appraise": 7
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir-no-rd",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir-no-rd|deepseek-flash|deepseek-flash",
+      "label": "temir-no-rd（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "practical",
+          "items": 8,
+          "samples": 16,
+          "correct": 4,
+          "pending": 0,
+          "rate": 0.25,
+          "interval": {
+            "low": 0,
+            "high": 0.625
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "incorrect": 12,
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 16
+          }
+        },
+        {
+          "category": "control",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        }
+      ],
+      "toolCalls": {
+        "recall": 5,
+        "self_revise": 1,
+        "appraise": 17
+      }
+    }
+  ],
+  "contrasts": [
+    {
+      "id": "R2-practical-flash",
+      "description": "主要：有 RD（D18＋D19）vs 沒有 RD（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-rd（deepseek-flash）",
+      "categories": [
+        "practical"
+      ],
+      "state": "ok",
+      "n": 8,
+      "rateA": 0.25,
+      "rateB": 0.25,
+      "diff": {
+        "estimate": 0,
+        "low": -0.3125,
+        "high": 0.25,
+        "resamples": 10000,
+        "seed": 20261107
+      },
+      "test": {
+        "kind": "sign",
+        "result": {
+          "positive": 2,
+          "negative": 1,
+          "ties": 5,
+          "pTwoSided": 1,
+          "pOneSided": 0.5
+        }
+      },
+      "failuresA": 12,
+      "failuresB": 12,
+      "outcomeCountsA": {
+        "correct": 4,
+        "incorrect": 12
+      },
+      "samplesA": 16
+    },
+    {
+      "id": "R2-ctrl-flash",
+      "description": "不傷害：對照題（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-rd（deepseek-flash）",
+      "categories": [
+        "control"
+      ],
+      "state": "ok",
+      "n": 4,
+      "rateA": 0.75,
+      "rateB": 1,
+      "diff": {
+        "estimate": -0.25,
+        "low": -0.75,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261107
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 0,
+          "c": 1,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 1,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "correct": 3,
+        "incorrect": 1
+      },
+      "samplesA": 4
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "R2A-flash",
+      "contrast": "R2-practical-flash",
+      "claim": "（deepseek-flash）有 RD 時，個體更能從對方的反應中學到：這個人抒發時，要直接給具體可行的方法（E-RD）。",
+      "negation": "差 < 0.25、區間下界 < 0 或單尾 p > 0.05：不能宣稱 RD 讓個體從結果中學到了做法。",
+      "verdict": "FAIL",
+      "explanation": "✗ 差 0.000 ≥ 0.25；✗ 95% 區間下界 -0.313 ≥ 0；✗ 精確符號檢定（單尾）p=0.500 ≤ 0.05"
+    },
+    {
+      "id": "R2B-flash",
+      "contrast": "R2-practical-flash",
+      "claim": "（deepseek-flash）修正後的 RD 不再壓低個體依對方反應的調整：有 RD 時，practical 最多比沒有 RD 多錯 2 個樣本（共 16）。",
+      "negation": "有 RD 時 practical 多錯超過 2 個樣本：修正後的 RD 仍然壓低調整（rd-v1 的情形）。",
+      "verdict": "PASS",
+      "explanation": "A 失敗 12、B 失敗 12，容許 A 比 B 多 2"
+    },
+    {
+      "id": "R2C-flash",
+      "contrast": "R2-ctrl-flash",
+      "claim": "（deepseek-flash）一般任務不退化。",
+      "negation": "有 RD 時對照題多錯超過 1 題。",
+      "verdict": "PASS",
+      "explanation": "A 失敗 1、B 失敗 0，容許 A 比 B 多 1"
+    }
+  ],
+  "crossCheck": null,
+  "protocol": [
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    },
+    {
+      "cell": "temir-no-rd|deepseek-flash|deepseek-flash",
+      "label": "temir-no-rd（deepseek-flash）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    }
+  ],
+  "descriptive": [
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "practical",
+      "samples": 16,
+      "meanToolCalls": 0.1875,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 15280,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 16
+      }
+    },
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "control",
+      "samples": 4,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 8634.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 3,
+        "n": 4
+      }
+    },
+    {
+      "cell": "temir-no-rd|deepseek-flash|deepseek-flash",
+      "label": "temir-no-rd（deepseek-flash）",
+      "category": "practical",
+      "samples": 16,
+      "meanToolCalls": 0.375,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 8490.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 16
+      }
+    },
+    {
+      "cell": "temir-no-rd|deepseek-flash|deepseek-flash",
+      "label": "temir-no-rd（deepseek-flash）",
+      "category": "control",
+      "samples": 4,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 3499.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 4
+      }
+    }
+  ],
+  "issues": [],
+  "judge": {
+    "name": "deepseek",
+    "calls": 33,
+    "spentUsd": 0.01697036
+  }
+}

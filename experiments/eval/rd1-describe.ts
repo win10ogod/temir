@@ -1,5 +1,6 @@
 // rd-v1 描述性指標（規格 rd-v1.md「描述性指標」）：不計入驗收。
-// 用法：node experiments/eval/rd1-describe.ts [rd1|rd2]（run id 前綴；rd2 是 dev8 的重跑）。
+// 用法：node experiments/eval/rd1-describe.ts [run id 前綴] [資料集]
+//   rd-v1：rd1（本實驗）、rd2（dev8 的重跑）、rd3（dev9 的重跑）；rd-v2：node … rdv2 rd-v2。
 // 1. 兩個條件的歷史中，個體的回覆有幾則直接給了方法（同一準則、同一 judge；快取在結果目錄的 describe-judge-raw.jsonl）。
 // 2. 模擬使用者的反應（逐句列出；「失望」以關鍵詞粗分，標明是粗分）。
 // 3. temir 的歷史與探針：「建議」候選的出現、被扣除、被選中；回報分布；教訓中提到方法或建議的次數。
@@ -12,9 +13,11 @@ import { criteriaPrompt, criteriaParser } from './lib/prompts.ts'
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..')
 const PREFIX = process.argv[2] ?? 'rd1'
-const OUT = PREFIX === 'rd1' ? 'experiments/results/rd-v1' : PREFIX === 'rd2' ? 'experiments/results/dev8-rd2' : `experiments/results/dev9-${PREFIX}`
-const ds = JSON.parse(readFileSync(join(ROOT, 'experiments/datasets/rd-v1.json'), 'utf8'))
-const contract = JSON.parse(readFileSync(join(ROOT, 'experiments/specs/rd-v1.contract.json'), 'utf8'))
+const DATASET = process.argv[3] ?? 'rd-v1'
+const OUT =
+  DATASET !== 'rd-v1' ? `experiments/results/${DATASET}` : PREFIX === 'rd1' ? 'experiments/results/rd-v1' : PREFIX === 'rd2' ? 'experiments/results/dev8-rd2' : `experiments/results/dev9-${PREFIX}`
+const ds = JSON.parse(readFileSync(join(ROOT, `experiments/datasets/${DATASET}.json`), 'utf8'))
+const contract = JSON.parse(readFileSync(join(ROOT, `experiments/specs/${DATASET}.contract.json`), 'utf8'))
 const probe = ds.probes.find((p: { id: string }) => p.id === 'q01')
 const criteria = probe.meta.criteria
 const background = probe.meta.background
@@ -22,7 +25,7 @@ const vents = new Set(ds.histories.filter((h: { meta?: { simulate?: number } }) 
 const judge = new DeepSeekJudge({ spec: contract.judge, cacheFile: join(ROOT, OUT, 'describe-judge-raw.jsonl'), maxUsd: 1 })
 
 for (const cond of ['temir', 'temir-no-rd']) {
-  const run = `${PREFIX}__rd-v1__${cond}__deepseek__deepseek`
+  const run = `${PREFIX}__${DATASET}__${cond}__deepseek__deepseek`
   const lines = readFileSync(join(ROOT, 'experiments/runs', run, 'records.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
   let replies = 0, withMethods = 0, firstWithMethods = 0, sessions = 0, disappointed = 0, simulated = 0
   console.log(`\n## ${cond}`)

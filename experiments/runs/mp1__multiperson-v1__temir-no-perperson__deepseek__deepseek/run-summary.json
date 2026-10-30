@@ -1,0 +1,22 @@
+{
+  "runId": "mp1__multiperson-v1__temir-no-perperson__deepseek__deepseek",
+  "endedAt": "2026-10-29T23:57:20.138Z",
+  "histories": 12,
+  "historyFrom": null,
+  "probes": 14,
+  "probeSessions": 30,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 83,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 64,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

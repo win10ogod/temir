@@ -51,7 +51,7 @@ export interface Candidate {
   readonly prediction: string
   /** 口述信心 0–100。 */
   readonly confidence: number
-  /** 模型判定為同一做法的過去經驗（rd/decision 事件 id）。 */
+  /** 模型判定為同一做法的過去經驗（rd/decision 事件 id）：思考時逐筆判斷的 experiences 中，sameAction 列了這個做法的（ADR-0002 D23）。 */
   readonly sameAs: readonly string[]
   /**
    * RD 扣除了這個做法（PC＝ST＋E−RD＝A；使用者 2026-10-29：「−」是扣除，ST＋E 減掉 RD 才進入 A）。

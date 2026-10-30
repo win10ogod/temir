@@ -404,7 +404,24 @@ e2e-14 中，線索理解把繁體的話擷取成簡體的事實（「对方表�
     - 仍不合格就寫 `rd/deliberation-failed`（內容為對方的話與兩次的問題），不做準備，由主模型直接回應。
   - 「全部扣除」的重問，輸出不合格時保留第一次的。
   - 提示本來就要求種類是 KINDS 之一，沒有改。
-- **驗證**：單元測試（`rd.test.ts`、`rd-step.test.ts`）；真實模型的檢查見 session log s09。
+- **驗證**：單元測試（`rd.test.ts`、`rd-step.test.ts`）；真實模型的檢查見 dev14（session log s09）。
+
+## D23　思考時對列出的經驗逐筆判斷（2026-10-30）
+
+- **依據**：規則 2「判斷交給模型，但要強制判斷」。改進清單（`research/proposals/2026-10-30-offline-improvements.md`）把這一項留給本機，因為它改變提示的格式，要用真實模型檢驗。
+- **問題**：
+  - 思考的 `similar`（處境本質上相同的經驗）與每個候選的 `sameAs`（做法實質上相同的經驗）沒寫時都是空陣列。
+  - 程式分不出「判斷為否」與「沒有判斷」。
+  - JitRL 依它們決定：哪些經驗一定算鄰居（`neighbors` 的 judged），以及候選與哪些經驗是同一個做法（`correct` 的 sameAs；詞彙相符只是備援，ADR D3）。
+- **決定**：
+  - 提示拿掉 `similar` 與 `sameAs`，改為 `experiences`：「過去類似處境的經驗」列出的每一個經驗剛好一筆。
+    - `sameSituation`：true 或 false。
+    - `sameAction`：與那次做法實質上相同的候選編號，可以是空陣列。
+  - `parseDeliberation` 驗證每一筆：缺的、重複的、認不得的編號都是問題，與 D22 同一次重問（`deliberationRetryNote`）。仍不合格就寫 `rd/deliberation-failed`，不做準備。
+  - `similar` 由 `sameSituation` 為 true 的經驗組成，候選的 `sameAs` 由 `sameAction` 組成。rd/decision 的格式與 JitRL 的算法不變。
+  - 沒有列出經驗時不需要判斷。
+- **代價**：每次思考的輸出多出最多 5 筆（列出的經驗最多 5 個，D19）。
+- **驗證**：單元測試；真實模型見 dev14。預先登記的門檻：`rd/deliberation-failed` 不超過思考次數的 5%。
 
 ## 成本與延遲
 

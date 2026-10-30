@@ -11,11 +11,11 @@ import { DEFAULT_PARAMS } from '../src/rd/jitrl.ts'
 import { DECISION_KIND, DELIBERATION_FAILED_KIND, OUTCOME_FAILED_KIND, OUTCOME_KIND, type DecisionData, type DeliberationFailedData, type OutcomeData, type OutcomeFailedData } from '../src/rd/memory.ts'
 
 type Purpose = 'deliberate' | 'revise' | 'outcome'
-type Reply = string | Error | (() => Promise<string>)
+type Reply = string | Error | ((input: string) => string | Promise<string>)
 
 /**
  * 測試替身（單元測試專用）：取代 callModel。依 system 判斷是哪一種呼叫，依序回傳預先寫好的輸出；
- * Error 代表呼叫失敗，函式可以回傳由測試控制的 promise。記下每一次呼叫的目的、system 與 input。
+ * Error 代表呼叫失敗；函式收到這次的 input，可以依輸入作答，也可以回傳由測試控制的 promise。記下每一次呼叫的目的、system 與 input。
  */
 function scripted(script: Partial<Record<Purpose, Reply[]>>): { call: CallModel; calls: { purpose: Purpose; system: string; input: string }[] } {
   const calls: { purpose: Purpose; system: string; input: string }[] = []
@@ -25,7 +25,7 @@ function scripted(script: Partial<Record<Purpose, Reply[]>>): { call: CallModel;
     const next = script[purpose]?.shift()
     if (next === undefined) throw new Error(`測試替身沒有準備 ${purpose} 的輸出`)
     if (next instanceof Error) throw next
-    const output = typeof next === 'function' ? await next() : next
+    const output = typeof next === 'function' ? await next(input) : next
     return { output, ms: 1, retried: false, effort: 'low', reasoningChars: 0, usage: null, finish: 'stop' }
   }
   return { call, calls }
@@ -60,18 +60,31 @@ function input(cue: string, session = 's1', signal = new AbortController().signa
   return { session, route: ROUTE, cue, recalled: '', tools: ['recall'], signal }
 }
 
-const DELIBERATION = JSON.stringify({
+const DELIBERATION_BODY = {
   situation: '對方：她｜對方的意圖：抒發主管的責備｜對方的情緒：煩躁｜話題：主管｜相關的記憶：無',
   drive: '',
   activated: [],
-  similar: [],
   people: [],
   candidates: [
-    { action: '直接給兩個具體的方法', kind: '建議', prediction: '她會有方向', confidence: 60, sameAs: [], excluded: true, reason: '她在抒發，不是求助' },
-    { action: '先陪她', kind: '表達感受', prediction: '她會放鬆', confidence: 30, sameAs: [], excluded: false, reason: '' },
-    { action: '問她想不想說', kind: '提問', prediction: '她會說下去', confidence: 10, sameAs: [], excluded: false, reason: '' },
+    { action: '直接給兩個具體的方法', kind: '建議', prediction: '她會有方向', confidence: 60, excluded: true, reason: '她在抒發，不是求助' },
+    { action: '先陪她', kind: '表達感受', prediction: '她會放鬆', confidence: 30, excluded: false, reason: '' },
+    { action: '問她想不想說', kind: '提問', prediction: '她會說下去', confidence: 10, excluded: false, reason: '' },
   ],
-})
+}
+
+/** 思考的輸入中列出的經驗編號（renderExperiences 的「E1｜…」）。 */
+const listedExperiences = (input: string) => [...input.matchAll(/^(E\d+)｜/gmu)].map((m) => m[1]!)
+
+/**
+ * 測試替身的思考輸出：對輸入中列出的每一個經驗逐筆作答（D23），都判斷為不是同一類、沒有相同的做法
+ * （與以前 similar、sameAs 都是空陣列的意思相同）。kind 可以換掉第一個做法的種類。
+ */
+const DELIBERATION = (input: string, kind = '建議') =>
+  JSON.stringify({
+    ...DELIBERATION_BODY,
+    candidates: DELIBERATION_BODY.candidates.map((c, i) => (i === 0 ? { ...c, kind } : c)),
+    experiences: listedExperiences(input).map((id) => ({ id, sameSituation: false, sameAction: [] })),
+  })
 
 /** 過去類似處境的一個經驗：做了「建議」這一類，結果好、預測成真。之後扣除「建議」時需要強制判斷。 */
 function pastAdvice(store: LifeStore): string {
@@ -121,7 +134,7 @@ test('deliberation: two broken answers write no decision and prepare nothing; a 
   }))
 
 /** DELIBERATION 中第一個做法的 kind 換成認不得的值。 */
-const withKind = (kind: string) => DELIBERATION.replace('"kind":"建議"', `"kind":"${kind}"`)
+const withKind = (kind: string) => (input: string) => DELIBERATION(input, kind)
 
 test('deliberation: an unknown kind is not filled in as 其他; it is asked again with the problem (user 2026-10-30)', () =>
   withStore(async (store) => {
@@ -147,6 +160,22 @@ test('deliberation: an unknown kind twice prepares nothing and is recorded as a 
       '第 1 次：做法「直接給兩個具體的方法」的 kind「勸告」不是 回答／提問／建議／拒絕／使用工具／表達感受／其他 之一',
       '第 2 次：做法「直接給兩個具體的方法」的 kind「」不是 回答／提問／建議／拒絕／使用工具／表達感受／其他 之一',
     ])
+  }))
+
+test('D23: a listed experience left unjudged is asked again; the judgment is what JitRL matches on', () =>
+  withStore(async (store) => {
+    const old = pastAdvice(store)
+    const unjudged = JSON.stringify(DELIBERATION_BODY)
+    const judged = (input: string) =>
+      JSON.stringify({ ...DELIBERATION_BODY, experiences: listedExperiences(input).map((id) => ({ id, sameSituation: true, sameAction: [1] })) })
+    const { call, calls } = scripted({ deliberate: [unjudged, judged] })
+    const rd = createRd({ life: store, call, logger: recorder().logger }, { ...CONFIG, revision: false })
+    assert.ok(await rd.step(input('主管又念我了')))
+    assert.deepEqual(listedExperiences(calls[0]!.input), ['E1'], 'the past decision is listed')
+    assert.equal(calls[1]!.system, `${calls[0]!.system}\n${deliberationRetryNote(['沒有 experiences', '沒有判斷 E1'])}`)
+    const d = decisions(store)[0]!.data as DecisionData
+    assert.deepEqual(d.candidates.map((c) => c.sameAs), [[old], [], []])
+    assert.equal(d.candidates[0]!.support, 1, 'the judged same action is matched')
   }))
 
 test('mandatory judgment: a missing answer is asked again with the problems; the valid answer is written as the judgment', () =>

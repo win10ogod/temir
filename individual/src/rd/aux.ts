@@ -23,21 +23,23 @@ export const KINDS = ['回答', '提問', '建議', '拒絕', '使用工具', '�
  */
 export function deliberateSystem(energy = true, subtraction = true, perPerson = true): string {
   const prompt = `你是一個人工個體，在回應之前先思考與準備：理解眼前的處境，想出幾個可能的做法，預測各自的後果；再依預測、過去類似處境的結果與你在乎的事，扣除不該做的做法，剩下的才會成為行動。依你自己的價值、目標與經驗判斷；你可以照對方的要求做，也可以提問、表達不同意或拒絕。只輸出一個 JSON 物件，不要任何其他文字：
-{"situation": "...", "drive": "...", "activated": [], "similar": [], "people": [], "candidates": [{"action": "...", "kind": "...", "prediction": "...", "confidence": 50, "sameAs": [], "excluded": false, "reason": ""}]}
+{"situation": "...", "drive": "...", "activated": [], "people": [], "candidates": [{"action": "...", "kind": "...", "prediction": "...", "confidence": 50, "excluded": false, "reason": ""}], "experiences": [{"id": "E1", "sameSituation": false, "sameAction": []}]}
 - situation：用固定的格式描述眼前的處境，讓日後相似的處境寫出來也相似：「對方：…｜對方的意圖：…｜對方的情緒：…｜話題：…｜相關的記憶：…」。只寫事實，不寫建議；不要寫你自己的紀錄有多少、有沒有自我模型這類與處境無關的事。
   - 相關的記憶：逐一檢查對方自己（對方通常也在場），以及對方這次提到的每一個人：每個人與這次有關的事實（例如各自的健康、限制、偏好）都要寫，不要只寫最先想到的那一個人或那一件事。
 - drive：此刻推動你行動的是什麼：對方的話裡的什麼，以及你的目標或「懸著的事」中被這個處境觸發的那幾件。一句話，用文字說明是哪一件，不要寫編號（編號寫在 activated）；寫的是動機，不是做法。
 - activated：被這個處境觸發的「懸著的事」的編號（例如 "P2"）或目標的 id（例如 "g:3fa1c2d4"）；只是同一個話題但沒有推動你，不算；沒有就給空陣列。
-- similar：「過去類似處境的經驗」中，處境與現在本質上是同一類的經驗編號（例如同樣是對方在抒發壓力、同樣是對方在請你推薦）；只是提到相同的人或詞，不算。沒有就給空陣列。
 - people：這次涉及的人：對方自己（通常也在場），以及這次的話題實際涉及的人；沒有涉及的人不要列。每個人是 {"who": "稱呼與關係，例如「對方自己」「對方的媽媽」「對方的同事阿明」", "relevant": ["這個人與這次的問題直接有關的事實，取自回憶，每條一句；例如這次是吃東西，就寫飲食上的限制，無關的事不要寫"]}；沒有相關的事實就給空陣列。只涉及對方一個人時只寫對方。
 - candidates：剛好 3 個彼此不同的做法。
   - action：用一句話寫你會怎麼做：是做法（例如「完整列出我記得的所有相關醫囑」），不是回覆的內容；不要在這裡列舉具體的事實或細節。
   - kind：${KINDS.join('／')} 之一。
   - prediction：預期對方或結果會怎樣。
   - confidence：0 到 100 的整數，代表你有多傾向這樣做，三個加總為 100。
-  - sameAs：「過去類似處境的經驗」中，當時採取的做法與這個做法實質上相同的經驗編號（例如 "E2"）。只是處境相似、或做法相反，都不算；沒有就給空陣列。
   - excluded：想過這個做法的預期後果、過去類似處境的結果，以及你在乎的事之後，是否要把它扣除、不做：true 或 false。至少保留一個不扣除的做法。
   - reason：扣除的理由，一句話；沒有扣除就給空字串。
+- experiences：「過去類似處境的經驗」中列出的每一個經驗都要剛好一筆，逐一判斷，不能略過；沒有列出經驗時給空陣列。
+  - id：經驗的編號（例如 "E1"）。
+  - sameSituation：true 或 false：那次的處境與現在本質上是不是同一類（例如同樣是對方在抒發壓力、同樣是對方在請你推薦）；只是提到相同的人或詞，不算。
+  - sameAction：candidates 中，做法與那次「我當時」的做法實質上相同的那幾個的編號（依 candidates 的順序：1、2、3）；只是處境相似、或做法相反，都不算；沒有就給空陣列。
 - 一律使用原文的語言與字體：原文是繁體中文就寫繁體中文，不要轉成簡體。`
   const withEnergy = energy ? prompt : withoutEnergy(prompt, ['drive', 'activated'])
   const withSubtraction = subtraction ? withEnergy : withoutSubtraction(withEnergy)
@@ -133,7 +135,7 @@ export function revisionRetryNote(problems: readonly string[]): string {
  * 不合格：不是完整的 JSON、少於兩個可用的做法，或做法的 kind 不是 KINDS 之一（parseDeliberation 的 problems）。
  */
 export function deliberationRetryNote(problems: readonly string[]): string {
-  return `（重寫一次：上一次的輸出不合格。只輸出一個完整的 JSON 物件，candidates 剛好 3 個做法，每個做法的 kind 只能是 ${KINDS.join('／')} 之一。不合格的地方：${problems.join('；')}）`
+  return `（重寫一次：上一次的輸出不合格。只輸出一個完整的 JSON 物件，candidates 剛好 3 個做法，每個做法的 kind 只能是 ${KINDS.join('／')} 之一；「過去類似處境的經驗」列出的每一個經驗，experiences 都要剛好一筆（sameSituation 是 true 或 false，sameAction 是做法編號的陣列，可以是空的）。不合格的地方：${problems.join('；')}）`
 }
 
 /** 思考把全部做法都扣除時，重問一次所附的說明（提示本來就要求「至少保留一個不扣除的做法」；改進清單第 6 項）。 */
@@ -151,7 +153,7 @@ export interface Deliberation {
   readonly drive: string
   /** 被觸發的勢能（模型寫的編號，原樣保留；由呼叫端轉成 key）。 */
   readonly activated: readonly string[]
-  /** 模型判定處境本質上相同的過去經驗（rd/decision 事件 id）。 */
+  /** 模型判定處境本質上相同的過去經驗（rd/decision 事件 id）：experiences 中 sameSituation 為 true 的（D23）。 */
   readonly similar: readonly string[]
   /** 這次涉及的人（包括對方自己）與各自與這次有關的事實（ADR-0002 D17）。 */
   readonly people: readonly Person[]
@@ -191,21 +193,71 @@ function kindOf(value: unknown): string | undefined {
 export type DeliberationParse = { readonly ok: true; readonly deliberation: Deliberation } | { readonly ok: false; readonly problems: readonly string[] }
 
 /**
- * 解析思考結果。labels 把提示中的經驗編號（E1、E2……）對應到 rd/decision 事件 id；無法辨識的編號直接略過。
+ * 經驗的逐筆判斷（ADR-0002 D23；使用者 2026-10-30「有問題的是沒有作強制要求判斷」）：列出的每一個經驗剛好一筆，
+ * sameSituation 是 true 或 false，sameAction 是做法編號（candidates 的順序，從 1 起）的陣列。
+ * 以前的 similar、sameAs 沒寫就是空陣列，分不出「判斷為否」與「沒有判斷」，而 JitRL 的鄰居（jitrl.ts 的 neighbors）
+ * 與行動相符（correct 的 sameAs）都靠它們。缺的、重複的、認不得的都列為問題；判斷的內容由模型決定。
+ * numbered：做法編號 → candidates 中的位置（沒有 action 而略過的做法不在其中）。
+ */
+function experienceJudgments(
+  value: unknown,
+  labels: ReadonlyMap<string, string>,
+  numbered: ReadonlyMap<number, number>,
+  problems: string[],
+): { similar: string[]; sameAs: Map<number, string[]> } {
+  const similar: string[] = []
+  const sameAs = new Map<number, string[]>()
+  if (labels.size === 0) return { similar, sameAs }
+  if (!Array.isArray(value)) problems.push('沒有 experiences')
+  const seen = new Set<string>()
+  for (const raw of Array.isArray(value) ? (value as unknown[]) : []) {
+    if (typeof raw !== 'object' || raw === null) {
+      problems.push('experiences 中有一筆不是物件')
+      continue
+    }
+    const e = raw as Record<string, unknown>
+    const label = text(e['id'], 10).toUpperCase()
+    const id = labels.get(label)
+    if (!id) {
+      problems.push(`experiences 的「${text(e['id'], 10)}」不是列出的經驗編號`)
+      continue
+    }
+    if (seen.has(label)) {
+      problems.push(`${label} 判斷了不只一次`)
+      continue
+    }
+    seen.add(label)
+    if (typeof e['sameSituation'] !== 'boolean') problems.push(`${label} 的 sameSituation 不是 true 或 false`)
+    else if (e['sameSituation']) similar.push(id)
+    if (!Array.isArray(e['sameAction'])) {
+      problems.push(`${label} 的 sameAction 不是陣列`)
+      continue
+    }
+    for (const n of e['sameAction'] as unknown[]) {
+      const number = typeof n === 'number' ? n : typeof n === 'string' && /^\d+$/.test(n.trim()) ? Number(n.trim()) : Number.NaN
+      const at = numbered.get(number)
+      if (at === undefined) problems.push(`${label} 的 sameAction 有「${String(n)}」，不是做法的編號`)
+      else if (!(sameAs.get(at) ?? []).includes(id)) sameAs.set(at, [...(sameAs.get(at) ?? []), id])
+    }
+  }
+  for (const label of labels.keys()) if (!seen.has(label)) problems.push(`沒有判斷 ${label}`)
+  return { similar, sameAs }
+}
+
+/**
+ * 解析思考結果。labels 把提示中的經驗編號（E1、E2……）對應到 rd/decision 事件 id。
  * 不合格（列出 problems，呼叫端附上 deliberationRetryNote 重問；仍不合格就不做準備，直接讓主模型回應）：
- * 不是 JSON 物件、沒有 candidates、少於兩個可用的做法、有做法的 kind 不是 KINDS 之一。
+ * 不是 JSON 物件、沒有 candidates、少於兩個可用的做法、有做法的 kind 不是 KINDS 之一、
+ * 列出的經驗沒有逐筆判斷（experienceJudgments）。
  */
 export function parseDeliberation(output: string, labels: ReadonlyMap<string, string>): DeliberationParse {
   const obj = extractJson(output)
   if (!obj) return { ok: false, problems: ['不是 JSON 物件'] }
   if (!Array.isArray(obj['candidates'])) return { ok: false, problems: ['沒有 candidates'] }
   const problems: string[] = []
-  const ids = (value: unknown) =>
-    strings(value, 10, 8)
-      .map((label) => labels.get(label.toUpperCase()))
-      .filter((id): id is string => id !== undefined)
   const candidates: Candidate[] = []
-  for (const raw of obj['candidates'] as unknown[]) {
+  const numbered = new Map<number, number>()
+  for (const [i, raw] of (obj['candidates'] as unknown[]).entries()) {
     if (typeof raw !== 'object' || raw === null) continue
     const c = raw as Record<string, unknown>
     const action = text(c['action'], 200)
@@ -222,19 +274,21 @@ export function parseDeliberation(output: string, labels: ReadonlyMap<string, st
       kind: kind ?? '',
       prediction: text(c['prediction'], 300),
       confidence,
-      sameAs: ids(c['sameAs']),
+      sameAs: [],
       ...(excluded ? { excluded, excludeReason: text(c['reason'], 200) } : {}),
       ...(revised ? { revised } : {}),
     })
+    numbered.set(i + 1, candidates.length - 1)
     if (candidates.length >= 4) break
   }
   if (candidates.length < 2) problems.push(`可用的做法只有 ${candidates.length} 個`)
+  const judged = experienceJudgments(obj['experiences'], labels, numbered, problems)
   if (problems.length > 0) return { ok: false, problems }
   const deliberation: Deliberation = {
     situation: text(obj['situation'], 600),
     drive: text(obj['drive'], 300),
     activated: strings(obj['activated'], 8, 40),
-    similar: [...new Set(ids(obj['similar']))],
+    similar: judged.similar,
     people: (Array.isArray(obj['people']) ? (obj['people'] as unknown[]) : []).flatMap((p): Person[] => {
       const person: Person | undefined =
         typeof p === 'string'
@@ -244,7 +298,7 @@ export function parseDeliberation(output: string, labels: ReadonlyMap<string, st
             : undefined
       return person && person.who ? [person] : []
     }).slice(0, 6),
-    candidates,
+    candidates: candidates.map((c, i) => ({ ...c, sameAs: judged.sameAs.get(i) ?? [] })),
   }
   return { ok: true, deliberation }
 }

@@ -5,13 +5,16 @@
  * - 主模型：records.jsonl 每一回合的 `usage`（執行器從 DSH 的 assistant/message 事件取得，每則訊息一筆）。
  * - 輔助呼叫：生命日誌的 `memory/aux`（2026-10-30 起記下 `usage` 與 `finish`；individual/src/recall/aux.ts 的 auxRecord）。
  * - 模擬使用者：records.jsonl 每一個 simulated 回合的 `simulatorUsage`（2026-10-30 起；experiments/runner/simulator.ts）。
- *   judge 的用量不在這裡。
+ *   judge 的用量不在這裡：score.ts 以契約的 judge.pricesUsdPerMillion 另外計算（lib/judge.ts 的 costUsd）。
  *
  * 價表（美元／每百萬 token）的來源：
  * - deepseek-flash：research/log/2026-10-28-s02.md 第 9 行，DeepSeek 價格頁（api-docs.deepseek.com/quick_start/pricing，2026-10-28 讀取）：
  *   輸入未命中 $0.15／$0.30（離峰／尖峰）、命中 $0.003／$0.006、輸出 $0.60／$1.20。
- * - deepseek-v4-pro：查不到（repo 中沒有記錄；2026-10-30 在雲端整理時不查網頁）。留空，花費標為未知。
- * - 尖峰與離峰的時段 repo 中沒有記錄，所以每一筆都算離峰與尖峰兩個數（下限與上限），不猜時段。
+ *   2026-10-30 再讀一次，價格相同。
+ * - deepseek-v4-pro：同一頁（2026-10-30 讀取）：輸入未命中 $0.66／$1.32、命中 $0.022／$0.044、輸出 $1.98／$3.96。
+ *   尖峰價與 experiments/specs/memory-accuracy-v1.md:270、各契約的 judge.pricesUsdPerMillion 相同。
+ * - 尖峰時段（同一頁）：週一到週五 UTC 01:00–04:00 與 06:00–10:00，中國的國定假日除外；其他時間是離峰（離峰是尖峰價的一半）。
+ *   國定假日 repo 中沒有記錄，所以每一筆仍算離峰與尖峰兩個數（下限與上限），不猜時段。
  * - 快取寫入（cacheWriteTokens）沒有價格：大於 0 時那一筆的花費標為未知。
  */
 
@@ -43,7 +46,11 @@ export const PRICES: Readonly<Record<string, PriceEntry | null>> = {
     peak: { input: 0.3, cacheRead: 0.006, output: 1.2 },
     source: 'research/log/2026-10-28-s02.md:9（api-docs.deepseek.com/quick_start/pricing，2026-10-28 讀取）',
   },
-  'deepseek-v4-pro': null,
+  'deepseek-v4-pro': {
+    offPeak: { input: 0.66, cacheRead: 0.022, output: 1.98 },
+    peak: { input: 1.32, cacheRead: 0.044, output: 3.96 },
+    source: 'api-docs.deepseek.com/quick_start/pricing（2026-10-30 讀取；尖峰價同 experiments/specs/memory-accuracy-v1.md:270）',
+  },
 }
 
 const ZERO: Tokens = { input: 0, cacheRead: 0, cacheWrite: 0, output: 0, reasoning: 0 }
@@ -56,8 +63,9 @@ const count = (v: unknown): number | undefined => (typeof v === 'number' && Numb
  *   reasoning 算在 outputTokens 裡：DeepSeek 的轉接器把 totalTokens 算成 input＋output＋cacheRead＋cacheWrite，沒有另加思考
  *   （dsh-llm-deepseek@0.2.2-alpha.2 lib/index.js:2019）。
  * - OpenAI 相容的 /chat/completions（模擬使用者）：prompt_tokens、completion_tokens、prompt_cache_hit_tokens、
- *   prompt_cache_miss_tokens、completion_tokens_details.reasoning_tokens。欄位名依 DeepSeek API 的文件，
- *   repo 中還沒有實際的回應可以對照（未驗證）；未命中的輸入優先用 prompt_cache_miss_tokens，沒有時以 prompt_tokens 減去命中。
+ *   prompt_cache_miss_tokens、completion_tokens_details.reasoning_tokens。欄位名依 DeepSeek API 的文件；
+ *   2026-10-30 以一次真實的模擬使用者呼叫對照過（deepseek-flash，思考開著：這五個欄位都在，reasoning_tokens 算在 completion_tokens 裡；
+ *   session log s09）。未命中的輸入優先用 prompt_cache_miss_tokens，沒有時以 prompt_tokens 減去命中。
  */
 export function normalizeUsage(usage: unknown): Tokens | undefined {
   if (typeof usage !== 'object' || usage === null) return undefined

@@ -33,7 +33,9 @@ test('costOf: per-million rates, off-peak and peak; no price or a cache write me
     if (low === null) assert.equal(c, null, name)
     else assert.ok(c && near(c.offPeak, low) && near(c.peak, high!), name)
   }
-  assert.equal(costOf({ input: 1, cacheRead: 0, cacheWrite: 0, output: 1, reasoning: 0 }, PRICES['deepseek-v4-pro']), null, 'pro has no price in the table')
+  const pro1m = costOf({ input: 1e6, cacheRead: 1e6, cacheWrite: 0, output: 1e6, reasoning: 0 }, PRICES['deepseek-v4-pro'])!
+  assert.ok(near(pro1m.offPeak, 0.66 + 0.022 + 1.98) && near(pro1m.peak, 1.32 + 0.044 + 3.96), 'pro: api-docs.deepseek.com/quick_start/pricing, read 2026-10-30')
+  assert.equal(costOf({ input: 1, cacheRead: 0, cacheWrite: 0, output: 1, reasoning: 0 }, null), null, 'a model without a price has no cost')
   assert.equal(modelKey('deepseek-official/deepseek-flash'), 'deepseek-flash')
   assert.equal(modelKey('deepseek-flash'), 'deepseek-flash')
 })
@@ -65,9 +67,9 @@ test('summarize: groups by model and source, counts calls without usage, and say
   assert.ok(near(s.total.offPeak, 0.75 + 0.003 + 0.003) && near(s.total.peak, 1.5 + 0.006 + 0.006))
   assert.equal(s.complete, false)
   assert.deepEqual(s.notes, ['deepseek-flash（aux）有 1 次呼叫沒有用量紀錄，花費低估', 'deepseek-flash（simulator）有 1 次呼叫沒有用量紀錄，花費低估'])
-  const pro = summarize([{ model: 'deepseek-v4-pro', source: 'main', usage: { inputTokens: 5, outputTokens: 5 } }])
-  assert.deepEqual([pro.rows[0]!.usd, pro.total, pro.complete], [null, { offPeak: 0, peak: 0 }, false])
-  assert.match(pro.notes[0]!, /deepseek-v4-pro 沒有價格/)
+  const unpriced = summarize([{ model: 'some-other-model', source: 'main', usage: { inputTokens: 5, outputTokens: 5 } }], { 'some-other-model': null })
+  assert.deepEqual([unpriced.rows[0]!.usd, unpriced.total, unpriced.complete], [null, { offPeak: 0, peak: 0 }, false])
+  assert.match(unpriced.notes[0]!, /some-other-model 沒有價格/)
   assert.ok(summarize([{ model: 'deepseek-flash', source: 'main', usage: { inputTokens: 1, outputTokens: 1 } }]).complete)
   assert.match(renderCost(s), /\| deepseek-flash \| main \| 2 \| 0 \| 1000000 \| 0 \| 1000000 \| 0 \| \$0\.7500–\$1\.5000 \|/)
 })

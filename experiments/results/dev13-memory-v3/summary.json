@@ -1,0 +1,1982 @@
+{
+  "contract": "memory-accuracy-v3",
+  "dataset": "memory-v3",
+  "datasetSha256": "164d1c3cdde6b22a9b64f26c8803abf0ac8abc3a471b64a095cd5cf01010674b",
+  "cells": [
+    {
+      "cell": {
+        "condition": "baseline",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "baseline|deepseek-flash|deepseek-flash",
+      "label": "baseline（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 8,
+          "samples": 8,
+          "correct": 5,
+          "pending": 0,
+          "rate": 0.625,
+          "interval": {
+            "low": 0.24486321636655156,
+            "high": 0.9147665858627465
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "incorrect": 3,
+            "correct": 5
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 8,
+          "samples": 8,
+          "correct": 3,
+          "pending": 0,
+          "rate": 0.375,
+          "interval": {
+            "low": 0.0852334141372535,
+            "high": 0.7551367836334484
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 3,
+            "incorrect": 5
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 8,
+          "samples": 8,
+          "correct": 8,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.6305833524471807,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 8
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 8,
+          "samples": 8,
+          "correct": 7,
+          "pending": 0,
+          "rate": 0.875,
+          "interval": {
+            "low": 0.4734903291247934,
+            "high": 0.9968402764687481
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "incorrect": 1,
+            "correct": 7
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 8,
+          "samples": 8,
+          "correct": 7,
+          "pending": 0,
+          "rate": 0.875,
+          "interval": {
+            "low": 0.4734903291247934,
+            "high": 0.9968402764687481
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 7,
+            "incorrect": 1
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "implicit-memory-use",
+          "items": 12,
+          "samples": 12,
+          "correct": 9,
+          "pending": 0,
+          "rate": 0.75,
+          "interval": {
+            "low": 0.4281415381218109,
+            "high": 0.9451393554720073
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "incorrect": 3,
+            "correct": 9
+          },
+          "statuses": {
+            "ok": 12
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 6,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.5407418735600995,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 6
+          },
+          "statuses": {
+            "ok": 6
+          }
+        }
+      ],
+      "toolCalls": {
+        "bash": 94,
+        "web_search": 18,
+        "web_fetch": 11,
+        "glob": 6,
+        "write": 10,
+        "edit": 45,
+        "read": 29,
+        "present": 6,
+        "grep": 26,
+        "ask_user_question": 5
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 8,
+          "samples": 8,
+          "correct": 8,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.6305833524471807,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 8
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 8,
+          "samples": 8,
+          "correct": 8,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.6305833524471807,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 8
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 8,
+          "samples": 8,
+          "correct": 8,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.6305833524471807,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 8
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 8,
+          "samples": 8,
+          "correct": 8,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.6305833524471807,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 8
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 8,
+          "samples": 8,
+          "correct": 8,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.6305833524471807,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 8
+          },
+          "statuses": {
+            "ok": 8
+          }
+        },
+        {
+          "category": "implicit-memory-use",
+          "items": 12,
+          "samples": 12,
+          "correct": 10,
+          "pending": 0,
+          "rate": 0.8333333333333334,
+          "interval": {
+            "low": 0.515862251314033,
+            "high": 0.9791374745399075
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 10,
+            "incorrect": 2
+          },
+          "statuses": {
+            "ok": 12
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 6,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.5407418735600995,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 6
+          },
+          "statuses": {
+            "ok": 6
+          }
+        }
+      ],
+      "toolCalls": {
+        "web_search": 12,
+        "web_fetch": 12,
+        "recall": 14,
+        "appraise": 5,
+        "bash": 1
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir-full",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir-full|deepseek-flash|deepseek-flash",
+      "label": "temir-full（deepseek-flash）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "implicit-memory-use",
+          "items": 12,
+          "samples": 12,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.26464846939705133
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 12
+          },
+          "statuses": {
+            "missing-record": 12
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.4592581264399006
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 6
+          },
+          "statuses": {
+            "missing-record": 6
+          }
+        }
+      ],
+      "toolCalls": {}
+    },
+    {
+      "cell": {
+        "condition": "baseline",
+        "historyModel": "nvidia/nemotron-3.5-super-vl",
+        "probeModel": "nvidia/nemotron-3.5-super-vl"
+      },
+      "key": "baseline|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "implicit-memory-use",
+          "items": 12,
+          "samples": 12,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.26464846939705133
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 12
+          },
+          "statuses": {
+            "missing-record": 12
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.4592581264399006
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 6
+          },
+          "statuses": {
+            "missing-record": 6
+          }
+        }
+      ],
+      "toolCalls": {}
+    },
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "nvidia/nemotron-3.5-super-vl",
+        "probeModel": "nvidia/nemotron-3.5-super-vl"
+      },
+      "key": "temir|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "temir（nvidia/nemotron-3.5-super-vl）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "implicit-memory-use",
+          "items": 12,
+          "samples": 12,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.26464846939705133
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 12
+          },
+          "statuses": {
+            "missing-record": 12
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.4592581264399006
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 6
+          },
+          "statuses": {
+            "missing-record": 6
+          }
+        }
+      ],
+      "toolCalls": {}
+    },
+    {
+      "cell": {
+        "condition": "temir-full",
+        "historyModel": "nvidia/nemotron-3.5-super-vl",
+        "probeModel": "nvidia/nemotron-3.5-super-vl"
+      },
+      "key": "temir-full|nvidia/nemotron-3.5-super-vl|nvidia/nemotron-3.5-super-vl",
+      "label": "temir-full（nvidia/nemotron-3.5-super-vl）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "information-extraction",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "multi-session-reasoning",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "knowledge-update",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "temporal-reasoning",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "abstention",
+          "items": 8,
+          "samples": 8,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.3694166475528192
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 8
+          },
+          "statuses": {
+            "missing-record": 8
+          }
+        },
+        {
+          "category": "implicit-memory-use",
+          "items": 12,
+          "samples": 12,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.26464846939705133
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 12
+          },
+          "statuses": {
+            "missing-record": 12
+          }
+        },
+        {
+          "category": "control",
+          "items": 6,
+          "samples": 6,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.4592581264399006
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 6
+          },
+          "statuses": {
+            "missing-record": 6
+          }
+        }
+      ],
+      "toolCalls": {}
+    }
+  ],
+  "contrasts": [
+    {
+      "id": "M3-main-flash",
+      "description": "主要：個體（按需披露，預設）vs 原始 DSH（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "implicit-memory-use"
+      ],
+      "state": "ok",
+      "n": 44,
+      "rateA": 0.9545454545454546,
+      "rateB": 0.7272727272727273,
+      "diff": {
+        "estimate": 0.2272727272727273,
+        "low": 0.09090909090909091,
+        "high": 0.36363636363636365,
+        "resamples": 10000,
+        "seed": 20261029
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 11,
+          "c": 1,
+          "pTwoSided": 0.006347656250000007,
+          "pOneSided": 0.0031738281250000035
+        }
+      },
+      "failuresA": 2,
+      "failuresB": 12,
+      "outcomeCountsA": {
+        "correct": 42,
+        "incorrect": 2
+      },
+      "samplesA": 44
+    },
+    {
+      "id": "M3-implicit-flash",
+      "description": "隱性運用記憶：個體 vs 原始 DSH（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "implicit-memory-use"
+      ],
+      "state": "ok",
+      "n": 12,
+      "rateA": 0.8333333333333334,
+      "rateB": 0.75,
+      "diff": {
+        "estimate": 0.08333333333333337,
+        "low": -0.16666666666666666,
+        "high": 0.3333333333333333,
+        "resamples": 10000,
+        "seed": 20261029
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 2,
+          "c": 1,
+          "pTwoSided": 1,
+          "pOneSided": 0.5
+        }
+      },
+      "failuresA": 2,
+      "failuresB": 3,
+      "outcomeCountsA": {
+        "correct": 10,
+        "incorrect": 2
+      },
+      "samplesA": 12
+    },
+    {
+      "id": "M3-explicit-flash",
+      "description": "明問的記憶題：個體 vs 原始 DSH（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning"
+      ],
+      "state": "ok",
+      "n": 32,
+      "rateA": 1,
+      "rateB": 0.71875,
+      "diff": {
+        "estimate": 0.28125,
+        "low": 0.125,
+        "high": 0.4375,
+        "resamples": 10000,
+        "seed": 20261029
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 9,
+          "c": 0,
+          "pTwoSided": 0.00390625,
+          "pOneSided": 0.001953125
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 9,
+      "outcomeCountsA": {
+        "correct": 32
+      },
+      "samplesA": 32
+    },
+    {
+      "id": "M3-information-extraction-flash",
+      "description": "分項（描述性）：information-extraction（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "information-extraction"
+      ],
+      "state": "ok",
+      "n": 8,
+      "rateA": 1,
+      "rateB": 0.625,
+      "diff": {
+        "estimate": 0.375,
+        "low": 0.125,
+        "high": 0.75,
+        "resamples": 10000,
+        "seed": 20261029
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 3,
+          "c": 0,
+          "pTwoSided": 0.25000000000000006,
+          "pOneSided": 0.12500000000000003
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 3,
+      "outcomeCountsA": {
+        "correct": 8
+      },
+      "samplesA": 8
+    },
+    {
+      "id": "M3-multi-session-reasoning-flash",
+      "description": "分項（描述性）：multi-session-reasoning（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "multi-session-reasoning"
+      ],
+      "state": "ok",
+      "n": 8,
+      "rateA": 1,
+      "rateB": 0.375,
+      "diff": {
+        "estimate": 0.625,
+        "low": 0.25,
+        "high": 0.875,
+        "resamples": 10000,
+        "seed": 20261029
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 5,
+          "c": 0,
+          "pTwoSided": 0.0625,
+          "pOneSided": 0.03125
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 5,
+      "outcomeCountsA": {
+        "correct": 8
+      },
+      "samplesA": 8
+    },
+    {
+      "id": "M3-knowledge-update-flash",
+      "description": "分項（描述性）：knowledge-update（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "knowledge-update"
+      ],
+      "state": "ok",
+      "n": 8,
+      "rateA": 1,
+      "rateB": 1,
+      "diff": {
+        "estimate": 0,
+        "low": 0,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261029
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 0,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "correct": 8
+      },
+      "samplesA": 8
+    },
+    {
+      "id": "M3-temporal-reasoning-flash",
+      "description": "分項（描述性）：temporal-reasoning（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "temporal-reasoning"
+      ],
+      "state": "ok",
+      "n": 8,
+      "rateA": 1,
+      "rateB": 0.875,
+      "diff": {
+        "estimate": 0.125,
+        "low": 0,
+        "high": 0.375,
+        "resamples": 10000,
+        "seed": 20261029
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 1,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 0.5
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 1,
+      "outcomeCountsA": {
+        "correct": 8
+      },
+      "samplesA": 8
+    },
+    {
+      "id": "M3-implicit-memory-use-flash",
+      "description": "分項（描述性）：implicit-memory-use（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "implicit-memory-use"
+      ],
+      "state": "ok",
+      "n": 12,
+      "rateA": 0.8333333333333334,
+      "rateB": 0.75,
+      "diff": {
+        "estimate": 0.08333333333333337,
+        "low": -0.16666666666666666,
+        "high": 0.3333333333333333,
+        "resamples": 10000,
+        "seed": 20261029
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 2,
+          "c": 1,
+          "pTwoSided": 1,
+          "pOneSided": 0.5
+        }
+      },
+      "failuresA": 2,
+      "failuresB": 3,
+      "outcomeCountsA": {
+        "correct": 10,
+        "incorrect": 2
+      },
+      "samplesA": 12
+    },
+    {
+      "id": "M3-abs-flash",
+      "description": "不虛構：拒答題（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "abstention"
+      ],
+      "state": "ok",
+      "n": 8,
+      "rateA": 1,
+      "rateB": 0.875,
+      "diff": {
+        "estimate": 0.125,
+        "low": 0,
+        "high": 0.375,
+        "resamples": 10000,
+        "seed": 20261029
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 1,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 0.5
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 1,
+      "outcomeCountsA": {
+        "correct": 8
+      },
+      "samplesA": 8
+    },
+    {
+      "id": "M3-ctrl-flash",
+      "description": "不傷害：對照題（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "baseline（deepseek-flash）",
+      "categories": [
+        "control"
+      ],
+      "state": "ok",
+      "n": 6,
+      "rateA": 1,
+      "rateB": 1,
+      "diff": {
+        "estimate": 0,
+        "low": 0,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261029
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 0,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "correct": 6
+      },
+      "samplesA": 6
+    },
+    {
+      "id": "M3-d1-flash",
+      "description": "E-D1：按需披露（temir）vs 全文（temir-full）（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-full（deepseek-flash）",
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "implicit-memory-use"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 2,
+      "failuresB": 44,
+      "outcomeCountsA": {
+        "correct": 42,
+        "incorrect": 2
+      },
+      "samplesA": 44
+    },
+    {
+      "id": "M3-d1-implicit-flash",
+      "description": "E-D1 分項（描述性）：隱性運用記憶（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-full（deepseek-flash）",
+      "categories": [
+        "implicit-memory-use"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 2,
+      "failuresB": 12,
+      "outcomeCountsA": {
+        "correct": 10,
+        "incorrect": 2
+      },
+      "samplesA": 12
+    },
+    {
+      "id": "M3-d1-abs-flash",
+      "description": "E-D1 分項：拒答（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-full（deepseek-flash）",
+      "categories": [
+        "abstention"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 0,
+      "failuresB": 8,
+      "outcomeCountsA": {
+        "correct": 8
+      },
+      "samplesA": 8
+    },
+    {
+      "id": "M3-main-NEMO",
+      "description": "主要：個體（按需披露，預設）vs 原始 DSH（nvidia/nemotron-3.5-super-vl）",
+      "a": "temir（nvidia/nemotron-3.5-super-vl）",
+      "b": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "implicit-memory-use"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 44,
+      "failuresB": 44,
+      "outcomeCountsA": {
+        "missing-record": 44
+      },
+      "samplesA": 44
+    },
+    {
+      "id": "M3-implicit-NEMO",
+      "description": "隱性運用記憶：個體 vs 原始 DSH（nvidia/nemotron-3.5-super-vl）",
+      "a": "temir（nvidia/nemotron-3.5-super-vl）",
+      "b": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "categories": [
+        "implicit-memory-use"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 12,
+      "failuresB": 12,
+      "outcomeCountsA": {
+        "missing-record": 12
+      },
+      "samplesA": 12
+    },
+    {
+      "id": "M3-explicit-NEMO",
+      "description": "明問的記憶題：個體 vs 原始 DSH（nvidia/nemotron-3.5-super-vl）",
+      "a": "temir（nvidia/nemotron-3.5-super-vl）",
+      "b": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 32,
+      "failuresB": 32,
+      "outcomeCountsA": {
+        "missing-record": 32
+      },
+      "samplesA": 32
+    },
+    {
+      "id": "M3-information-extraction-NEMO",
+      "description": "分項（描述性）：information-extraction（nvidia/nemotron-3.5-super-vl）",
+      "a": "temir（nvidia/nemotron-3.5-super-vl）",
+      "b": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "categories": [
+        "information-extraction"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 8,
+      "failuresB": 8,
+      "outcomeCountsA": {
+        "missing-record": 8
+      },
+      "samplesA": 8
+    },
+    {
+      "id": "M3-multi-session-reasoning-NEMO",
+      "description": "分項（描述性）：multi-session-reasoning（nvidia/nemotron-3.5-super-vl）",
+      "a": "temir（nvidia/nemotron-3.5-super-vl）",
+      "b": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "categories": [
+        "multi-session-reasoning"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 8,
+      "failuresB": 8,
+      "outcomeCountsA": {
+        "missing-record": 8
+      },
+      "samplesA": 8
+    },
+    {
+      "id": "M3-knowledge-update-NEMO",
+      "description": "分項（描述性）：knowledge-update（nvidia/nemotron-3.5-super-vl）",
+      "a": "temir（nvidia/nemotron-3.5-super-vl）",
+      "b": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "categories": [
+        "knowledge-update"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 8,
+      "failuresB": 8,
+      "outcomeCountsA": {
+        "missing-record": 8
+      },
+      "samplesA": 8
+    },
+    {
+      "id": "M3-temporal-reasoning-NEMO",
+      "description": "分項（描述性）：temporal-reasoning（nvidia/nemotron-3.5-super-vl）",
+      "a": "temir（nvidia/nemotron-3.5-super-vl）",
+      "b": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "categories": [
+        "temporal-reasoning"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 8,
+      "failuresB": 8,
+      "outcomeCountsA": {
+        "missing-record": 8
+      },
+      "samplesA": 8
+    },
+    {
+      "id": "M3-implicit-memory-use-NEMO",
+      "description": "分項（描述性）：implicit-memory-use（nvidia/nemotron-3.5-super-vl）",
+      "a": "temir（nvidia/nemotron-3.5-super-vl）",
+      "b": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "categories": [
+        "implicit-memory-use"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 12,
+      "failuresB": 12,
+      "outcomeCountsA": {
+        "missing-record": 12
+      },
+      "samplesA": 12
+    },
+    {
+      "id": "M3-abs-NEMO",
+      "description": "不虛構：拒答題（nvidia/nemotron-3.5-super-vl）",
+      "a": "temir（nvidia/nemotron-3.5-super-vl）",
+      "b": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "categories": [
+        "abstention"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 8,
+      "failuresB": 8,
+      "outcomeCountsA": {
+        "missing-record": 8
+      },
+      "samplesA": 8
+    },
+    {
+      "id": "M3-ctrl-NEMO",
+      "description": "不傷害：對照題（nvidia/nemotron-3.5-super-vl）",
+      "a": "temir（nvidia/nemotron-3.5-super-vl）",
+      "b": "baseline（nvidia/nemotron-3.5-super-vl）",
+      "categories": [
+        "control"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 6,
+      "failuresB": 6,
+      "outcomeCountsA": {
+        "missing-record": 6
+      },
+      "samplesA": 6
+    },
+    {
+      "id": "M3-d1-NEMO",
+      "description": "E-D1：按需披露（temir）vs 全文（temir-full）（nvidia/nemotron-3.5-super-vl）",
+      "a": "temir（nvidia/nemotron-3.5-super-vl）",
+      "b": "temir-full（nvidia/nemotron-3.5-super-vl）",
+      "categories": [
+        "information-extraction",
+        "multi-session-reasoning",
+        "knowledge-update",
+        "temporal-reasoning",
+        "implicit-memory-use"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 44,
+      "failuresB": 44,
+      "outcomeCountsA": {
+        "missing-record": 44
+      },
+      "samplesA": 44
+    },
+    {
+      "id": "M3-d1-implicit-NEMO",
+      "description": "E-D1 分項（描述性）：隱性運用記憶（nvidia/nemotron-3.5-super-vl）",
+      "a": "temir（nvidia/nemotron-3.5-super-vl）",
+      "b": "temir-full（nvidia/nemotron-3.5-super-vl）",
+      "categories": [
+        "implicit-memory-use"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 12,
+      "failuresB": 12,
+      "outcomeCountsA": {
+        "missing-record": 12
+      },
+      "samplesA": 12
+    },
+    {
+      "id": "M3-d1-abs-NEMO",
+      "description": "E-D1 分項：拒答（nvidia/nemotron-3.5-super-vl）",
+      "a": "temir（nvidia/nemotron-3.5-super-vl）",
+      "b": "temir-full（nvidia/nemotron-3.5-super-vl）",
+      "categories": [
+        "abstention"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 8,
+      "failuresB": 8,
+      "outcomeCountsA": {
+        "missing-record": 8
+      },
+      "samplesA": 8
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "MA1",
+      "contrast": "M3-main-flash",
+      "claim": "（主要，與 v1、v2 相同的門檻與類別定義，deepseek-flash）個體插件在跨 session 記憶題上與原始 DSH 有決定性差異。",
+      "negation": "任一條件不成立（差 < 0.40、區間下界 < 0.25、雙尾 p > 0.01、個體 < 0.50、原始 DSH > 0.25）就不能宣稱決定性差異。",
+      "verdict": "FAIL",
+      "explanation": "✗ 差 0.227 ≥ 0.4；✗ 95% 區間下界 0.091 ≥ 0.25；✓ 精確 McNemar（雙尾）p=0.00635 ≤ 0.01；✓ A 比率 0.955 ≥ 0.5；✗ B 比率 0.727 ≤ 0.25"
+    },
+    {
+      "id": "MB1",
+      "contrast": "M3-implicit-flash",
+      "claim": "（主要，與 v2 相同的門檻，deepseek-flash）不明問記憶時，個體會運用記得的事，原始 DSH 不會。",
+      "negation": "任一條件不成立就不能宣稱。",
+      "verdict": "FAIL",
+      "explanation": "✗ 差 0.083 ≥ 0.4；✗ 95% 區間下界 -0.167 ≥ 0.2；✗ 精確 McNemar（雙尾）p=1.00 ≤ 0.01；✓ A 比率 0.833 ≥ 0.6；✗ B 比率 0.750 ≤ 0.3"
+    },
+    {
+      "id": "MA2-NEMO",
+      "contrast": "M3-main-NEMO",
+      "claim": "（主要，與 v1、v2 相同的門檻與類別定義，nvidia/nemotron-3.5-super-vl）個體插件在跨 session 記憶題上與原始 DSH 有決定性差異。",
+      "negation": "任一條件不成立（差 < 0.40、區間下界 < 0.25、雙尾 p > 0.01、個體 < 0.50、原始 DSH > 0.25）就不能宣稱決定性差異。",
+      "verdict": "INCOMPLETE",
+      "explanation": "至少一個 cell 沒有執行紀錄"
+    },
+    {
+      "id": "MB2-NEMO",
+      "contrast": "M3-implicit-NEMO",
+      "claim": "（主要，與 v2 相同的門檻，nvidia/nemotron-3.5-super-vl）不明問記憶時，個體會運用記得的事，原始 DSH 不會。",
+      "negation": "任一條件不成立就不能宣稱。",
+      "verdict": "INCOMPLETE",
+      "explanation": "至少一個 cell 沒有執行紀錄"
+    },
+    {
+      "id": "MC-flash",
+      "contrast": "M3-ctrl-flash",
+      "claim": "（deepseek-flash）一般任務不退化。",
+      "negation": "個體在對照題比原始 DSH 多錯超過 1 題。",
+      "verdict": "PASS",
+      "explanation": "A 失敗 0、B 失敗 0，容許 A 比 B 多 1"
+    },
+    {
+      "id": "MD-flash",
+      "contrast": "M3-abs-flash",
+      "claim": "（deepseek-flash）不更常編造：拒答題。",
+      "negation": "個體在拒答題比原始 DSH 多錯超過 1 題。",
+      "verdict": "PASS",
+      "explanation": "A 失敗 0、B 失敗 1，容許 A 比 B 多 1"
+    },
+    {
+      "id": "D1-flash",
+      "contrast": "M3-d1-flash",
+      "claim": "（E-D1，deepseek-flash）按需披露（預設）在主要類別上不比全文差：最多多錯 2 題（44 題中約 0.05）。",
+      "negation": "按需披露比全文多錯超過 2 題：依規格 §7.3 把預設改回全文。",
+      "verdict": "INCOMPLETE",
+      "explanation": "至少一個 cell 沒有執行紀錄"
+    },
+    {
+      "id": "MC-NEMO",
+      "contrast": "M3-ctrl-NEMO",
+      "claim": "（nvidia/nemotron-3.5-super-vl）一般任務不退化。",
+      "negation": "個體在對照題比原始 DSH 多錯超過 1 題。",
+      "verdict": "INCOMPLETE",
+      "explanation": "至少一個 cell 沒有執行紀錄"
+    },
+    {
+      "id": "MD-NEMO",
+      "contrast": "M3-abs-NEMO",
+      "claim": "（nvidia/nemotron-3.5-super-vl）不更常編造：拒答題。",
+      "negation": "個體在拒答題比原始 DSH 多錯超過 1 題。",
+      "verdict": "INCOMPLETE",
+      "explanation": "至少一個 cell 沒有執行紀錄"
+    },
+    {
+      "id": "D1-NEMO",
+      "contrast": "M3-d1-NEMO",
+      "claim": "（E-D1，nvidia/nemotron-3.5-super-vl）按需披露（預設）在主要類別上不比全文差：最多多錯 2 題（44 題中約 0.05）。",
+      "negation": "按需披露比全文多錯超過 2 題：依規格 §7.3 把預設改回全文。",
+      "verdict": "INCOMPLETE",
+      "explanation": "至少一個 cell 沒有執行紀錄"
+    }
+  ],
+  "crossCheck": null,
+  "protocol": [
+    {
+      "cell": "baseline|deepseek-flash|deepseek-flash",
+      "label": "baseline（deepseek-flash）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    },
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    }
+  ],
+  "descriptive": [
+    {
+      "cell": "baseline|deepseek-flash|deepseek-flash",
+      "label": "baseline（deepseek-flash）",
+      "category": "information-extraction",
+      "samples": 8,
+      "meanToolCalls": 1.125,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 2662.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 5,
+        "n": 8
+      }
+    },
+    {
+      "cell": "baseline|deepseek-flash|deepseek-flash",
+      "label": "baseline（deepseek-flash）",
+      "category": "multi-session-reasoning",
+      "samples": 8,
+      "meanToolCalls": 1.125,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 8886.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 3,
+        "n": 8
+      }
+    },
+    {
+      "cell": "baseline|deepseek-flash|deepseek-flash",
+      "label": "baseline（deepseek-flash）",
+      "category": "knowledge-update",
+      "samples": 8,
+      "meanToolCalls": 1.625,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 9525.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 8,
+        "n": 8
+      }
+    },
+    {
+      "cell": "baseline|deepseek-flash|deepseek-flash",
+      "label": "baseline（deepseek-flash）",
+      "category": "temporal-reasoning",
+      "samples": 8,
+      "meanToolCalls": 1.125,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 7391,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 7,
+        "n": 8
+      }
+    },
+    {
+      "cell": "baseline|deepseek-flash|deepseek-flash",
+      "label": "baseline（deepseek-flash）",
+      "category": "abstention",
+      "samples": 8,
+      "meanToolCalls": 1.875,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 8112.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 7,
+        "n": 8
+      }
+    },
+    {
+      "cell": "baseline|deepseek-flash|deepseek-flash",
+      "label": "baseline（deepseek-flash）",
+      "category": "implicit-memory-use",
+      "samples": 12,
+      "meanToolCalls": 3.6666666666666665,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 38046,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 9,
+        "n": 12
+      }
+    },
+    {
+      "cell": "baseline|deepseek-flash|deepseek-flash",
+      "label": "baseline（deepseek-flash）",
+      "category": "control",
+      "samples": 6,
+      "meanToolCalls": 1.6666666666666667,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 3780.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 6,
+        "n": 6
+      }
+    },
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "information-extraction",
+      "samples": 8,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 18855,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 8,
+        "n": 8
+      }
+    },
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "multi-session-reasoning",
+      "samples": 8,
+      "meanToolCalls": 0.125,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 27148,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 8,
+        "n": 8
+      }
+    },
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "knowledge-update",
+      "samples": 8,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 20887.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 8,
+        "n": 8
+      }
+    },
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "temporal-reasoning",
+      "samples": 8,
+      "meanToolCalls": 0.25,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 25992.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 8,
+        "n": 8
+      }
+    },
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "abstention",
+      "samples": 8,
+      "meanToolCalls": 1.375,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 24006,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 8,
+        "n": 8
+      }
+    },
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "implicit-memory-use",
+      "samples": 12,
+      "meanToolCalls": 0.25,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 42570,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 10,
+        "n": 12
+      }
+    },
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "control",
+      "samples": 6,
+      "meanToolCalls": 0.16666666666666666,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 33120.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 6,
+        "n": 6
+      }
+    }
+  ],
+  "issues": [],
+  "judge": {
+    "name": "deepseek",
+    "calls": 70,
+    "spentUsd": 0.06666457600000003
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "runId": "dev13__personality-v3__temir__deepseek__deepseek",
+  "endedAt": "2026-10-30T11:09:28.685Z",
+  "histories": 10,
+  "historyFrom": null,
+  "probes": 33,
+  "probeSessions": 49,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 110,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 152,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

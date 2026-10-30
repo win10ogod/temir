@@ -297,7 +297,7 @@ const call: CallModel = async (_route, system, input) => {
   const output = system.includes('回頭比對自己上一個決定')
     ? JSON.stringify({ didAction: '先聽', didKind: '表達感受', actual: '她說謝謝', matched: 'yes', error: '', reward: 0.5, reason: 'r', lesson: '', feeling: '', significance: 'daily', released: [], left: [{ text: '答應明天問她面試的結果', type: 'promise' }] })
     : JSON.stringify({ situation: '對方：她｜對方的意圖：抒發｜對方的情緒：累｜話題：工作', candidates: [{ action: '先聽', kind: '表達感受', prediction: '她會說下去', confidence: 70 }, { action: '給建議', kind: '建議', prediction: '她會考慮', confidence: 30 }], experiences })
-  return { output, ms: 1, retried: false, effort: 'low', reasoningChars: 0, usage: null, finish: 'stop' }
+  return { output, ms: 1, effort: 'low', reasoningChars: 0, usage: null, finish: 'stop' }
 }
 
 test('steady state: a step with deliberation and outcome makes no full-table all() and does not read from the start again', () =>

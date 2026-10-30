@@ -278,19 +278,6 @@ test('rd and bookkeeping records are not recalled as memories, but lessons are',
   })
 })
 
-test('script drift: traditional input with simplified output triggers a retry; otherwise not', async () => {
-  const { driftedToSimplified } = await import('../src/recall/script.ts')
-  assert.equal(driftedToSimplified('你剛才的建議我不太想聽', '对方表示刚才的建议不太想听，只是想抒发'), true)
-  assert.equal(driftedToSimplified('你剛才的建議我不太想聽', '對方表示剛才的建議不太想聽'), false)
-  assert.equal(driftedToSimplified('你刚才的建议我不太想听', '对方表示刚才的建议不太想听'), false, 'simplified input is left alone')
-  assert.equal(driftedToSimplified('hello', '对说'), false, 'no traditional evidence in the input')
-})
-
-test('script drift ignores characters that traditional text also uses', async () => {
-  const { driftedToSimplified } = await import('../src/recall/script.ts')
-  assert.equal(driftedToSimplified('我們去看松樹，主管批准了', '松樹很高，主管批准，大家很喜歡'), false)
-})
-
 test('a string value missing its opening quote is repaired; other malformed JSON is not guessed', async () => {
   const { extractJson } = await import('../src/recall/aux.ts')
   const broken = '{"candidates": [{"action": "暫時不回覆", "kind": "拒絕", "prediction": 對方可能覺得被忽視，也可能覺得被尊重。", "confidence": 20}]}'

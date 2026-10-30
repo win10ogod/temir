@@ -37,7 +37,7 @@ function scripted(outputs: (string | Error)[]): { call: CallModel; calls: { syst
     const next = outputs.shift()
     if (next === undefined) throw new Error('測試替身沒有準備輸出')
     if (next instanceof Error) throw next
-    return { output: next, ms: 1, retried: false, effort: 'low', reasoningChars: 0, usage: null, finish: 'stop' }
+    return { output: next, ms: 1, effort: 'low', reasoningChars: 0, usage: null, finish: 'stop' }
   }
   return { call, calls }
 }

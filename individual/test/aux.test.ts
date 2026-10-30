@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { LifeStore } from '../src/life/store.ts'
-import { addUsage, callModel, modelCaller } from '../src/recall/aux.ts'
+import { callModel, modelCaller } from '../src/recall/aux.ts'
 import { createRecall } from '../src/recall/index.ts'
 
 /**
@@ -51,17 +51,6 @@ test('callModel records the usage and the finish reason of the stream (test doub
   assert.equal(r.finish, 'max-tokens', 'a truncated output can be told apart from a malformed one')
   const none = await callModel(fakeLlm([stream('x', null, 'stop')]).ctx, ROUTE, '系統', '輸入', new AbortController().signal)
   assert.deepEqual([none.usage, none.finish], [null, 'stop'])
-})
-
-test('callModel: the script retry adds up the usage of both calls and reports the second finish', async () => {
-  const { ctx, seen } = fakeLlm([stream('对方说这个', { inputTokens: 100, outputTokens: 50 }, 'stop'), stream('對方說這個', { inputTokens: 110, outputTokens: 60, cacheReadTokens: 7 }, 'stop')])
-  const r = await callModel(ctx, ROUTE, '系統', '對方說：這個', new AbortController().signal)
-  assert.equal(r.retried, true)
-  assert.equal(seen.length, 2)
-  assert.equal(r.output, '對方說這個')
-  assert.deepEqual(r.usage, { inputTokens: 210, outputTokens: 110, cacheReadTokens: 7 })
-  assert.equal(addUsage(null, null), null)
-  assert.deepEqual(addUsage(null, { inputTokens: 1, outputTokens: 2 }), { inputTokens: 1, outputTokens: 2 })
 })
 
 test('memory/aux records carry the usage and the finish reason', async () => {

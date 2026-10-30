@@ -26,7 +26,7 @@ function scripted(script: Partial<Record<Purpose, Reply[]>>): { call: CallModel;
     if (next === undefined) throw new Error(`測試替身沒有準備 ${purpose} 的輸出`)
     if (next instanceof Error) throw next
     const output = typeof next === 'function' ? await next(input) : next
-    return { output, ms: 1, retried: false, effort: 'low', reasoningChars: 0, usage: null, finish: 'stop' }
+    return { output, ms: 1, effort: 'low', reasoningChars: 0, usage: null, finish: 'stop' }
   }
   return { call, calls }
 }

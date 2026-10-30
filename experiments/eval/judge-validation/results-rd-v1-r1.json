@@ -1,0 +1,162 @@
+{
+  "label": "rd-v1-r1",
+  "split": "rd-v1",
+  "model": "deepseek-v4-pro",
+  "total": 8,
+  "agree": 8,
+  "byPrompt": {
+    "mem-criteria-v2": {
+      "n": 8,
+      "agree": 8
+    }
+  },
+  "calls": 8,
+  "estimatedUsd": 0.002246288,
+  "at": "2026-10-30T02:37:11.679Z",
+  "results": [
+    {
+      "id": "rd-v1-c01",
+      "split": "rd-v1",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "no"
+      },
+      "actual": {
+        "c1": "no",
+        "note": "回應只安慰陪伴，未提供具體可行的方法或建議。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"no\", \"note\": \"回應只安慰陪伴，未提供具體可行的方法或建議。\"}",
+      "error": null,
+      "why": "只有同理與陪伴"
+    },
+    {
+      "id": "rd-v1-c02",
+      "split": "rd-v1",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "yes"
+      },
+      "actual": {
+        "c1": "yes",
+        "note": "回應除了同理感受，也具體建議熱敷、請病人握拳、請學姊接手等方法。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"yes\", \"note\": \"回應除了同理感受，也具體建議熱敷、請病人握拳、請學姊接手等方法。\"}",
+      "error": null,
+      "why": "同理之外給了具體可做的方法"
+    },
+    {
+      "id": "rd-v1-c03",
+      "split": "rd-v1",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "no"
+      },
+      "actual": {
+        "c1": "no",
+        "note": "回應只詢問是否要給方法，沒有直接提供具體建議。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"no\", \"note\": \"回應只詢問是否要給方法，沒有直接提供具體建議。\"}",
+      "error": null,
+      "why": "只問要不要建議，沒有給"
+    },
+    {
+      "id": "rd-v1-c04",
+      "split": "rd-v1",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "yes"
+      },
+      "actual": {
+        "c1": "yes",
+        "note": "回應直接給出具體方法：先吃含糖飲料或飯糰，並建議之後帶能量棒。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"yes\", \"note\": \"回應直接給出具體方法：先吃含糖飲料或飯糰，並建議之後帶能量棒。\"}",
+      "error": null,
+      "why": "直接給了具體可做的事"
+    },
+    {
+      "id": "rd-v1-c05",
+      "split": "rd-v1",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "no"
+      },
+      "actual": {
+        "c1": "no",
+        "note": "回應只表達同理並提問，沒有直接給具體可做的方法或建議。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"no\", \"note\": \"回應只表達同理並提問，沒有直接給具體可做的方法或建議。\"}",
+      "error": null,
+      "why": "同理加一個開放的問題"
+    },
+    {
+      "id": "rd-v1-c06",
+      "split": "rd-v1",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "no"
+      },
+      "actual": {
+        "c1": "no",
+        "note": "回應只表達同理，未提供任何具體可行的方法或建議。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"no\", \"note\": \"回應只表達同理，未提供任何具體可行的方法或建議。\"}",
+      "error": null,
+      "why": "明說不給建議"
+    },
+    {
+      "id": "rd-v1-c07",
+      "split": "rd-v1",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "no"
+      },
+      "actual": {
+        "c1": "no",
+        "note": "回應只有安慰，沒有提供具體可行的方法或建議。",
+        "outcome": "incorrect"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"no\", \"note\": \"回應只有安慰，沒有提供具體可行的方法或建議。\"}",
+      "error": null,
+      "why": "空泛的叮嚀，不是具體可做的方法"
+    },
+    {
+      "id": "rd-v1-c08",
+      "split": "rd-v1",
+      "prompt": "mem-criteria-v2",
+      "expected": {
+        "c1": "yes"
+      },
+      "actual": {
+        "c1": "yes",
+        "note": "回應除了安慰，也具體給出寫備忘錄、洗熱水澡、睡前不看手機三個可執行方法。",
+        "outcome": "correct"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"c1\": \"yes\", \"note\": \"回應除了安慰，也具體給出寫備忘錄、洗熱水澡、睡前不看手機三個可執行方法。\"}",
+      "error": null,
+      "why": "列了幾個具體的做法"
+    }
+  ]
+}

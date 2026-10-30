@@ -45,7 +45,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 
 interface Case {
   readonly id: string
-  readonly split: 'dev' | 'test' | 'test2' | 'v2-dev' | 'v2-test' | 'v3-dev' | 'v3-test'
+  readonly split: 'dev' | 'test' | 'test2' | 'v2-dev' | 'v2-test' | 'v3-dev' | 'v3-test' | 'rd-v1'
   readonly prompt: JudgePromptId
   readonly input: Record<string, unknown>
   readonly expected: Record<string, string>

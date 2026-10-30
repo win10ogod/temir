@@ -11,6 +11,9 @@
   - 第一次計分時，評分器把歷史中模擬的句子報成 turn-count-mismatch。探針的計分不受影響，但這是評分器的錯誤：它不知道 `meta.simulate`。
   - 修正並加上測試後（`score.ts` 的 historyIssues），以 `--judge replay` 重新計分，數字相同，沒有協定問題。
   - `experiments/results/rd-v1/` 可以用 `--judge replay` 重現。
+  - practical 的準則是新寫的。rd1 計分之後，以 8 個手寫用例驗證 judge：8/8 一致（`experiments/eval/judge-validation/cases-rd-v1.json`、`results-rd-v1-r1.json`）。
+    - 用例包括只問要不要建議、明說不給建議、空泛的叮嚀；
+    - 這是事後補做，不是預先登記的一部分。
 
 ## 1. 前提
 

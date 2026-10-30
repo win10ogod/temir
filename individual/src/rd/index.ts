@@ -152,7 +152,12 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
 
   /** 背景的事後比對；卸載前等它們完成。 */
   const background = new Set<Promise<void>>()
-  const evaluating = new Set<string>()
+  /**
+   * 進行中的比對（決定 id → 是否為暫時的比對、完成時的 promise），同一個決定同時只做一次。
+   * 暫時的比對進行中（呼叫最多 timeoutMs）對方回話時，正式比對排在它之後，不能被吃掉：
+   * 否則同一步寫入的新決定成為 openDecision，舊決定永遠只剩「對方到現在都沒有再說話」的暫時回報（改進清單第 1 項）。
+   */
+  const evaluating = new Map<string, { readonly provisional: boolean; readonly done: Promise<void> }>()
 
   async function call(
     purpose: 'deliberate' | 'outcome' | 'revise',
@@ -178,9 +183,14 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
   }
 
   function evaluate(decision: LifeEvent, heard: string, route: AuxRoute, provisional = false): void {
-    if (evaluating.has(decision.id)) return
-    evaluating.add(decision.id)
+    const running = evaluating.get(decision.id)
+    // 正式比對進行中、或已經排在後面時，不再重複；暫時的比對進行中時，正式比對等它完成再做。
+    if (running && (provisional || !running.provisional)) return
     const task = (async () => {
+      if (running) await running.done
+      if (!life.isOpen) return
+      // 已經正式比對過的決定不再比對（openDecision 也會排除；這裡防的是排隊期間的重複）。
+      if (!provisional && life.referencing(decision.id, OUTCOME_KIND).some((o) => !(o.data as OutcomeData).provisional)) return
       const data = decision.data as DecisionData
       const planned = data.candidates[data.chosen]
       const self = currentSelfModel(life)
@@ -255,7 +265,10 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
       }
     })()
       .catch((error: unknown) => logger.error('outcome evaluation failed: %s', error))
-      .finally(() => evaluating.delete(decision.id))
+      .finally(() => {
+        if (evaluating.get(decision.id)?.done === task) evaluating.delete(decision.id)
+      })
+    evaluating.set(decision.id, { provisional, done: task })
     background.add(task)
     void task.finally(() => background.delete(task))
   }

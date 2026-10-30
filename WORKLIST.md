@@ -199,6 +199,10 @@
 - [x] 第 3 項：rd、recall 的 pre-step 可注入模型呼叫。
   - `createRd`、`createRecall` 只依賴生命日誌與 `deps.call`（`recall/aux.ts` 的 `CallModel`；正式執行是 `modelCaller(ctx)`），DSH 的訊息、工具與計時器留在 `apply`。行為不變。
   - 控制流測試（測試替身）：`individual/test/rd-step.test.ts`（思考重問、強制判斷三種情形）、`recall-step.test.ts`（第一句與壓縮之後的 working、短期記憶 7 頁、excludeIds 不重複）。
+- [x] 第 1 項：暫時比對與正式比對的競態。
+  - 暫時比對進行中對方回話時，正式比對排在它之後執行（`rd/index.ts` 的 `evaluating`），不再被丟掉；正式比對進行中或已排隊時不重複。
+  - 測試（可控的 promise，測試替身）：回話時最後有一筆非 provisional 的 `rd/outcome`；沒有回話只有暫時比對；沒有重複的正式比對。修正前的程式跑這組測試有兩則失敗。
+  - 效果未驗證（需真實測試）：之前被吃掉的正式比對現在會寫進經驗。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID

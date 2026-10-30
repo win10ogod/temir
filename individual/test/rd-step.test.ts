@@ -171,3 +171,89 @@ test('mandatory judgment: no exclusion with same-kind experience means no judgme
     assert.deepEqual(calls.map((c) => c.purpose), ['deliberate'])
     assert.equal((decisions(store)[0]!.data as DecisionData).review, undefined)
   }))
+
+const OUTCOME = (actual: string, reward = 0) =>
+  JSON.stringify({ didAction: '答應想好名字再告訴他', didKind: '回答', actual, matched: 'partly', error: '', reward, reason: 'r', lesson: '', feeling: '', significance: 'daily', released: [], left: [] })
+
+/** 測試替身（單元測試專用）：由測試決定何時完成的 promise。 */
+function gate(): { promise: Promise<string>; open: (output: string) => void } {
+  let open!: (output: string) => void
+  const promise = new Promise<string>((resolve) => (open = resolve))
+  return { promise, open }
+}
+
+/** 上一回合：決定、它回應的那句話、我的回覆（latestRoute 從回覆取得模型）。 */
+function lastTurn(store: LifeStore): string {
+  const c = { action: '答應想好名字再告訴他', kind: '回答', prediction: '他會等', confidence: 100, sameAs: [], z: 0, q: null, support: 0, optimistic: null, advantage: 0, normalized: 0, zPrime: 0 }
+  const data: DecisionData = { cue: '想好名字再告訴我', situation: '對方請我想名字', candidates: [c], chosen: 0, value: null, neighbors: [], shown: {}, jitrl: true, params: DEFAULT_PARAMS, selfVersion: 0 }
+  const d = store.append({ kind: DECISION_KIND, origin: 'self', session: 's1', data, text: '處境：對方請我想名字' })
+  store.append({ kind: 'dsh/user/message', origin: 'session', session: 's1', data: {}, text: '對方說：想好名字再告訴我' })
+  store.append({ kind: 'dsh/assistant/message', origin: 'session', session: 's1', model: 'test/double', data: {}, text: '我說：好，我想好再告訴你' })
+  return d.id
+}
+
+const outcomesOf = (store: LifeStore, id: string) => store.referencing(id, OUTCOME_KIND).map((e) => e.data as OutcomeData)
+const SILENT_LATER = () => Date.now() + 11 * 60_000
+
+test('race (item 1): the other replies while the provisional comparison is running; the real comparison runs after it', () =>
+  withStore(async (store) => {
+    const old = lastTurn(store)
+    const slow = gate()
+    const { call, calls } = scripted({ outcome: [() => slow.promise, OUTCOME('他說謝謝，名字很好', 0.5)], deliberate: [DELIBERATION] })
+    const { logger, logs } = recorder()
+    const rd = createRd({ life: store, call, logger }, { silenceMinutes: 10 })
+    rd.checkSilence(SILENT_LATER())
+    assert.deepEqual(calls.map((c) => c.purpose), ['outcome'], 'the provisional comparison is waiting for the model')
+    // 對方回話：pre-step 的正式比對不能因為暫時的比對還在進行就被丟掉；同一步寫入新的決定。
+    await rd.step(input('謝謝你，名字很好'))
+    assert.equal(decisions(store).length, 2)
+    assert.deepEqual(calls.map((c) => c.purpose), ['outcome', 'deliberate'], 'the real comparison waits for the provisional one')
+    slow.open(OUTCOME('對方到現在都沒有再說話'))
+    await rd.settle()
+    assert.deepEqual(calls.map((c) => c.purpose), ['outcome', 'deliberate', 'outcome'])
+    assert.match(calls[2]!.input, /## 對方接著說了什麼\n謝謝你，名字很好$/u)
+    const outcomes = outcomesOf(store, old)
+    assert.deepEqual(outcomes.map((o) => [o.provisional ?? false, o.reward]), [[true, 0], [false, 0.5]], 'a real (not provisional) outcome is recorded after the provisional one')
+    assert.equal(outcomes[1]!.heard, '謝謝你，名字很好')
+    assert.deepEqual(logs, [])
+  }))
+
+test('race (item 1): without a reply there is only the provisional comparison, once', () =>
+  withStore(async (store) => {
+    const old = lastTurn(store)
+    const slow = gate()
+    const { call, calls } = scripted({ outcome: [() => slow.promise] })
+    const rd = createRd({ life: store, call, logger: recorder().logger }, { silenceMinutes: 10 })
+    rd.checkSilence(SILENT_LATER())
+    rd.checkSilence(SILENT_LATER())
+    slow.open(OUTCOME('對方到現在都沒有再說話'))
+    await rd.settle()
+    rd.checkSilence(SILENT_LATER())
+    await rd.settle()
+    assert.equal(calls.length, 1, 'the silence check does not start a second comparison')
+    assert.deepEqual(outcomesOf(store, old).map((o) => o.provisional), [true])
+    assert.equal(outcomesOf(store, old)[0]!.heard, '（對方到現在都沒有再說話。）')
+  }))
+
+test('race (item 1): the real comparison is never duplicated', () =>
+  withStore(async (store) => {
+    const old = lastTurn(store)
+    const decision = store.get(old)!
+    const slow = gate()
+    const real = gate()
+    const { call, calls } = scripted({ outcome: [() => slow.promise, () => real.promise] })
+    const rd = createRd({ life: store, call, logger: recorder().logger }, { silenceMinutes: 10 })
+    rd.checkSilence(SILENT_LATER())
+    rd.evaluate(decision, '謝謝', ROUTE)
+    rd.evaluate(decision, '謝謝', ROUTE)
+    rd.evaluate(decision, '（對方到現在都沒有再說話。）', ROUTE, true)
+    slow.open(OUTCOME('對方到現在都沒有再說話'))
+    await new Promise((resolve) => setImmediate(resolve))
+    rd.evaluate(decision, '謝謝', ROUTE)
+    real.open(OUTCOME('他說謝謝', 0.5))
+    await rd.settle()
+    rd.evaluate(decision, '謝謝', ROUTE)
+    await rd.settle()
+    assert.equal(calls.length, 2, 'one provisional and one real comparison')
+    assert.deepEqual(outcomesOf(store, old).map((o) => o.provisional ?? false), [true, false])
+  }))

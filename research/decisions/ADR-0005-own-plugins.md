@@ -35,6 +35,13 @@
    - 其他模式在第一次需要時，以子插件載入 DSH 自己的 `DynamicCordisRunnerService`：不 fork，也不會在 Web 模式重複載入。
 6. **處境描述與自我快照**：說明可以寫插件、每個新版本都要核准，並列出自己的插件與核准狀態。
 
+## 有 IM 通道時（ADR-0006）
+
+- dsh-im 會把 DSH 的核准請求轉到 IM 聊天。IM 上看不到程式碼，群組裡也可能是別人核准。
+- 所以有 dsh-im 時，`plugin_activate` 不走 DSH 的核准（`activationRoute`），改為：創造者在本機面板 `/temir/plugins` 看過完整程式碼，按下「核准這個版本」（`approveFromPanel`，記下 `via: panel`），個體再呼叫 `plugin_activate`。
+- 面板只回應本機、檢查 Host 與 Origin。
+- 沒有面板（不是 dsh web）又接了 dsh-im 時無法核准，照實告訴個體。
+
 ## 驗證
 
 - 單元測試（`individual/test/plugin.test.ts`）：

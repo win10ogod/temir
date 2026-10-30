@@ -137,10 +137,12 @@
   - 掛在 DSH 自己的 Web 伺服器上：`/temir/`（狀態）、`/temir/timeline`（生命日誌）、`/temir/search`（回憶搜尋）；
   - 唯讀，只回應本機，並檢查 Host 標頭（擋下 DNS rebinding）；
   - 單元測試，以及真實的 `dsh web`：本機 200、假冒 Host 403。
-- [~] 其他通道（ADR-0006）：
-  - Telegram 橋接已實作（`scripts/temir.sh telegram`；白名單、插件啟用一律拒絕），單元測試通過；
-  - 連上真正的 Telegram 要等使用者的機器人 token；
-  - LINE（需要公開的 webhook）、Discord：要使用者決定。
+- [x] 其他通道（ADR-0006）：
+  - 使用 dsh-im（使用者建議；13 個渠道），已安裝在正式的 web profile；
+  - IM 上的話照常進入個體的回憶與 RD；
+  - 主動開口可經 `imTargets` 送到 IM；
+  - 插件改在本機面板核准；
+  - 與個體一起執行已驗證。真的在 IM 上對話，要等使用者接入機器人。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-M1、H-ID

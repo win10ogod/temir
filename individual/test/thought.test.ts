@@ -111,3 +111,17 @@ test('initiative: a thought can decide to speak now; pacing allows no double-tex
     assert.equal(mayInitiate(store, t0 + 25 * 3_600_000).ok, true, 'the limit is per 24 hours')
   })
 })
+
+test('initiative relay: collects what the individual said in the turn its thought started, and only that turn', async () => {
+  const { InitiativeRelay } = await import('../src/thought/thought.ts')
+  const r = new InitiativeRelay()
+  const say = (turn: number, text: string) => ({ type: 'assistant/message', data: { turn, message: { content: [{ type: 'reasoning', text: '…' }, { type: 'text', text }] } } })
+  assert.equal(r.observe('s1', say(3, '沒有在等')), undefined, 'nothing expected yet')
+  r.expect('s1', 'l:thought')
+  assert.equal(r.observe('s2', { type: 'turn/start', data: { turn: 1 } }), undefined, 'another session')
+  assert.equal(r.observe('s1', { type: 'turn/start', data: { turn: 4 } }), undefined)
+  assert.equal(r.observe('s1', say(4, '我想到一個名字：柳丁。')), undefined)
+  assert.equal(r.observe('s1', say(4, '你覺得呢？')), undefined)
+  assert.deepEqual(r.observe('s1', { type: 'turn/end', data: { turn: 4 } }), { thought: 'l:thought', text: '我想到一個名字：柳丁。\n\n你覺得呢？' })
+  assert.equal(r.observe('s1', { type: 'turn/end', data: { turn: 4 } }), undefined, 'delivered once')
+})

@@ -24,6 +24,29 @@ export const PLUGIN_KIND = {
   run: 'plugin/run',
 } as const
 
+/**
+ * 啟用前的核准要走哪一條路（ADR-0005、ADR-0006）：
+ * - 已核准：直接啟用；
+ * - 有 dsh-im：DSH 的核准可能被轉到 IM 聊天，而 IM 上只看得到工具名稱與參數、看不到程式碼，群組裡也可能是別人按下核准。
+ *   所以插件只能由創造者在本機的面板（/temir/plugins，只回應本機）看過程式碼後核准；沒有面板（不是 dsh web）就無法核准。
+ * - 沒有 dsh-im：DSH 的核准對話（Web 介面或終端機，都在本機）。
+ */
+export function activationRoute(approved: boolean, env: { readonly dshIm: boolean; readonly webServer: boolean }): 'allow' | 'ask' | 'panel' | 'unavailable' {
+  if (approved) return 'allow'
+  if (!env.dshIm) return 'ask'
+  return env.webServer ? 'panel' : 'unavailable'
+}
+
+/** 面板上的核准：只核准插件「目前的版本」，而且還沒核准過；回傳寫入的事件資料或拒絕的原因。 */
+export function approveFromPanel(life: LifeStore, version: string): { readonly ok: true; readonly data: PluginApprovalData } | { readonly ok: false; readonly reason: string } {
+  const plugin = ownPlugins(life).find((p) => p.version === version)
+  if (!plugin) return { ok: false, reason: '這不是任何插件目前的版本（可能已經修改或移除）' }
+  if (plugin.approved) return { ok: false, reason: '這個版本已經核准過' }
+  const data: PluginApprovalData = { proposal: plugin.version, name: plugin.name, sha256: plugin.sha256 }
+  life.append({ kind: PLUGIN_KIND.approval, origin: 'body', data: { ...data, via: 'panel' }, text: `創造我的人在本機面板核准了插件 ${plugin.name} 的這個版本`, causes: [plugin.version] })
+  return { ok: true, data }
+}
+
 export const PLUGIN_OPS = ['add', 'revise', 'retire'] as const
 export type PluginOp = (typeof PLUGIN_OPS)[number]
 

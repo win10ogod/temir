@@ -15,7 +15,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import DynamicCordisRunnerService from '@deepseek-ai/dsh-cordis-host-runner'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '../life/index.ts'
-import { PLUGIN_KIND, PLUGIN_OPS, approvalText, codeHash, idPrefix, ownPlugins, validatePlugin, type OwnPlugin, type PluginApprovalData, type PluginOp, type PluginProposalData, type PluginRunData } from './plugin.ts'
+import { PLUGIN_KIND, PLUGIN_OPS, activationRoute, approvalText, codeHash, idPrefix, ownPlugins, validatePlugin, type OwnPlugin, type PluginApprovalData, type PluginOp, type PluginProposalData, type PluginRunData } from './plugin.ts'
 
 export const name = 'temir-plugin'
 export const inject = ['life', 'tools']
@@ -103,7 +103,14 @@ export function apply(ctx: Context): void {
     const wanted = String((exec.arguments as { name?: unknown } | undefined)?.name ?? '')
     const plugin = ownPlugins(life).find((p) => p.name === wanted)
     if (!plugin) return { kind: 'deny', reason: `沒有叫「${wanted}」的插件；先用 plugin_write 寫下` }
-    if (plugin.approved) return next()
+    const route = activationRoute(plugin.approved, { dshIm: ctx.get('dshIm') !== undefined, webServer: ctx.get('webServer') !== undefined })
+    if (route === 'allow') return next()
+    if (route === 'panel') {
+      return { kind: 'deny', reason: `插件 ${plugin.name} 的這個版本還沒核准。這個環境接了 IM 通道（dsh-im），核准可能被轉到聊天中、看不到程式碼，所以插件只能由創造你的人在本機的面板看過程式碼後核准：/temir/plugins（dsh web 的同一個位址）。核准後再呼叫 plugin_activate。` }
+    }
+    if (route === 'unavailable') {
+      return { kind: 'deny', reason: `插件 ${plugin.name} 的這個版本還沒核准。這個環境接了 IM 通道（dsh-im），插件只能在本機面板核准，而面板只有 dsh web 才有。` }
+    }
     const text = approvalText(plugin)
     return {
       kind: 'ask',
@@ -165,7 +172,7 @@ export function apply(ctx: Context): void {
         // 能走到這裡，代表這個版本已經核准過，或剛剛通過了核准（pre-execute 的 ask）。
         if (!plugin.approved) {
           const approval: PluginApprovalData = { proposal: plugin.version, name: plugin.name, sha256: plugin.sha256 }
-          life.append({ kind: PLUGIN_KIND.approval, origin: 'body', session: agent.session.id, data: approval, text: `創造我的人核准了插件 ${plugin.name} 的這個版本`, causes: [plugin.version] })
+          life.append({ kind: PLUGIN_KIND.approval, origin: 'body', session: agent.session.id, data: { ...approval, via: 'dsh-approval' }, text: `創造我的人核准了插件 ${plugin.name} 的這個版本`, causes: [plugin.version] })
         }
         const result = await start(agent, { ...plugin, approved: true })
         if (!result.ok) return `插件 ${plugin.name} 沒有啟用：${result.error}`

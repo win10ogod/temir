@@ -152,3 +152,44 @@ export function mayInitiate(life: LifeStore, now = Date.now()): { readonly ok: b
 export function initiativeNote(thought: string, intention: string): string {
   return `（這不是對方說的話：沒有人跟你說話的時候，你想到：${thought}\n你決定現在主動對對方說：${intention}\n對方可能不在，也可能晚點才看到。）`
 }
+
+/** 主動開口經 IM 送出的紀錄（dsh-im 的 dshIm.send；ADR-0006）。 */
+export const INITIATIVE_IM_KIND = 'self/initiative-im'
+
+export interface ImTarget {
+  readonly botId: string
+  readonly targetId: string
+}
+
+/**
+ * 收集主動開口那一回合個體說的話：followup 之後，這段對話的下一個回合就是念頭發起的回合；
+ * 回合結束時交出全部的文字（送到 IM 用）。純邏輯，可單獨測試。
+ */
+export class InitiativeRelay {
+  readonly #pending = new Map<string, { thought: string; turn?: number; texts: string[] }>()
+
+  expect(session: string, thought: string): void {
+    this.#pending.set(session, { thought, texts: [] })
+  }
+
+  /** 觀察 session 事件；念頭發起的回合結束時回傳 { thought, text }。 */
+  observe(session: string, event: { readonly type: string; readonly data?: unknown }): { readonly thought: string; readonly text: string } | undefined {
+    const state = this.#pending.get(session)
+    if (!state) return undefined
+    const data = (event.data ?? {}) as { turn?: number; message?: { content?: readonly { type: string; text?: string }[] } }
+    if (event.type === 'turn/start' && state.turn === undefined && typeof data.turn === 'number') {
+      state.turn = data.turn
+      return undefined
+    }
+    if (state.turn === undefined || (typeof data.turn === 'number' && data.turn !== state.turn)) return undefined
+    if (event.type === 'assistant/message') {
+      const text = (data.message?.content ?? []).filter((b) => b.type === 'text' && b.text).map((b) => b.text!.trim()).filter(Boolean).join('\n')
+      if (text) state.texts.push(text)
+      return undefined
+    }
+    if (event.type !== 'turn/end') return undefined
+    this.#pending.delete(session)
+    const text = state.texts.join('\n\n').trim()
+    return text ? { thought: state.thought, text } : undefined
+  }
+}

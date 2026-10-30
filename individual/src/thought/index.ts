@@ -11,7 +11,11 @@
  * 排程規則（mayInitiate）：上次主動開口之後對方要先說過話；24 小時內最多 INITIATIVE_PER_DAY 次。
  * 對話已經不在或正在進行時不開口，照實記下。
  *
- * 設定：automatic（預設開）、checkMinutes（預設 5）、idleMinutes（預設 15）、timeoutMs（預設 90000）、spontaneous（預設開）。
+ * IM（ADR-0006）：dsh-im 的會話同步不轉送由 temir-thought 發起的回合。設定 imTargets（從 dsh-im 設定頁複製的
+ * botId＋targetId）時，主動開口那一回合結束後，把個體說的話以 dsh-im 的 dshIm.send 送過去，並記下結果。
+ *
+ * 設定：automatic（預設開）、checkMinutes（預設 5）、idleMinutes（預設 15）、timeoutMs（預設 90000）、spontaneous（預設開）、
+ * imTargets（預設無）。
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
@@ -21,7 +25,8 @@ import { latestRoute } from '../integrate/index.ts'
 import { callModel } from '../recall/aux.ts'
 import { clip } from '../recall/retrieve.ts'
 import type { ThoughtData } from '../self/energy.ts'
-import { INITIATIVE_KIND, THOUGHT_SYSTEM, hasPotential, initiativeNote, mayInitiate, parseThought, recordThought, thoughtInput, type InitiativeData } from './thought.ts'
+import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
+import { INITIATIVE_IM_KIND, INITIATIVE_KIND, InitiativeRelay, THOUGHT_SYSTEM, hasPotential, initiativeNote, mayInitiate, parseThought, recordThought, thoughtInput, type ImTarget, type InitiativeData } from './thought.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -39,7 +44,16 @@ export interface Config {
   readonly timeoutMs?: number
   /** 念頭決定現在就說時主動開口（M4，預設開）。 */
   readonly spontaneous?: boolean
+  /** 主動開口也送到這些 IM 目標（dsh-im 的 botId＋targetId；ADR-0006）。 */
+  readonly imTargets?: readonly ImTarget[]
 }
+
+/** dsh-im 的同 Host 服務（只用到的部分；PROACTIVE_DELIVERY.md）。 */
+interface DshIm {
+  send(botId: string, targetId: string, text: string, options?: { format?: 'plain' | 'markdown' }): Promise<unknown>
+}
+
+const relay = new InitiativeRelay()
 
 /**
  * 主動開口：在最近一段對話中，以念頭發起一個回合；照實記下送出與否（self/initiative）。
@@ -61,6 +75,7 @@ export function deliverInitiative(ctx: Context, thoughtId: string): InitiativeDa
   if (!agent) return record(false, '最近的對話已經不在，沒有地方可以開口')
   if (agent.status !== 'idle') return record(false, '對話正在進行中')
   const data = record(true)
+  if (session) relay.expect(session, thoughtId)
   agent.followup(createUserMessage({ content: [{ type: 'text', text: initiativeNote(t.thought, t.intention) }], source: { kind: 'temir-thought' } }))
   ctx.logger('temir-thought').info('initiative in session %s: %s', session, t.intention)
   return data
@@ -69,6 +84,28 @@ export function deliverInitiative(ctx: Context, thoughtId: string): InitiativeDa
 export function apply(ctx: Context, config: Config | undefined): void {
   if (config?.automatic === false) return
   const life = ctx.life
+  // 主動開口那一回合結束後，送到設定的 IM 目標（dsh-im 沒有載入時照實記下）。
+  const targets = config?.imTargets ?? []
+  if (targets.length > 0) {
+    ctx.on('session/event', (session: Session, event: SessionEvent) => {
+      const done = relay.observe(session.id, event)
+      if (!done) return
+      const im = ctx.get('dshIm') as DshIm | undefined
+      for (const target of targets) {
+        const write = (ok: boolean, error?: string) => {
+          if (life.isOpen) life.append({ kind: INITIATIVE_IM_KIND, origin: 'self', session: session.id, data: { thought: done.thought, botId: target.botId, targetId: target.targetId, ok, ...(error ? { error } : {}) }, causes: [done.thought] })
+        }
+        if (!im) {
+          write(false, '沒有載入 dsh-im（dshIm 服務不存在）')
+          continue
+        }
+        im.send(target.botId, target.targetId, done.text, { format: 'markdown' }).then(
+          () => write(true),
+          (error: unknown) => write(false, error instanceof Error ? `${(error as { code?: string }).code ?? ''} ${error.message}`.trim() : String(error)),
+        )
+      }
+    })
+  }
   const logger = ctx.logger('temir-thought')
   const checkMs = (config?.checkMinutes ?? 5) * 60_000
   const idleMs = (config?.idleMinutes ?? 15) * 60_000

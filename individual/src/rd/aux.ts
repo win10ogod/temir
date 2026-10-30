@@ -164,6 +164,7 @@ export function mapDeliberationText(d: Deliberation, f: (s: string) => string): 
       action: f(c.action),
       prediction: f(c.prediction),
       ...(c.excludeReason ? { excludeReason: f(c.excludeReason) } : {}),
+      // 舊版的 revised（D20 第一、二版；見 jitrl.ts 的 Candidate.revised）。
       ...(c.revised ? { revised: f(c.revised) } : {}),
     })),
   }
@@ -197,6 +198,8 @@ export function parseDeliberation(output: string, labels: ReadonlyMap<string, st
     if (!action) continue
     const confidence = typeof c['confidence'] === 'number' && Number.isFinite(c['confidence']) ? Math.min(Math.max(c['confidence'], 0), 100) : 0
     const excluded = c['excluded'] === true
+    // 舊版提示（D20 第一、二版）的選填欄位，現行的提示已經沒有；照舊解析，只為了相容（jitrl.ts 的 Candidate.revised）。
+    // 現行的機制是強制判斷（memory.ts 的 exclusionReviews、parseJudgments）。
     const revised = text(c['revised'], 200)
     candidates.push({
       action,

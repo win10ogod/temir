@@ -232,6 +232,7 @@
   - `experiments/eval/lib/rd-mechanism.ts`：從 rd/decision 資料列計算機制統計的純函式，pool-rd 與 rd1-describe 共用。
   - 重算：以既有的 items（rdv4h1–h3）重算的 R4A、R4C 數字與 `experiments/results/rd-v4/pooled.json` 相同；以 pooled.json 的機制數字產生的 pooled.md 與既有的逐字相同。R4M 要讀生命日誌，雲端沒有，**機制部分待使用者在本機重跑確認**（`node experiments/eval/pool-rd.ts rd-v4 rdv4h1,rdv4h2,rdv4h3 --out <暫存目錄>`，再與既有檔案比較）。
   - 測試：三個判定的表驅動測試（含 INCOMPLETE 的邊界）、機制統計、契約檢查、重算。
+- [x] 第 9 項：清理 D20 的殘留。`Candidate.revised` 改註明為舊紀錄的相容欄位（現行的是 `judgment`）；`parseDeliberation`、`mapDeliberationText`、`renderPreparation` 的 revised 分支註明用途、行為不變；`rd1-describe.ts` 改用第 8 項的共用模組，統計強制判斷（required、lift、keep、不合格），revised 只在舊紀錄有時列出。`rd.test.ts` 中舊紀錄可解析的那一則保留。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID

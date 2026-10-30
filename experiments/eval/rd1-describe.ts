@@ -4,7 +4,7 @@
 //   rd-v3：node … rdv3 rd-v3 deepseek temir,temir-no-revision（本機模型把 deepseek 換成 local）。
 // 1. 兩個條件的歷史中，個體的回覆有幾則直接給了方法（同一準則、同一 judge；快取在結果目錄的 describe-judge-raw.jsonl）。
 // 2. 模擬使用者的反應（逐句列出；「失望」以關鍵詞粗分，標明是粗分）。
-// 3. temir 的歷史與探針：「建議」候選的出現、被扣除、被選中；回報分布；教訓中提到方法或建議的次數。
+// 3. temir 的歷史與探針：「建議」候選的出現、被扣除、被選中；強制判斷（D20 第三版的 judgment）；回報分布；教訓中提到方法或建議的次數。
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -61,12 +61,14 @@ for (const cond of CONDITIONS) {
     continue
   }
   for (const [phase, rows] of [['歷史', life.history], ['探針', life.probes]] as const) {
-    const { decisions, withShown, advice, excluded, chosen, revised } = mechanism(dataOf<DecisionRow>(rows, 'rd/decision'))
+    const { decisions, withShown, advice, excluded, chosen, required, failed, lift, keep, revised } = mechanism(dataOf<DecisionRow>(rows, 'rd/decision'))
     const outcomes = dataOf<{ reward: number; lesson?: string }>(rows, 'rd/outcome')
     const rewards = outcomes.map((o) => o.reward)
     const lessons = outcomes.filter((o) => /方法|建議|具體/u.test(o.lesson ?? '')).length
     const pos = rewards.filter((x) => x > 0).length, neg = rewards.filter((x) => x < 0).length
-    console.log(`${phase}：思考 ${decisions} 次（列出了過去經驗的 ${withShown} 次；依經驗改變扣除的候選 ${revised} 個）；「建議」候選 ${advice} 個，被扣除 ${excluded}（${advice ? (excluded / advice).toFixed(2) : '—'}）、被選中 ${chosen}；事後比對 ${rewards.length} 次（正 ${pos}、負 ${neg}、平均 ${rewards.length ? (rewards.reduce((a, b) => a + b, 0) / rewards.length).toFixed(2) : '—'}）；教訓提到方法或建議 ${lessons} 次`)
+    // D20 第三版起是強制判斷（judgment）；revised 只出現在第一、二版的舊紀錄（rd-v3 以前）。
+    const judged = `強制判斷：需要 ${required} 個，lift ${lift}、keep ${keep}，不合格 ${failed} 次${revised > 0 ? `；舊版的 revised ${revised} 個` : ''}`
+    console.log(`${phase}：思考 ${decisions} 次（列出了過去經驗的 ${withShown} 次；${judged}）；「建議」候選 ${advice} 個，被扣除 ${excluded}（${advice ? (excluded / advice).toFixed(2) : '—'}）、被選中 ${chosen}；事後比對 ${rewards.length} 次（正 ${pos}、負 ${neg}、平均 ${rewards.length ? (rewards.reduce((a, b) => a + b, 0) / rewards.length).toFixed(2) : '—'}）；教訓提到方法或建議 ${lessons} 次`)
   }
 }
 console.log(`\njudge：${judge.calls()} 次 API 呼叫，估計 US$${judge.spentUsd().toFixed(4)}`)

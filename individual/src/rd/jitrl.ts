@@ -60,8 +60,8 @@ export interface Candidate {
   readonly excluded?: boolean
   readonly excludeReason?: string
   /**
-   * 扣除本身會被經驗改變（使用者 2026-10-30；ADR-0002 D20）：這個做法的扣除與否，因為過去類似處境的經驗而與當時不同時，
-   * 個體寫下是哪一次的經驗、為什麼改變。由個體自己判斷，沒有數值門檻。舊紀錄沒有這個欄位。
+   * 舊紀錄的相容欄位（D20 第一、二版，2026-10-30 之前）：當時思考的提示有選填的 revised，個體可以寫下依哪次經驗改變了扣除。
+   * 第三版拿掉了這個選填欄位，現行的機制是強制判斷的 judgment（下一個欄位）；這裡只為了讀得懂舊的決定紀錄與舊的模型輸出。
    */
   readonly revised?: string
   /**

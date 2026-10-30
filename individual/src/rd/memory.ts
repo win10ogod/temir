@@ -415,6 +415,7 @@ export function renderPreparation(delib: Deliberation, correction: Correction, n
     const basis = c.support > 0 ? `${c.support} 個相符的經驗` : c.optimistic ? '沒有相符的經驗，傾向嘗試' : '沒有相符的經驗'
     const adjust = c.q === null ? '' : `｜經驗修正 ${c.normalized >= 0 ? '+' : ''}${c.normalized.toFixed(2)}（${basis}）`
     const subtracted = c.excluded ? `｜你扣除了這個做法${c.excludeReason ? `：${c.excludeReason}` : ''}` : ''
+    // 強制判斷的結果（D20 第三版）；c.revised 那一支只為了舊紀錄的相容（第一、二版的選填欄位，見 jitrl.ts 的 Candidate.revised）。
     const revised =
       c.judgment?.decision === 'lift'
         ? `｜你看過經驗之後解除了扣除：${c.judgment.why}${c.judgment.reason ? `（原本扣除的理由：${c.judgment.reason}）` : ''}`

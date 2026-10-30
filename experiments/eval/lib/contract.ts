@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs'
 export const CONDITIONS = ['baseline', 'temir', 'temir-no-autorecall', 'temir-no-snapshot', 'temir-progressive', 'temir-full', 'temir-no-rd', 'temir-no-jitrl', 'temir-no-energy', 'temir-no-subtraction', 'temir-no-perperson', 'temir-no-skill', 'temir-no-revision'] as const
 export type Condition = (typeof CONDITIONS)[number]
 
-export const MODELS = ['deepseek-flash', 'EVE-27B'] as const
+export const MODELS = ['deepseek-flash', 'EVE-27B', 'Qwen3.8-Flash-Next'] as const
 
 /** 計分方式。 */
 export type Scoring =

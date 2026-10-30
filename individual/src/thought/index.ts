@@ -122,7 +122,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
     try {
       const call = await callModel(ctx, route, THOUGHT_SYSTEM, input, AbortSignal.timeout(timeoutMs))
       if (!life.isOpen) return
-      life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'thought', ms: call.ms, retried: call.retried, input: clip(input, 8000), output: call.output } })
+      life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'thought', ms: call.ms, retried: call.retried, effort: call.effort, reasoningChars: call.reasoningChars, input: clip(input, 8000), output: call.output } })
       const judged = parseThought(call.output)
       const id = judged ? life.transaction(() => recordThought(life, judged, labels, model)) : undefined
       if (id && judged?.now && (config?.spontaneous ?? true)) deliverInitiative(ctx, id)

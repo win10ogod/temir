@@ -1,7 +1,7 @@
 /**
  * RD 階段的輔助呼叫：行動前的思考與準備、事後比對（hypotheses.md H0；ADR-0002 D2）。
  *
- * 兩個呼叫都以個體目前的模型路由、最低推理等級進行，輸入與輸出寫進生命日誌。
+ * 兩個呼叫都以個體目前的模型路由、不關閉思考的最低推理等級進行（recall/aux.ts 的 auxEffort），輸入與輸出寫進生命日誌。
  * 處境描述用固定欄位：JitRL method.tex〈State Construction〉把原始狀態抽象成精簡的結構化狀態、去掉無關細節，
  * 原則是「功能相同的處境映射到相似的表示」。e2e-13 中自由文字的處境混入個體自身狀態的套話，
  * 兩次相似的傾訴相似度只有 0.15–0.23。
@@ -124,6 +124,9 @@ export function withoutExclusions(d: Deliberation): Deliberation {
 }
 
 export const DELIBERATE_SYSTEM = deliberateSystem(true)
+
+/** 思考的輸出無法解析時，重試一次所附的說明（不同模型照格式的能力不同；插件不能只對某些模型有效）。 */
+export const DELIBERATION_RETRY_NOTE = '（重寫一次：上一次的輸出不是完整的 JSON 物件，或缺少 candidates。只輸出一個完整的 JSON 物件，candidates 剛好 3 個做法。）'
 export const OUTCOME_SYSTEM = outcomeSystem(true)
 
 export interface Person {

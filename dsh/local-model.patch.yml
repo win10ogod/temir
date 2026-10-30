@@ -1,4 +1,5 @@
-# 本機 OpenAI 相容端點（sglang EVE-27B）。用途：確保個體不綁定特定模型。
+# 本機 OpenAI 相容端點（sglang）。用途：確保個體不綁定特定模型。
+# 2026-10-30 起端點提供的是 Qwen3.8-Flash-Next（/v1/models 查證；之前是 EVE-27B）。
 # llm-pi-ai 的自訂 route 需要 api、baseURL 與非空 models（docs/user/guide/providers.md）。
 - id: llm-pi-ai
   config:
@@ -8,9 +9,9 @@
         baseURL: http://localhost:8000/v1
         apiKeyEnv: LOCAL_LLM_API_KEY
         models:
-          - id: EVE-27B
+          - id: Qwen3.8-Flash-Next
             contextWindow: 262144
 - id: agent-default-model
   config:
     provider: local-eve
-    model: EVE-27B
+    model: Qwen3.8-Flash-Next

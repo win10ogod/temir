@@ -102,10 +102,20 @@ export function parseAux(text: string): AuxResult | undefined {
   }
 }
 
-/** 選模型可用的最低推理等級；沒有推理等級的模型維持原設定。 */
-function lowestEffort(efforts: readonly { readonly id: ReasoningEffortId }[] | undefined): ReasoningEffortId | undefined {
-  return efforts?.[0]?.id
+/**
+ * 輔助呼叫的推理等級：路由提供的最低等級，但不關閉思考（使用者 2026-10-30：「不關思考，沒法處理思考就是你亂搞」）。
+ * - DeepSeek 的等級依序是 off、low、…（dsh-llm-deepseek 的 REASONING_EFFORTS），所以取 low；
+ *   之前取第一個，也就是 off（thinking disabled）。
+ * - 路由只提供 off 時（路由本身設定為不思考）才用 off。
+ * - 路由沒有提供等級時（例如本機的 OpenAI 相容端點）不指定，模型照自己的預設思考。
+ * 思考的內容是 reasoning 區塊，callOnce 只取 text 區塊，所以不會混進輸出。
+ */
+export function auxEffort(efforts: readonly { readonly id: ReasoningEffortId }[] | undefined): ReasoningEffortId | undefined {
+  return efforts?.find((e) => e.id !== 'off')?.id ?? efforts?.[0]?.id
 }
+
+/** 思考的 token 也算在輸出上限內，所以輔助呼叫的預設上限要留給思考（原本 4096）。 */
+export const AUX_MAX_TOKENS = 16_384
 
 export interface AuxCall {
   readonly purpose: AuxPurpose
@@ -115,11 +125,14 @@ export interface AuxCall {
   readonly ms: number
   /** 字體檢查觸發重試。 */
   readonly retried: boolean
+  /** 實際用的推理等級（沒有指定時為 null）與思考的字數。 */
+  readonly effort: string | null
+  readonly reasoningChars: number
   readonly result: AuxResult | undefined
 }
 
 /**
- * 以指定路由做一次不進入對話的模型呼叫（模型可用的最低推理等級），回傳模型輸出的文字。
+ * 以指定路由做一次不進入對話的模型呼叫（不關閉思考的最低推理等級，見 auxEffort），回傳模型輸出的文字。
  * 輸入是繁體中文、輸出卻變成簡體時，加註後重試一次（script.ts），回傳第二次的結果並標記 retried。
  * 逾時、取消或模型錯誤時丟出例外，由呼叫端記錄並退回。recall、rd、integrate 共用。
  */
@@ -129,18 +142,28 @@ export async function callModel(
   system: string,
   input: string,
   signal: AbortSignal,
-  maxTokens = 4096,
-): Promise<{ readonly output: string; readonly ms: number; readonly retried: boolean }> {
+  maxTokens = AUX_MAX_TOKENS,
+): Promise<{ readonly output: string; readonly ms: number; readonly retried: boolean; readonly effort: string | null; readonly reasoningChars: number }> {
   const started = Date.now()
   const first = await callOnce(ctx, route, system, input, signal, maxTokens)
-  if (!driftedToSimplified(input, first)) return { output: first, ms: Date.now() - started, retried: false }
+  if (!driftedToSimplified(input, first.text)) return { output: first.text, ms: Date.now() - started, retried: false, effort: first.effort, reasoningChars: first.reasoningChars }
   const second = await callOnce(ctx, route, `${system}\n${SCRIPT_RETRY_NOTE}`, input, signal, maxTokens)
-  return { output: second, ms: Date.now() - started, retried: true }
+  return { output: second.text, ms: Date.now() - started, retried: true, effort: second.effort, reasoningChars: second.reasoningChars }
 }
 
-async function callOnce(ctx: Context, route: AuxRoute, system: string, input: string, signal: AbortSignal, maxTokens: number): Promise<string> {
+/** 一次呼叫：輸出的文字，以及實際用的推理等級與思考的字數（記進 memory/aux，看得到思考有沒有開著）。 */
+async function callOnce(
+  ctx: Context,
+  route: AuxRoute,
+  system: string,
+  input: string,
+  signal: AbortSignal,
+  maxTokens: number,
+): Promise<{ readonly text: string; readonly effort: string | null; readonly reasoningChars: number }> {
+  let used: string | null = null
   const call = await ctx.llm.prepareCall({ ...route, maxTokens }, signal, (controls, info) => {
-    const effort = lowestEffort(info.reasoning?.efforts)
+    const effort = auxEffort(info.reasoning?.efforts)
+    used = effort ?? null
     return effort === undefined ? controls : { ...controls, reasoningEffort: effort }
   })
   const messages = [createUserMessage({ content: [{ type: 'text', text: input }], source: { kind: 'temir-aux' } })]
@@ -149,11 +172,13 @@ async function callOnce(ctx: Context, route: AuxRoute, system: string, input: st
     signal.throwIfAborted()
     assembler.push(chunk)
   }
-  return assembler
-    .blocks()
+  const blocks = assembler.blocks()
+  const text = blocks
     .filter((b) => b.type === 'text')
     .map((b) => (b as { text: string }).text)
     .join('')
+  const reasoningChars = blocks.filter((b) => b.type === 'reasoning').reduce((n, b) => n + ((b as { text?: string }).text ?? '').length, 0)
+  return { text, effort: used, reasoningChars }
 }
 
 /** 線索理解或自我陳述擷取的輔助呼叫。 */
@@ -164,6 +189,6 @@ export async function runAux(
   input: string,
   signal: AbortSignal,
 ): Promise<AuxCall> {
-  const { output, ms, retried } = await callModel(ctx, route, SYSTEM[purpose], input, signal)
-  return { purpose, route, input, output, ms, retried, result: parseAux(output) }
+  const { output, ms, retried, effort, reasoningChars } = await callModel(ctx, route, SYSTEM[purpose], input, signal)
+  return { purpose, route, input, output, ms, retried, effort, reasoningChars, result: parseAux(output) }
 }

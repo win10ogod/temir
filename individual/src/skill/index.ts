@@ -103,7 +103,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
     return async (system, input, purpose) => {
       try {
         const call = await callModel(ctx, route, system, input, AbortSignal.timeout(timeoutMs))
-        if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose, ms: call.ms, retried: call.retried, input: clip(input, 8000), output: call.output } })
+        if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose, ms: call.ms, retried: call.retried, effort: call.effort, reasoningChars: call.reasoningChars, input: clip(input, 8000), output: call.output } })
         return call.output
       } catch (error) {
         if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose, error: String(error), input: clip(input, 8000) } })

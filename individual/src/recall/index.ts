@@ -111,7 +111,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
         origin: 'self',
         session,
         model,
-        data: { purpose, ms: call.ms, retried: call.retried, input: clip(input, 4000), output: call.output, parsed: call.result ?? null },
+        data: { purpose, ms: call.ms, retried: call.retried, effort: call.effort, reasoningChars: call.reasoningChars, input: clip(input, 4000), output: call.output, parsed: call.result ?? null },
         causes,
       })
       return call

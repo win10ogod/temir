@@ -14,7 +14,11 @@
 
 1. **證據優先**。每個演算法都要能追到論文 TeX 節號／方程式，或 `file:line@commit`；不從 README 或摘要推測。論文的演算法與本專案的延伸要分開標示。
 2. **不用 mock 充當完成**。測試替身只能出現在單元測試並明確標示；端到端驗收一律用真實 API（DeepSeek）。沒跑過就寫「未驗證」。
-   - 第二個模型不再使用：使用者 2026-10-29「沒必要再用 Nemotron 了，因為證明這樣的差異不大」；本機模型也不再使用（同日）。
+   - Nemotron 不再使用：使用者 2026-10-29「沒必要再用 Nemotron 了，因為證明這樣的差異不大」。
+   - 本機模型（`http://localhost:8000/v1`）是可選的第二個模型：使用者 2026-10-30「有本地模型可以測試(但這不是必要的環節只是有會更好, 避免插件只對某些模型效果特別好)」。2026-10-29 曾說不再使用，以這句為準。
+   - **不關思考**：使用者 2026-10-30「不關思考, 沒法處理思考就是你亂搞」。
+     - 個體的模型呼叫一律不關閉思考，輔助呼叫用不關閉思考的最低等級（`recall/aux.ts` 的 `auxEffort`）。
+     - 思考內容由 DSH 解析成 reasoning 區塊，不得混進回覆或輔助呼叫的輸出。
    - 模型獨立性的既有證據見 `experiments/results/v2-report.md`、`v3-report.md`。
    - 評分的 judge 固定為 deepseek-v4-pro（thinking disabled）：使用者 2026-10-30「評分可以固定」。受試者與模擬使用者用 deepseek-flash。
 3. **不偽造人格／情感／成長指標**。沒有消融或實驗數據，就不能宣稱「記憶／人格參與了決策」。
@@ -44,9 +48,9 @@ TEMIR_MODEL=local scripts/dsh.sh web --no-open   # 改用本機模型、開 Web 
 - 個體的程式碼是 TypeScript，由 Node 24 直接剝除型別執行（只能用可擦除語法；相對 import 要寫 `.ts`）。
 - F: 只剩約 15GB：DSH 執行期、TypeScript、生命資料、DSH home 都在 `~/.cache/temir` 或 `~/.local/share/temir`。
 - 模型端點：DeepSeek（預設；`deepseek-flash`、`deepseek-v4-pro`）。
-  - 以下兩個保留設定檔，但依規則 2 已不再使用：
-    - 本機 `http://localhost:8000/v1`（sglang `EVE-27B`，`dsh/local-model.patch.yml`）；
-    - OpenRouter NVIDIA Nemotron（`dsh/openrouter-model.patch.yml`；付費 bf16 經代理 `experiments/runner/openrouter-pin.ts` 與 `dsh/openrouter-bf16.patch.yml`）。
+  - 本機 `http://localhost:8000/v1`（sglang；2026-10-30 起是 `Qwen3.8-Flash-Next`，`dsh/local-model.patch.yml`；harness 的模型名 `local`）：可選的第二個模型（規則 2）。
+    - 思考內容在串流的 `delta.reasoning`，pi-ai 會解析成 reasoning 區塊。
+  - OpenRouter NVIDIA Nemotron（`dsh/openrouter-model.patch.yml`；付費 bf16 經代理 `experiments/runner/openrouter-pin.ts` 與 `dsh/openrouter-bf16.patch.yml`）：保留設定檔，依規則 2 不再使用。
 
 ## 目錄
 

@@ -24,7 +24,7 @@ import { callModel, type AuxRoute } from '../recall/aux.ts'
 import { clip, clipEnds, sessionSoFar } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
-import { deliberateSystem, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, withoutExclusions, withoutRevised } from './aux.ts'
+import { DELIBERATION_RETRY_NOTE, deliberateSystem, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, withoutExclusions, withoutRevised } from './aux.ts'
 import { DEFAULT_PARAMS, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
 import { REPLAY_KIND, adoptedParams } from './replay.ts'
 import {
@@ -127,8 +127,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
     const deadline = signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs)
     const model = `${route.provider}/${route.model}`
     try {
-      const { output, ms, retried } = await callModel(ctx, route, system, input, deadline)
-      life.append({ kind: 'memory/aux', origin: 'self', session, model, data: { purpose, ms, retried, input: clip(input, 8000), output }, causes })
+      const { output, ms, retried, effort, reasoningChars } = await callModel(ctx, route, system, input, deadline)
+      life.append({ kind: 'memory/aux', origin: 'self', session, model, data: { purpose, ms, retried, effort, reasoningChars, input: clip(input, 8000), output }, causes })
       return output
     } catch (error) {
       if (!life.isOpen) return undefined
@@ -298,8 +298,14 @@ export function apply(ctx: Context, config: Config | undefined): void {
           '## 對方剛說的話',
           clip(cue, 3000),
         ].join('\n')
-        const output = await call('deliberate', route, deliberateSystem(energy, subtraction, perPerson, revision), input, session, [], payload.signal)
-        const parsed = output === undefined ? undefined : parseDeliberation(output, labels)
+        const system = deliberateSystem(energy, subtraction, perPerson, revision)
+        const output = await call('deliberate', route, system, input, session, [], payload.signal)
+        let parsed = output === undefined ? undefined : parseDeliberation(output, labels)
+        // 輸出不完整時重試一次（e2e-37：本機模型有一次只寫了處境與 people，沒有 candidates）。呼叫失敗時不重試。
+        if (output !== undefined && !parsed && !payload.signal.aborted) {
+          const again = await call('deliberate', route, `${system}\n${DELIBERATION_RETRY_NOTE}`, input, session, [], payload.signal)
+          parsed = again === undefined ? undefined : parseDeliberation(again, labels)
+        }
         if (!parsed) return decision
         // 處境、drive、候選與扣除理由都會進入準備訊息與紀錄：把編號換成那件事的描述（編號只在這次思考的輸入中有意義）。
         // dev5：處境寫著「她欠我回覆的：…（P1」，主模型的推理跟著寫「不該再讓 P1、P2 無限懸著」。

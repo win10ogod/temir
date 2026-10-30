@@ -427,3 +427,12 @@ test('workingSetDue: long-term facts come back on the first turn and once after 
     assert.deepEqual(workingSetDue(store, 's', false), { working: false, afterCompaction: false, compacted: true })
   })
 })
+
+test('auxEffort never turns thinking off when the route offers anything else (使用者：不關思考)', async () => {
+  const { auxEffort } = await import('../src/recall/aux.ts')
+  type E = Parameters<typeof auxEffort>[0]
+  // DeepSeek 的順序：off、low、medium、high、max（dsh-llm-deepseek REASONING_EFFORTS）。
+  assert.equal(auxEffort([{ id: 'off' }, { id: 'low' }, { id: 'high' }] as unknown as E), 'low')
+  assert.equal(auxEffort([{ id: 'off' }] as unknown as E), 'off', 'a route configured without thinking keeps its only level')
+  assert.equal(auxEffort(undefined), undefined, 'no levels (local OpenAI-compatible endpoint): the model keeps its own default')
+})

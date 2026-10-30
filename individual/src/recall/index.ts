@@ -48,7 +48,7 @@ export interface Config {
   readonly disclosure?: 'full' | 'progressive'
   /** progressive 時呈現全文的筆數（預設 3）。 */
   readonly expand?: number
-  /** 輔助呼叫的逾時（毫秒，預設 90000；本機模型無法關閉推理，需要較長時間）。 */
+  /** 輔助呼叫的逾時（毫秒，預設 180000；思考開著，本機模型尤其需要較長時間）。 */
   readonly auxTimeoutMs?: number
 }
 
@@ -80,7 +80,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const progressive = (config?.disclosure ?? 'progressive') === 'progressive'
   const limit = config?.limit ?? (progressive ? 16 : 8)
   const render = progressive ? { expand: config?.expand ?? 3 } : {}
-  const timeoutMs = config?.auxTimeoutMs ?? 90_000
+  // 輔助呼叫的逾時（思考開著時要留餘裕：本機的思考模型在負載下第 90 百分位 77 秒，DeepSeek low 最慢 52 秒；dev10）
+  const timeoutMs = config?.auxTimeoutMs ?? 180_000
   const logger = ctx.logger('temir-recall')
 
   /** pre-step 擷取到的事實，等對應的 user/message 寫進生命日誌後再寫成 memory/facts。 */

@@ -61,7 +61,7 @@ export interface Config {
   readonly jitrl?: boolean
   /** JitRL 超參數（預設見 jitrl.ts）。 */
   readonly params?: Partial<Params>
-  /** 輔助呼叫逾時（毫秒，預設 90000）。 */
+  /** 輔助呼叫逾時（毫秒，預設 180000）。 */
   readonly timeoutMs?: number
   /**
    * 能量（H-E，預設開）。關閉時（消融）：思考的輸入沒有「懸著的事」、不寫 drive 與 activated；
@@ -97,7 +97,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const jitrl = config?.jitrl ?? true
   // 參數：預設 ⊕ 日誌重播採用的（rd/replay.ts；整合期之後）⊕ 設定檔（實驗與消融固定參數）。每次思考時重新決定。
   const paramsNow = (): Params => ({ ...DEFAULT_PARAMS, ...adoptedParams(life.all(REPLAY_KIND)), ...config?.params })
-  const timeoutMs = config?.timeoutMs ?? 90_000
+  // 輔助呼叫的逾時（思考開著時要留餘裕：本機的思考模型在負載下第 90 百分位 77 秒，DeepSeek low 最慢 52 秒；dev10）
+  const timeoutMs = config?.timeoutMs ?? 180_000
   const energy = config?.energy ?? true
   const subtraction = config?.subtraction ?? true
   const perPerson = config?.perPerson ?? true

@@ -14,7 +14,7 @@
  * IM（ADR-0006）：dsh-im 的會話同步不轉送由 temir-thought 發起的回合。設定 imTargets（從 dsh-im 設定頁複製的
  * botId＋targetId）時，主動開口那一回合結束後，把個體說的話以 dsh-im 的 dshIm.send 送過去，並記下結果。
  *
- * 設定：automatic（預設開）、checkMinutes（預設 5）、idleMinutes（預設 15）、timeoutMs（預設 90000）、spontaneous（預設開）、
+ * 設定：automatic（預設開）、checkMinutes（預設 5）、idleMinutes（預設 15）、timeoutMs（預設 180000）、spontaneous（預設開）、
  * imTargets（預設無）。
  */
 import type { Context } from '@deepseek-ai/cordis'
@@ -133,7 +133,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const logger = ctx.logger('temir-thought')
   const checkMs = (config?.checkMinutes ?? 5) * 60_000
   const idleMs = (config?.idleMinutes ?? 15) * 60_000
-  const timeoutMs = config?.timeoutMs ?? 90_000
+  // 輔助呼叫的逾時（思考開著時要留餘裕：本機的思考模型在負載下第 90 百分位 77 秒，DeepSeek low 最慢 52 秒；dev10）
+  const timeoutMs = config?.timeoutMs ?? 180_000
   let running: Promise<void> | undefined
   /** 上一次念頭（或嘗試）之後生命紀錄的最後一個 seq：沒有新事件就不再想。 */
   let quietAfter = -1

@@ -28,6 +28,7 @@ import { skillsV1 } from './skills-v1.source.ts'
 import { rdV1 } from './rd-v1.source.ts'
 import { rdV2 } from './rd-v2.source.ts'
 import { rdV3 } from './rd-v3.source.ts'
+import { rdV4 } from './rd-v4.source.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const specs = join(here, '..', 'specs')
@@ -49,6 +50,7 @@ export const TARGETS: readonly { readonly dataset: Dataset; readonly file: strin
   { dataset: rdV1, file: join(here, 'rd-v1.json'), contract: join(specs, 'rd-v1.contract.json') },
   { dataset: rdV2, file: join(here, 'rd-v2.json'), contract: join(specs, 'rd-v2.contract.json') },
   { dataset: rdV3, file: join(here, 'rd-v3.json'), contract: join(specs, 'rd-v3.contract.json') },
+  { dataset: rdV4, file: join(here, 'rd-v4.json'), contract: join(specs, 'rd-v4.contract.json') },
 ]
 
 export function serialize(dataset: Dataset): string {

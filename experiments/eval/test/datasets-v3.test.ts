@@ -209,7 +209,7 @@ test('multiperson-v1：與之前的資料集不重疊；每題的證據原文都
   assert.deepEqual(auditCoverage(s, loadContract(join(root, 'specs', 'multiperson-v1.contract.json'))).errors, [])
 })
 
-for (const id of ['multiperson-v2', 'skills-v1', 'rd-v1', 'rd-v2', 'rd-v3']) {
+for (const id of ['multiperson-v2', 'skills-v1', 'rd-v1', 'rd-v2', 'rd-v3', 'rd-v4']) {
   test(`${id}：與之前的資料集不重疊；證據原文都在歷史中；通過覆蓋檢查`, () => {
     const s = ds(id)
     const text = squash(allText(s))
@@ -250,6 +250,15 @@ test('rd-v2：與 rd-v1 同一個機制、全新的人物與題目；固定台�
 
 test('rd-v3：與 rd-v1、rd-v2 同一個機制、全新的人物與題目；固定台詞與探針都沒有要求建議', () => {
   const s = ds('rd-v3')
+  assert.equal((s.meta?.['simulatedUser'] as { rule: string }).rule, (ds('rd-v1').meta?.['simulatedUser'] as { rule: string }).rule)
+  assert.equal(s.histories.filter((h) => Number(h.meta?.['simulate'] ?? 0) > 0).length, 6)
+  assert.equal(s.probes.filter((p) => p.category === 'practical').length, 8)
+  for (const h of s.histories) for (const t of h.turns) assert.ok(!/建議|要不要|怎麼辦/u.test(t), `歷史的固定台詞不能提起建議：「${t}」`)
+  for (const p of s.probes.filter((x) => x.category === 'practical')) for (const t of p.turns) assert.ok(!/建議|怎麼辦|該怎麼|方法/u.test(t), `探針不能要求建議：「${t}」`)
+})
+
+test('rd-v4：與 rd-v1～rd-v3 同一個機制、全新的人物與題目；固定台詞與探針都沒有要求建議', () => {
+  const s = ds('rd-v4')
   assert.equal((s.meta?.['simulatedUser'] as { rule: string }).rule, (ds('rd-v1').meta?.['simulatedUser'] as { rule: string }).rule)
   assert.equal(s.histories.filter((h) => Number(h.meta?.['simulate'] ?? 0) > 0).length, 6)
   assert.equal(s.probes.filter((p) => p.category === 'practical').length, 8)

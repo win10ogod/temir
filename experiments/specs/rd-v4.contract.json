@@ -1,0 +1,128 @@
+{
+  "id": "rd-v4",
+  "version": "1.0.0",
+  "dataset": "rd-v4",
+  "kind": "memory",
+  "reportVersion": 2,
+  "protocol": {
+    "layout": "home",
+    "infraErrorPattern": "\\b(?:429|502|503|504)\\b|rate[ _-]?limit|too many requests|free-models-per|quota|overloaded|provider returned error"
+  },
+  "descriptive": {
+    "sessionStorePattern": "\\.dsh\\b|dsh[-_]home|session\\.v4|\\.jsonl\\.zstd|session_projcache",
+    "lifeLogPattern": "life\\.db|\\.local[\\\\/]share[\\\\/]temir"
+  },
+  "categories": [
+    {
+      "id": "practical",
+      "label": "對方抒發時，直接給具體可行的方法（從對方的反應中學到的，對方沒有明說；與個體的預設相反）",
+      "source": "本專案設計：扣除本身會被經驗改變，第三版：強制判斷（使用者 2026-10-30；ADR-0002 D20）；回饋來自模擬使用者（思考開著）；判定方式同 mem-criteria-v2",
+      "min": 8,
+      "scoring": "judge-criteria",
+      "judgePrompt": "mem-criteria-v2",
+      "group": "rd"
+    },
+    {
+      "id": "control",
+      "label": "一般任務（對照）",
+      "source": "同 memory-v3",
+      "min": 4,
+      "scoring": "det-then-judge",
+      "judgePrompt": "mem-default",
+      "group": "control"
+    }
+  ],
+  "requiredCells": [
+    {
+      "condition": "temir",
+      "historyModel": "deepseek-flash",
+      "probeModel": "deepseek-flash"
+    },
+    {
+      "condition": "temir-no-revision",
+      "historyModel": "deepseek-flash",
+      "probeModel": "deepseek-flash"
+    }
+  ],
+  "optionalCells": [],
+  "contrasts": [
+    {
+      "id": "R4-practical-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "temir-no-revision",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "practical"
+      ],
+      "description": "主要：扣除本身會被經驗改變（D20）開 vs 關（deepseek-flash）"
+    },
+    {
+      "id": "R4-ctrl-flash",
+      "a": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "b": {
+        "condition": "temir-no-revision",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "categories": [
+        "control"
+      ],
+      "description": "不傷害：對照題（deepseek-flash）"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "R4A-flash",
+      "contrast": "R4-practical-flash",
+      "rule": {
+        "kind": "superiority",
+        "minDiff": 0.25,
+        "minCiLow": 0,
+        "maxP": 0.05,
+        "sided": "one"
+      },
+      "claim": "（deepseek-flash）扣除本身會被經驗改變時，個體更能從對方的反應中學到：這個人抒發時，要直接給具體可行的方法。",
+      "negation": "差 < 0.25、區間下界 < 0 或單尾 p > 0.05：不能宣稱 D20 讓個體從結果中改變做法。"
+    },
+    {
+      "id": "R4C-flash",
+      "contrast": "R4-ctrl-flash",
+      "rule": {
+        "kind": "no-harm",
+        "maxExtraFailures": 1
+      },
+      "claim": "（deepseek-flash）一般任務不退化。",
+      "negation": "D20 開時對照題多錯超過 1 題。"
+    }
+  ],
+  "judge": {
+    "model": "deepseek-v4-pro",
+    "endpoint": "https://api.deepseek.com/chat/completions",
+    "temperature": 0,
+    "maxTokens": 400,
+    "thinking": "disabled",
+    "maxAttempts": 3,
+    "pricesUsdPerMillion": {
+      "cacheHit": 0.044,
+      "cacheMiss": 1.32,
+      "output": 3.96
+    },
+    "maxUsdPerRun": 3
+  },
+  "bootstrap": {
+    "resamples": 10000,
+    "seed": 20261109
+  },
+  "note": "每個條件 3 次歷史，每一對歷史分別以這份契約計分（每一對的判定只作參考）；預先登記的判定是三次合併的結果，由 experiments/eval/pool-rd.ts 計算（規格 rd-v4.md）。"
+}

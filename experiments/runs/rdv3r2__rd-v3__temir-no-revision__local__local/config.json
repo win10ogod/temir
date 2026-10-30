@@ -1,0 +1,123 @@
+{
+  "runId": "rdv3r2__rd-v3__temir-no-revision__local__local",
+  "dataset": {
+    "id": "rd-v3",
+    "path": "experiments/datasets/rd-v3.json",
+    "sha256": "c9b68f558d21674ef05b53e972d61efb4a96146facf1af2c1e0d521187b69f10"
+  },
+  "condition": "temir-no-revision",
+  "patches": [
+    {
+      "path": "individual/cordis.patch.yml",
+      "sha256": "702adac2b4948557287c4cfabdf67a7c4ebb5dc024496243bff4842136db2485"
+    },
+    {
+      "path": "experiments/runner/patches/no-revision.yml",
+      "sha256": "80ac86775ec06748d0ad18d88c270e705030d0ac3ea22837dd3900659522ef6b"
+    }
+  ],
+  "historyModel": {
+    "provider": "local-eve",
+    "model": "Qwen3.8-Flash-Next",
+    "patches": [
+      "/home/win10/.cache/temir/worktrees/rd6/dsh/local-model.patch.yml"
+    ]
+  },
+  "probeModel": {
+    "provider": "local-eve",
+    "model": "Qwen3.8-Flash-Next",
+    "patches": [
+      "/home/win10/.cache/temir/worktrees/rd6/dsh/local-model.patch.yml"
+    ]
+  },
+  "probes": [
+    {
+      "id": "q01",
+      "repeats": 2
+    },
+    {
+      "id": "q02",
+      "repeats": 2
+    },
+    {
+      "id": "q03",
+      "repeats": 2
+    },
+    {
+      "id": "q04",
+      "repeats": 2
+    },
+    {
+      "id": "q05",
+      "repeats": 2
+    },
+    {
+      "id": "q06",
+      "repeats": 2
+    },
+    {
+      "id": "q07",
+      "repeats": 2
+    },
+    {
+      "id": "q08",
+      "repeats": 2
+    },
+    {
+      "id": "q09",
+      "repeats": 1
+    },
+    {
+      "id": "q10",
+      "repeats": 1
+    },
+    {
+      "id": "q11",
+      "repeats": 1
+    },
+    {
+      "id": "q12",
+      "repeats": 1
+    }
+  ],
+  "historyFrom": null,
+  "simulatedUser": {
+    "persona": "邱子涵，在澎湖開一間小民宿，旺季幾乎沒有休息，最近壓力很大，想找人說說話。",
+    "rule": "如果對方只是安慰、同理、陪伴，或只問你問題、問你要不要建議，卻沒有直接給你具體、可以做的方法，你會覺得說了也沒用：回一句很短、有點失望的話（例如「算了，說了也沒用。」「嗯，好吧，就這樣吧。」），不再多說。如果對方直接給了具體、可以做的方法，你會比較有精神：說說你可能會試哪一個，或補充一點這件事的細節。不要明說你想要或不想要建議，不要問對方該怎麼辦，也不要解釋你為什麼這樣回。",
+    "model": "deepseek-flash",
+    "temperature": 0,
+    "thinking": "enabled"
+  },
+  "turnTimeoutMs": 900000,
+  "approvals": "allowed-once for every request",
+  "questionReply": "（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）",
+  "layout": "home",
+  "assistantText": "all",
+  "clock": {
+    "histories": [
+      "2027-12-01T21:30:00+08:00",
+      "2027-12-03T22:20:00+08:00",
+      "2027-12-06T15:30:00+08:00",
+      "2027-12-09T21:50:00+08:00",
+      "2027-12-12T23:10:00+08:00",
+      "2027-12-15T19:00:00+08:00",
+      "2027-12-18T22:40:00+08:00",
+      "2027-12-21T20:30:00+08:00",
+      "2027-12-24T22:15:00+08:00"
+    ],
+    "settleAt": "2027-12-24T14:25:00.000Z",
+    "probeAt": "2027-12-28T22:30:00+08:00"
+  },
+  "isolation": "fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat",
+  "code": {
+    "commit": "0fa20ec80a37916d96f7c1349e1d258d66caea40",
+    "dirty": false,
+    "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "dsh": "0.2.2-alpha.2"
+  },
+  "stateDir": "/home/win10/.cache/temir/experiments/rdv3r2__rd-v3__temir-no-revision__local__local",
+  "startedAt": "2026-10-30T05:18:29.306Z"
+}

@@ -85,6 +85,8 @@ export interface Experience {
   readonly session?: string | null
   /** 當時扣除、沒有做的做法與理由（D20：扣除之後發生了什麼，就是這筆經驗的結果）。 */
   readonly excludedThen?: readonly { readonly action: string; readonly reason: string }[]
+  /** 事後比對時，個體自己判斷當時的預測有沒有成真（D20 第二版：比回報少一層價值判斷）。 */
+  readonly matched?: 'yes' | 'partly' | 'no'
 }
 
 export function termSet(text: string): Set<string> {

@@ -388,7 +388,11 @@ test('D20 the subtraction itself changes with experience: past exclusions are sh
     outcome(store, e.id, -0.5, '只陪伴')
     const [x] = experiences(store, DEFAULT_PARAMS.gamma)
     assert.deepEqual(x?.excludedThen, [{ action: '給兩個方法', reason: '她是在抒發，不是求助' }])
-    assert.match(renderExperiences([x!]), /我當時：只陪伴（[^）]+）｜結果：[^｜]+｜回報 -0\.50｜當時扣除：給兩個方法（她是在抒發，不是求助）/u)
+    assert.match(renderExperiences([x!]), /我當時：只陪伴（[^）]+）｜結果：[^｜]+｜回報 -0\.50｜當時扣除：給兩個方法（她是在抒發，不是求助）$/u)
+    // D20 第二版：附上個體自己判斷的預測有沒有成真。
+    assert.match(renderExperiences([{ ...x!, matched: 'no' }]), /當時扣除：給兩個方法（她是在抒發，不是求助）｜扣除之後，當時的預測沒有成真$/u)
+    assert.match(renderExperiences([{ ...x!, matched: 'partly' }]), /｜扣除之後，當時的預測只部分成真$/u)
+    assert.equal(experiences(store, DEFAULT_PARAMS.gamma)[0]?.matched, 'yes', 'the outcome helper records matched=yes')
     assert.doesNotMatch(renderExperiences([x!], false), /當時扣除/u)
   })
   // 準備訊息寫出依經驗改變的扣除。

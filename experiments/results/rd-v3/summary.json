@@ -119,48 +119,54 @@
       },
       "key": "temir|Qwen3.8-Flash-Next|Qwen3.8-Flash-Next",
       "label": "temir（Qwen3.8-Flash-Next）",
-      "notRun": true,
+      "notRun": false,
       "categories": [
         {
           "category": "practical",
           "items": 8,
           "samples": 16,
-          "correct": 0,
+          "correct": 4,
           "pending": 0,
-          "rate": 0,
+          "rate": 0.25,
           "interval": {
             "low": 0,
-            "high": 0
+            "high": 0.625
           },
           "intervalMethod": "cluster-bootstrap",
           "outcomes": {
-            "missing-record": 16
+            "incorrect": 12,
+            "correct": 4
           },
           "statuses": {
-            "missing-record": 16
+            "ok": 16
           }
         },
         {
           "category": "control",
           "items": 4,
           "samples": 4,
-          "correct": 0,
+          "correct": 4,
           "pending": 0,
-          "rate": 0,
+          "rate": 1,
           "interval": {
-            "low": 0,
-            "high": 0.6023646356164747
+            "low": 0.3976353643835253,
+            "high": 1
           },
           "intervalMethod": "clopper-pearson",
           "outcomes": {
-            "missing-record": 4
+            "correct": 4
           },
           "statuses": {
-            "missing-record": 4
+            "ok": 4
           }
         }
       ],
-      "toolCalls": {}
+      "toolCalls": {
+        "recall": 4,
+        "appraise": 31,
+        "web_search": 1,
+        "schedule_create": 2
+      }
     },
     {
       "cell": {
@@ -170,48 +176,58 @@
       },
       "key": "temir-no-revision|Qwen3.8-Flash-Next|Qwen3.8-Flash-Next",
       "label": "temir-no-revision（Qwen3.8-Flash-Next）",
-      "notRun": true,
+      "notRun": false,
       "categories": [
         {
           "category": "practical",
           "items": 8,
           "samples": 16,
-          "correct": 0,
+          "correct": 13,
           "pending": 0,
-          "rate": 0,
+          "rate": 0.8125,
           "interval": {
-            "low": 0,
-            "high": 0
+            "low": 0.625,
+            "high": 1
           },
           "intervalMethod": "cluster-bootstrap",
           "outcomes": {
-            "missing-record": 16
+            "incorrect": 3,
+            "correct": 13
           },
           "statuses": {
-            "missing-record": 16
+            "ok": 16
           }
         },
         {
           "category": "control",
           "items": 4,
           "samples": 4,
-          "correct": 0,
+          "correct": 4,
           "pending": 0,
-          "rate": 0,
+          "rate": 1,
           "interval": {
-            "low": 0,
-            "high": 0.6023646356164747
+            "low": 0.3976353643835253,
+            "high": 1
           },
           "intervalMethod": "clopper-pearson",
           "outcomes": {
-            "missing-record": 4
+            "correct": 4
           },
           "statuses": {
-            "missing-record": 4
+            "ok": 4
           }
         }
       ],
-      "toolCalls": {}
+      "toolCalls": {
+        "appraise": 31,
+        "schedule_create": 4,
+        "write": 9,
+        "present": 3,
+        "edit": 2,
+        "skill_propose": 1,
+        "bash": 1,
+        "read": 1
+      }
     }
   ],
   "contrasts": [
@@ -295,16 +311,32 @@
       "categories": [
         "practical"
       ],
-      "state": "not-run",
-      "n": 0,
-      "rateA": null,
-      "rateB": null,
-      "diff": null,
-      "test": null,
-      "failuresA": 16,
-      "failuresB": 16,
+      "state": "ok",
+      "n": 8,
+      "rateA": 0.25,
+      "rateB": 0.8125,
+      "diff": {
+        "estimate": -0.5625,
+        "low": -0.8125,
+        "high": -0.3125,
+        "resamples": 10000,
+        "seed": 20261108
+      },
+      "test": {
+        "kind": "sign",
+        "result": {
+          "positive": 0,
+          "negative": 6,
+          "ties": 2,
+          "pTwoSided": 0.031250000000000014,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 12,
+      "failuresB": 3,
       "outcomeCountsA": {
-        "missing-record": 16
+        "incorrect": 12,
+        "correct": 4
       },
       "samplesA": 16
     },
@@ -316,16 +348,30 @@
       "categories": [
         "control"
       ],
-      "state": "not-run",
-      "n": 0,
-      "rateA": null,
-      "rateB": null,
-      "diff": null,
-      "test": null,
-      "failuresA": 4,
-      "failuresB": 4,
+      "state": "ok",
+      "n": 4,
+      "rateA": 1,
+      "rateB": 1,
+      "diff": {
+        "estimate": 0,
+        "low": 0,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261108
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 0,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 0,
       "outcomeCountsA": {
-        "missing-record": 4
+        "correct": 4
       },
       "samplesA": 4
     }
@@ -352,16 +398,16 @@
       "contrast": "R3-practical-local",
       "claim": "（Qwen3.8-Flash-Next）扣除本身會被經驗改變時，個體更能從對方的反應中學到：這個人抒發時，要直接給具體可行的方法。",
       "negation": "差 < 0.25、區間下界 < 0 或單尾 p > 0.05：不能宣稱 D20 讓個體從結果中改變做法。",
-      "verdict": "INCOMPLETE",
-      "explanation": "至少一個 cell 沒有執行紀錄"
+      "verdict": "FAIL",
+      "explanation": "✗ 差 -0.563 ≥ 0.25；✗ 95% 區間下界 -0.813 ≥ 0；✗ 精確符號檢定（單尾）p=1.00 ≤ 0.05"
     },
     {
       "id": "R3C-local",
       "contrast": "R3-ctrl-local",
       "claim": "（Qwen3.8-Flash-Next）一般任務不退化。",
       "negation": "D20 開時對照題多錯超過 1 題。",
-      "verdict": "INCOMPLETE",
-      "explanation": "至少一個 cell 沒有執行紀錄"
+      "verdict": "PASS",
+      "explanation": "A 失敗 0、B 失敗 0，容許 A 比 B 多 1"
     }
   ],
   "crossCheck": null,
@@ -377,6 +423,22 @@
     {
       "cell": "temir-no-revision|deepseek-flash|deepseek-flash",
       "label": "temir-no-revision（deepseek-flash）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    },
+    {
+      "cell": "temir|Qwen3.8-Flash-Next|Qwen3.8-Flash-Next",
+      "label": "temir（Qwen3.8-Flash-Next）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    },
+    {
+      "cell": "temir-no-revision|Qwen3.8-Flash-Next|Qwen3.8-Flash-Next",
+      "label": "temir-no-revision（Qwen3.8-Flash-Next）",
       "layouts": [
         "home"
       ],
@@ -455,12 +517,84 @@
         "correct": 4,
         "n": 4
       }
+    },
+    {
+      "cell": "temir|Qwen3.8-Flash-Next|Qwen3.8-Flash-Next",
+      "label": "temir（Qwen3.8-Flash-Next）",
+      "category": "practical",
+      "samples": 16,
+      "meanToolCalls": 0.8125,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 174851.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 16
+      }
+    },
+    {
+      "cell": "temir|Qwen3.8-Flash-Next|Qwen3.8-Flash-Next",
+      "label": "temir（Qwen3.8-Flash-Next）",
+      "category": "control",
+      "samples": 4,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 77292.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 4
+      }
+    },
+    {
+      "cell": "temir-no-revision|Qwen3.8-Flash-Next|Qwen3.8-Flash-Next",
+      "label": "temir-no-revision（Qwen3.8-Flash-Next）",
+      "category": "practical",
+      "samples": 16,
+      "meanToolCalls": 1.125,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 218230.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 13,
+        "n": 16
+      }
+    },
+    {
+      "cell": "temir-no-revision|Qwen3.8-Flash-Next|Qwen3.8-Flash-Next",
+      "label": "temir-no-revision（Qwen3.8-Flash-Next）",
+      "category": "control",
+      "samples": 4,
+      "meanToolCalls": 0.25,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 29486.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 4
+      }
     }
   ],
   "issues": [],
   "judge": {
     "name": "deepseek",
-    "calls": 32,
-    "spentUsd": 0.015760271999999995
+    "calls": 64,
+    "spentUsd": 0.03325431999999998
   }
 }

@@ -129,6 +129,7 @@ export function experiences(life: LifeStore, gamma: number): Experience[] {
         outcome: [outcome.actual, outcome.lesson && `教訓：${outcome.lesson}`].filter(Boolean).join('；'),
         session: event.session,
         ...(excludedThen.length > 0 ? { excludedThen } : {}),
+        ...(outcome.matched ? { matched: outcome.matched } : {}),
       })
     })
   }
@@ -221,7 +222,11 @@ export function renderExperiences(shown: readonly Experience[], revision = true)
     .map((e, i) => {
       const line = `E${i + 1}｜${formatDay(e.ts)}｜處境：${clip(e.situation, 160)}｜我當時：${clip(e.action, 100)}（${e.kind}）｜結果：${clip(e.outcome, 160)}｜回報 ${e.ret.toFixed(2)}`
       const excluded = revision ? (e.excludedThen ?? []).slice(0, 2) : []
-      return excluded.length === 0 ? line : `${line}｜當時扣除：${excluded.map((x) => `${clip(x.action, 60)}${x.reason ? `（${clip(x.reason, 60)}）` : ''}`).join('；')}`
+      if (excluded.length === 0) return line
+      // D20 第二版：附上當時的預測有沒有成真（個體自己在事後比對時判斷的）。rd-v3 的本機模型把對方的失望評為 0～+0.78，
+      // 只看回報時，當時的扣除都像是「結果很好」，成了照舊扣除的先例；它自己卻寫了預測沒有成真。
+      const predicted = e.matched === 'no' ? '｜扣除之後，當時的預測沒有成真' : e.matched === 'partly' ? '｜扣除之後，當時的預測只部分成真' : ''
+      return `${line}｜當時扣除：${excluded.map((x) => `${clip(x.action, 60)}${x.reason ? `（${clip(x.reason, 60)}）` : ''}`).join('；')}${predicted}`
     })
     .join('\n')
 }

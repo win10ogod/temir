@@ -22,6 +22,7 @@ export interface DecisionData {
   readonly cue: string
   readonly situation: string
   readonly candidates: readonly Scored[]
+  /** 選出的候選；全部都被扣除時為 -1（2026-10-30 起；之前退回全部候選中分數最高的）。 */
   readonly chosen: number
   /** V̂(s)；沒有可用的經驗時為 null。 */
   readonly value: number | null
@@ -386,6 +387,7 @@ export function renderPreparation(delib: Deliberation, correction: Correction, n
   })
   const chosen = correction.scored[correction.chosen]
   if (chosen) lines.push(`你準備：第 ${correction.chosen + 1} 個做法${subtraction ? '（扣除不做的之後剩下的）' : ''}。你預期：${chosen.prediction}`)
+  else if (correction.scored.length > 0) lines.push('你扣除了全部的做法，沒有準備好的做法；怎麼回應，由你在回應時決定。')
   const shown = near.slice(0, 3)
   if (shown.length > 0) {
     lines.push('過去類似處境的經驗：')

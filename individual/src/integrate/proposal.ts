@@ -66,6 +66,8 @@ export interface Criterion {
   readonly holds: boolean
   readonly reason: string
   readonly evidence: readonly string[]
+  /** 個體沒有寫這項判斷（或 holds 不是 true／false）：不是「不成立」，是沒有判斷（重問之後仍缺時保留為提案）。 */
+  readonly missing?: true
 }
 
 export interface Revision {
@@ -125,10 +127,13 @@ function objects(value: unknown): Record<string, unknown>[] {
   return Array.isArray(value) ? value.filter((v): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)) : []
 }
 
+function judged(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value) && typeof (value as Record<string, unknown>)['holds'] === 'boolean'
+}
+
 function criterion(value: unknown): Criterion {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return { holds: false, reason: '', evidence: [] }
-  const v = value as Record<string, unknown>
-  return { holds: v['holds'] === true, reason: text(v['reason'], 600), evidence: strings(v['evidence'], 10, 200) }
+  if (!judged(value)) return { holds: false, reason: '', evidence: [], missing: true }
+  return { holds: value['holds'] === true, reason: text(value['reason'], 600), evidence: strings(value['evidence'], 10, 200) }
 }
 
 function revision(value: unknown): Revision | null {
@@ -203,6 +208,36 @@ export function parseProposal(output: string): Proposal | undefined {
   }
 }
 
+/**
+ * 整合的輸出中要重問的地方（改進清單第 6 項：程式不替個體決定不採用）：不是 JSON 物件；
+ * PC 修訂（selfRevision、story、每個 goals 與 opinions 項目）缺少穩定性或適應性的判斷（holds 不是 true／false）。
+ * 提示本來就要求這兩項；判斷的內容（成立與否、理由、證據）仍由個體決定。
+ */
+export function proposalProblems(output: string): string[] {
+  const obj = extractJson(output)
+  if (!obj) return ['不是 JSON 物件']
+  const problems: string[] = []
+  const check = (name: string, item: Record<string, unknown>) => {
+    for (const c of ['stability', 'adaptability'] as const) if (!judged(item[c])) problems.push(`${name} 缺少 ${c} 的判斷`)
+  }
+  for (const k of ['selfRevision', 'story'] as const) {
+    const v = obj[k]
+    if (typeof v === 'object' && v !== null && !Array.isArray(v) && text((v as Record<string, unknown>)['text'], 10)) check(k, v as Record<string, unknown>)
+  }
+  objects(obj['goals']).forEach((g, i) => {
+    if (text(g['op'], 10) in GOAL_OPS) check(`goals 第 ${i + 1} 項`, g)
+  })
+  objects(obj['opinions']).forEach((o, i) => {
+    if (['add', 'revise', 'drop'].includes(text(o['op'], 10))) check(`opinions 第 ${i + 1} 項`, o)
+  })
+  return problems
+}
+
+/** 整合的輸出要重問時所附的說明，列出不合格的地方。 */
+export function integrateRetryNote(problems: readonly string[]): string {
+  return `（重寫一次：上一次的整合輸出不完整。只輸出一個完整的 JSON 物件；selfRevision、story 與每個 goals、opinions 項目都要寫 stability 與 adaptability 兩項判斷，格式 {"holds": true 或 false, "reason": "...", "evidence": ["事件 id"]}，holds 照你的真實判斷寫。不合格的地方：${problems.join('；')}）`
+}
+
 export interface Rejection {
   readonly item: string
   readonly reason: string
@@ -222,9 +257,11 @@ export interface Deferral {
  */
 function dualCheck(life: LifeStore, ev: Evidence, item: { readonly stability: Criterion; readonly adaptability: Criterion }): string {
   const failures: string[] = []
-  if (!item.stability.holds) failures.push('穩定性不成立')
+  if (item.stability.missing) failures.push('沒有判斷穩定性')
+  else if (!item.stability.holds) failures.push('穩定性不成立')
   else if (item.stability.evidence.length === 0 || !item.stability.evidence.every((id) => life.get(id) !== undefined)) failures.push('穩定性沒有可查的證據')
-  if (!item.adaptability.holds) failures.push('適應性不成立')
+  if (item.adaptability.missing) failures.push('沒有判斷適應性')
+  else if (!item.adaptability.holds) failures.push('適應性不成立')
   else if (item.adaptability.evidence.length === 0 || !item.adaptability.evidence.every((id) => ev.ids.has(id))) failures.push('適應性沒有這段期間的證據')
   return failures.join('、')
 }

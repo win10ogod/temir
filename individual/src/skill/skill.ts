@@ -187,7 +187,31 @@ export interface Composed {
   readonly revised?: Pick<SkillDraft, 'description' | 'whenToUse' | 'content'>
 }
 
-/** 合成的判斷。看不懂時當作 reject：沒有可以採用的證據。 */
+/**
+ * 合成的判斷要重問的地方（改進清單第 6 項：看不懂時不再直接當作 reject，先重問一次）：
+ * 不是 JSON 物件；verdict 不是 adopt／revise／reject；adopt 沒有指出具體差異的理由；revise 沒有修改後的內容。
+ */
+export function composeProblems(output: string): string[] {
+  const obj = extractJson(output)
+  if (!obj) return ['不是 JSON 物件']
+  const verdict = text(obj['verdict'], 10)
+  if (verdict !== 'adopt' && verdict !== 'revise' && verdict !== 'reject') return ['verdict 不是 adopt、revise 或 reject']
+  const reasons = Array.isArray(obj['reasons']) ? (obj['reasons'] as unknown[]).filter((r) => typeof r === 'object' && r !== null && text((r as Record<string, unknown>)['observation'], 400)) : []
+  const problems: string[] = []
+  if (verdict === 'adopt' && reasons.length === 0) problems.push('adopt 沒有指出是哪個處境、看到了什麼差異')
+  if (verdict === 'revise') {
+    const r = obj['revised']
+    if (typeof r !== 'object' || r === null || !text((r as Record<string, unknown>)['content'], 10)) problems.push('revise 沒有給修改後的技能內容（revised.content）')
+  }
+  return problems
+}
+
+/** 合成的判斷要重問時所附的說明。 */
+export function composeRetryNote(problems: readonly string[]): string {
+  return `（重寫一次：上一次的判斷不完整。只輸出一個完整的 JSON 物件；verdict 只能是 adopt、revise 或 reject，每個理由都要指出處境（S1、S2…）與看到的差異，revise 時要給 revised。不合格的地方：${problems.join('；')}）`
+}
+
+/** 合成的判斷。重問之後仍看不懂時當作 reject：沒有可以採用的證據（照實記下理由）。 */
 export function parseCompose(output: string): Composed {
   const obj = extractJson(output)
   const verdict = text(obj?.['verdict'], 10)
@@ -202,7 +226,8 @@ export function parseCompose(output: string): Composed {
     if (revised.content) return { verdict, reasons, revised }
   }
   if (verdict === 'adopt' && reasons.length > 0) return { verdict, reasons }
-  return { verdict: 'reject', reasons: reasons.length > 0 ? reasons : [{ situation: '', observation: '判斷看不懂或沒有指出具體的差異，不採用。' }] }
+  const problems = composeProblems(output)
+  return { verdict: 'reject', reasons: reasons.length > 0 && problems.length === 0 ? reasons : [{ situation: '', observation: `判斷看不懂或沒有指出具體的差異，不採用。${problems.length > 0 ? `（${problems.join('；')}）` : ''}` }, ...reasons] }
 }
 
 export interface ProbeSituation {
@@ -407,7 +432,12 @@ export async function runGate(life: LifeStore, proposal: LifeEvent, call: ModelC
     probeIds.push(event.id)
     results.push({ s, label, reference, candidate })
   }
-  const composed = parseCompose(await call(COMPOSE_SYSTEM, composeInput(life, p, results), 'skill-compose'))
+  // 合成的判斷不合格時，附上問題重問一次；仍不合格就照實記下為 reject（parseCompose）。
+  const composeIn = composeInput(life, p, results)
+  let composeOut = await call(COMPOSE_SYSTEM, composeIn, 'skill-compose')
+  const problems = composeProblems(composeOut)
+  if (problems.length > 0) composeOut = await call(`${COMPOSE_SYSTEM}\n${composeRetryNote(problems)}`, composeIn, 'skill-compose')
+  const composed = parseCompose(composeOut)
   const costChars = p.content.length - (current?.content.length ?? 0)
   if (composed.verdict === 'adopt') {
     return { decision: decide({ verdict: 'adopt', reasons: composed.reasons, skill: draft, gate: 'contrast', costChars, probes: probeIds }) }

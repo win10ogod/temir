@@ -28,8 +28,8 @@ import { auxRecord, modelCaller, type AuxRoute, type CallModel, type Log } from 
 import { clip, clipEnds, sessionSoFar } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
-import { DELIBERATION_RETRY_NOTE, REVISION_SYSTEM, deliberateSystem, outcomeRetryNote, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, revisionRetryNote, withoutExclusions } from './aux.ts'
-import { DEFAULT_PARAMS, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
+import { ALL_EXCLUDED_NOTE, DELIBERATION_RETRY_NOTE, REVISION_SYSTEM, deliberateSystem, outcomeRetryNote, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, revisionRetryNote, withoutExclusions } from './aux.ts'
+import { DEFAULT_PARAMS, allExcluded, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
 import { REPLAY_KIND, adoptedParams } from './replay.ts'
 import {
   DECISION_KIND,
@@ -228,13 +228,15 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
       const system = outcomeSystem(energy)
       const session = decision.session ?? undefined
       const output = await call('outcome', route, system, input, session, [decision.id])
-      let parsed = output === undefined ? undefined : parseOutcome(output)
+      // 能量開時，released 只能指名輸入中列出的懸著的事（認不得的編號也要重問）。
+      const known = energy ? labels : undefined
+      let parsed = output === undefined ? undefined : parseOutcome(output, known)
       const problems: string[] = output === undefined ? ['比對的呼叫失敗'] : []
       // 強制判斷：不合格時附上問題重問一次（呼叫失敗時不重問，與思考相同）；仍不合格就記下失敗，不寫 rd/outcome。
       if (parsed && !parsed.ok && life.isOpen) {
         problems.push(...parsed.problems.map((p) => `第 1 次：${p}`))
         const again = await call('outcome', route, `${system}\n${outcomeRetryNote(parsed.problems)}`, input, session, [decision.id])
-        parsed = again === undefined ? undefined : parseOutcome(again)
+        parsed = again === undefined ? undefined : parseOutcome(again, known)
         if (!parsed) problems.push('第 2 次：比對的呼叫失敗')
         else if (!parsed.ok) problems.push(...parsed.problems.map((p) => `第 2 次：${p}`))
       }
@@ -358,6 +360,12 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         parsed = again === undefined ? undefined : parseDeliberation(again, labels)
       }
       if (!parsed) return undefined
+      // 全部的做法都被扣除時，附上說明重問一次（程式不替個體改選）；重問的輸出不能用時保留第一次的。
+      // 仍全部扣除，就照實記下：沒有準備好的做法（chosen＝-1），由主模型在回應時決定。
+      if (subtraction && allExcluded(parsed.candidates) && !signal.aborted) {
+        const again = await call('deliberate', route, `${system}\n${ALL_EXCLUDED_NOTE}`, input, session, [], signal)
+        parsed = (again === undefined ? undefined : parseDeliberation(again, labels)) ?? parsed
+      }
       // 處境、drive、候選與扣除理由都會進入準備訊息與紀錄：把編號換成那件事的描述（編號只在這次思考的輸入中有意義）。
       // dev5：處境寫著「她欠我回覆的：…（P1」，主模型的推理跟著寫「不該再讓 P1、P2 無限懸著」。
       const deliberation = mapDeliberationText(subtraction ? parsed : withoutExclusions(parsed), (s) => unlabel(s, potentialLabels, heldNow))

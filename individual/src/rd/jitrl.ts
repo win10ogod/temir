@@ -177,7 +177,7 @@ export interface Correction {
   readonly scored: readonly Scored[]
   /** V̂(s)；沒有鄰居時為 null。 */
   readonly value: number | null
-  /** 沒有被 RD 扣除的候選中，修正後分數最高的（同分取模型原本的順序）。 */
+  /** 沒有被 RD 扣除的候選中，修正後分數最高的（同分取模型原本的順序）；全部都被扣除時為 -1（沒有準備好的做法）。 */
   readonly chosen: number
 }
 
@@ -185,19 +185,19 @@ function mean(values: readonly number[]): number {
   return values.reduce((a, b) => a + b, 0) / values.length
 }
 
-function argmax(values: readonly number[]): number {
-  let best = 0
-  for (let i = 1; i < values.length; i++) if (values[i]! > values[best]!) best = i
-  return best
+/** 全部的候選都被 RD 扣除了（思考的提示要求至少保留一個不扣除的做法）。 */
+export function allExcluded(candidates: readonly Candidate[]): boolean {
+  return candidates.length > 0 && candidates.every((c) => c.excluded)
 }
 
 /**
  * 在沒有被 RD 扣除的候選中，取分數最高的（本專案的延伸：論文在全部候選中選擇）。
- * 全部都被扣除時，扣除照實保留在紀錄中，選擇退回全部候選，讓個體仍有一個準備好的做法。
+ * 全部都被扣除時回傳 -1：程式不替個體改選（改進清單第 6 項；之前退回全部候選中分數最高的）。
+ * 思考會先附上說明重問一次（rd/index.ts）；仍全部扣除，就照實記下沒有準備好的做法，由主模型在回應時決定。
  */
 export function chooseAmong(values: readonly number[], candidates: readonly Candidate[]): number {
   const allowed = values.map((_, i) => i).filter((i) => !candidates[i]?.excluded)
-  if (allowed.length === 0) return argmax(values)
+  if (allowed.length === 0) return -1
   return allowed.reduce((best, i) => (values[i]! > values[best]! ? i : best), allowed[0]!)
 }
 

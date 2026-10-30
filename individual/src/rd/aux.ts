@@ -130,6 +130,9 @@ export function revisionRetryNote(problems: readonly string[]): string {
 
 /** 思考的輸出無法解析時，重試一次所附的說明（不同模型照格式的能力不同；插件不能只對某些模型有效）。 */
 export const DELIBERATION_RETRY_NOTE = '（重寫一次：上一次的輸出不是完整的 JSON 物件，或缺少 candidates。只輸出一個完整的 JSON 物件，candidates 剛好 3 個做法。）'
+
+/** 思考把全部做法都扣除時，重問一次所附的說明（提示本來就要求「至少保留一個不扣除的做法」；改進清單第 6 項）。 */
+export const ALL_EXCLUDED_NOTE = '（重寫一次：上一次的輸出把全部的做法都扣除了。至少保留一個不扣除的做法：candidates 中至少一個的 excluded 是 false。要扣除哪些、保留哪一個，仍由你判斷。）'
 export const OUTCOME_SYSTEM = outcomeSystem(true)
 
 export interface Person {
@@ -273,10 +276,11 @@ function releases(value: unknown): { text: string; refs: string[] } {
  * matched 會進入意外的勢能（self/energy.ts）與 D20「預測有沒有成真」（memory.ts），significance 決定感受紀錄與深度整合，
  * 所以缺了就列出問題，由呼叫端附上 outcomeRetryNote 重問；仍不合格就記下失敗，不當成經驗。
  * didKind 不在必填之列（改進清單第 2 項的範圍），認不得時仍記為「其他」。
+ * labels＝輸入中懸著的事的編號（能量開時）：released 寫了認不得的編號也是問題，不靜默丟掉（改進清單第 6 項）。
  */
 export type OutcomeParse = { readonly ok: true; readonly judgment: OutcomeJudgement } | { readonly ok: false; readonly problems: readonly string[] }
 
-export function parseOutcome(output: string): OutcomeParse {
+export function parseOutcome(output: string, labels?: ReadonlyMap<string, string>): OutcomeParse {
   const obj = extractJson(output)
   if (!obj) return { ok: false, problems: ['不是 JSON 物件'] }
   const problems: string[] = []
@@ -288,6 +292,8 @@ export function parseOutcome(output: string): OutcomeParse {
   if (!didAction) problems.push('didAction 是空的')
   const significance = text(obj['significance'], 10)
   if (!(SIGNIFICANCE as readonly string[]).includes(significance)) problems.push(`significance 不是 ${SIGNIFICANCE.join('、')} 之一`)
+  const released = releases(obj['released'])
+  if (labels) for (const ref of released.refs) if (!labels.has(ref.trim().toUpperCase())) problems.push(`released 的「${ref}」不是輸入中列出的懸著的事的編號`)
   if (problems.length > 0 || typeof reward !== 'number' || (matched !== 'yes' && matched !== 'partly' && matched !== 'no')) return { ok: false, problems }
   return {
     ok: true,
@@ -302,8 +308,8 @@ export function parseOutcome(output: string): OutcomeParse {
       lesson: text(obj['lesson'], 300),
       feeling: text(obj['feeling'], 300),
       significance: significance as Significance,
-      released: releases(obj['released']).text,
-      releasedRefs: releases(obj['released']).refs,
+      released: released.text,
+      releasedRefs: released.refs,
       left: lefts(obj['left']),
     },
   }

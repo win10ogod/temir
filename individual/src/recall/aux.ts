@@ -170,7 +170,7 @@ export function addUsage(a: TokenUsage | null, b: TokenUsage | null): TokenUsage
  * 輔助模型呼叫的介面：rd 與 recall 的 pre-step 以它注入（正式執行是 modelCaller(ctx)，單元測試以測試替身取代）。
  * 與 callModel 相同：失敗時丟出例外。
  */
-export type CallModel = (route: AuxRoute, system: string, input: string, signal: AbortSignal) => Promise<ModelResult>
+export type CallModel = (route: AuxRoute, system: string, input: string, signal: AbortSignal, maxTokens?: number) => Promise<ModelResult>
 
 /** 記錄錯誤用（cordis 的 Logger 符合這個形狀）。 */
 export interface Log {
@@ -180,7 +180,7 @@ export interface Log {
 
 /** 正式執行用的 CallModel：經由 DSH 的模型服務呼叫（callModel）。 */
 export function modelCaller(ctx: Context): CallModel {
-  return (route, system, input, signal) => callModel(ctx, route, system, input, signal)
+  return (route, system, input, signal, maxTokens) => callModel(ctx, route, system, input, signal, maxTokens)
 }
 
 /**

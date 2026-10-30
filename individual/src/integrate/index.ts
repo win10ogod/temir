@@ -21,11 +21,11 @@ import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
-import { auxRecord, callModel, type AuxRoute } from '../recall/aux.ts'
+import { auxRecord, modelCaller, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
 import { clip, isHeard } from '../recall/retrieve.ts'
 import { KIND, type AppraisalData } from '../self/state.ts'
 import { INTEGRATION_KIND, collect, integrationStart, renderEvidence, type IntegrationTrigger } from './evidence.ts'
-import { DEEP_SYSTEM, INTEGRATE_SYSTEM, applyProposal, parseProposal, validate } from './proposal.ts'
+import { DEEP_SYSTEM, INTEGRATE_SYSTEM, applyProposal, integrateRetryNote, parseProposal, proposalProblems, validate } from './proposal.ts'
 import { DEFAULT_PARAMS } from '../rd/jitrl.ts'
 import { replayCases } from '../rd/memory.ts'
 import { REPLAY_KIND, adoptedParams, replay } from '../rd/replay.ts'
@@ -74,61 +74,84 @@ export function due(life: LifeStore, intervalHours: number, minRounds: number, n
   return { due: rounds > 0 && (deep || (rounds >= minRounds && elapsed)), deep }
 }
 
+/** 整合的依賴：生命日誌、輔助模型呼叫（正式執行是 modelCaller(ctx)；單元測試以測試替身注入）與記錄。 */
+export interface IntegrateDeps {
+  readonly life: LifeStore
+  readonly call: CallModel
+  readonly logger: Log
+}
+
+/**
+ * 一次整合（流程見檔頭）。輸出解析不了、或 PC 修訂缺少穩定性與適應性的判斷時，附上問題重問一次（proposalProblems）；
+ * 重問的輸出能解析就用它，否則用第一次的。呼叫失敗時不重問。回傳給工具與紀錄看的說明。
+ */
+export async function runIntegration(deps: IntegrateDeps, config: Config | undefined, trigger: IntegrationTrigger, deepRequested: boolean): Promise<string> {
+  const { life, logger } = deps
+  const timeoutMs = config?.timeoutMs ?? 180_000
+  const since = integrationStart(life)
+  const pivotal = collect(life, since).pivotal
+  const deep = deepRequested || pivotal
+  // 深度整合（H4）重新檢視核心價值、人生敘事與長期目標，需要整段生命的經歷（仍受各類上限約束），
+  // 不只是上次整合之後的新事件；一般整合只看新的經歷。排程都推進到現在。
+  const ev = collect(life, deep ? 0 : since, undefined, config?.energy ?? true)
+  if (ev.rounds.length === 0 && ev.appraisals.length === 0 && ev.outcomes.length === 0) return '上次整合以後沒有新的經歷，這次沒有整合。'
+  const route = latestRoute(life)
+  if (!route) return '找不到可用的模型路由，這次沒有整合。'
+  const model = `${route.provider}/${route.model}`
+  const input = renderEvidence(life, ev)
+  const system = deep ? DEEP_SYSTEM : INTEGRATE_SYSTEM
+  async function ask(prompt: string): Promise<{ readonly output: string } | { readonly error: unknown }> {
+    try {
+      // 會推理的模型可能把大部分 token 用在推理（e2e-13 中 Nemotron 在 8192 上限下只輸出 287 字的殘缺 JSON），所以上限放寬。
+      const call = await deps.call(route!, prompt, input, AbortSignal.timeout(timeoutMs), 32_000)
+      life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'integrate', ...auxRecord(call), input: clip(input, 12_000), output: call.output } })
+      return { output: call.output }
+    } catch (error) {
+      if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'integrate', error: String(error), input: clip(input, 12_000) } })
+      return { error }
+    }
+  }
+  const first = await ask(system)
+  if ('error' in first) return `整合的模型呼叫失敗（${String(first.error)}），這次沒有修改任何紀錄。`
+  let output = first.output
+  const problems = proposalProblems(output)
+  if (problems.length > 0 && life.isOpen) {
+    const again = await ask(`${system}\n${integrateRetryNote(problems)}`)
+    if ('output' in again && parseProposal(again.output)) output = again.output
+  }
+  const proposal = parseProposal(output)
+  if (!proposal) return '整合的輸出無法解析（重問一次之後仍無法解析），這次沒有修改任何紀錄。'
+  const { accepted, rejected, deferred } = validate(life, ev, proposal)
+  const result = life.transaction(() => applyProposal(life, ev, accepted, rejected, deferred, { trigger, deep, model, output }))
+  if (config?.replay ?? true) {
+    // 日誌重播（M2，ADR-0002 D16）：整合之後，在已記錄的決定上評估 JitRL 經驗估計的參數；純計算，不呼叫模型。
+    try {
+      const replayed = replay(replayCases(life, DEFAULT_PARAMS.gamma), { ...DEFAULT_PARAMS, ...adoptedParams(life.all(REPLAY_KIND)) })
+      if (replayed) life.append({ kind: REPLAY_KIND, origin: 'self', data: replayed, causes: [result.integration] })
+    } catch (error) {
+      logger.warn('replay failed: %s', error)
+    }
+  }
+  const parts = [
+    `${deep ? '深度' : ''}整合完成（${result.integration}）：`,
+    `教訓 ${accepted.lessons.length}、重新評價 ${accepted.reappraisals.length}、自我模型${accepted.selfRevision ? '已修訂' : '未修訂'}、人生敘事${accepted.story ? '已改寫' : '未改寫'}、目標變更 ${accepted.goals.length}、過時事實 ${accepted.outdated.length}；`,
+    `未解的矛盾 ${accepted.contradictions.length} 條；`,
+    `保留為提案 ${deferred.length} 項${deferred.length > 0 ? `（${deferred.map((d) => `${d.kind}：${d.reason}`).join('；')}）` : ''}；`,
+    `丟棄 ${rejected.length} 項${rejected.length > 0 ? `（${rejected.map((r) => `${r.item}：${r.reason}`).join('；')}）` : ''}。`,
+  ]
+  if (accepted.change) parts.push(`\n${accepted.change}`)
+  return parts.join('')
+}
+
 export function apply(ctx: Context, config: Config | undefined): void {
   const life = ctx.life
   const logger = ctx.logger('temir-integrate')
-  const timeoutMs = config?.timeoutMs ?? 180_000
+  const deps: IntegrateDeps = { life, call: modelCaller(ctx), logger }
   let running: Promise<string> | undefined
-
-  async function integrate(trigger: IntegrationTrigger, deepRequested: boolean): Promise<string> {
-    const since = integrationStart(life)
-    const pivotal = collect(life, since).pivotal
-    const deep = deepRequested || pivotal
-    // 深度整合（H4）重新檢視核心價值、人生敘事與長期目標，需要整段生命的經歷（仍受各類上限約束），
-    // 不只是上次整合之後的新事件；一般整合只看新的經歷。排程都推進到現在。
-    const ev = collect(life, deep ? 0 : since, undefined, config?.energy ?? true)
-    if (ev.rounds.length === 0 && ev.appraisals.length === 0 && ev.outcomes.length === 0) return '上次整合以後沒有新的經歷，這次沒有整合。'
-    const route = latestRoute(life)
-    if (!route) return '找不到可用的模型路由，這次沒有整合。'
-    const model = `${route.provider}/${route.model}`
-    const input = renderEvidence(life, ev)
-    let output: string
-    try {
-      // 會推理的模型可能把大部分 token 用在推理（e2e-13 中 Nemotron 在 8192 上限下只輸出 287 字的殘缺 JSON），所以上限放寬。
-      const call = await callModel(ctx, route, deep ? DEEP_SYSTEM : INTEGRATE_SYSTEM, input, AbortSignal.timeout(timeoutMs), 32_000)
-      output = call.output
-      life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'integrate', ...auxRecord(call), input: clip(input, 12_000), output } })
-    } catch (error) {
-      if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'integrate', error: String(error), input: clip(input, 12_000) } })
-      return `整合的模型呼叫失敗（${String(error)}），這次沒有修改任何紀錄。`
-    }
-    const proposal = parseProposal(output)
-    if (!proposal) return '整合的輸出無法解析，這次沒有修改任何紀錄。'
-    const { accepted, rejected, deferred } = validate(life, ev, proposal)
-    const result = life.transaction(() => applyProposal(life, ev, accepted, rejected, deferred, { trigger, deep, model, output }))
-    if (config?.replay ?? true) {
-      // 日誌重播（M2，ADR-0002 D16）：整合之後，在已記錄的決定上評估 JitRL 經驗估計的參數；純計算，不呼叫模型。
-      try {
-        const replayed = replay(replayCases(life, DEFAULT_PARAMS.gamma), { ...DEFAULT_PARAMS, ...adoptedParams(life.all(REPLAY_KIND)) })
-        if (replayed) life.append({ kind: REPLAY_KIND, origin: 'self', data: replayed, causes: [result.integration] })
-      } catch (error) {
-        logger.warn('replay failed: %s', error)
-      }
-    }
-    const parts = [
-      `${deep ? '深度' : ''}整合完成（${result.integration}）：`,
-      `教訓 ${accepted.lessons.length}、重新評價 ${accepted.reappraisals.length}、自我模型${accepted.selfRevision ? '已修訂' : '未修訂'}、人生敘事${accepted.story ? '已改寫' : '未改寫'}、目標變更 ${accepted.goals.length}、過時事實 ${accepted.outdated.length}；`,
-      `未解的矛盾 ${accepted.contradictions.length} 條；`,
-      `保留為提案 ${deferred.length} 項${deferred.length > 0 ? `（${deferred.map((d) => `${d.kind}：${d.reason}`).join('；')}）` : ''}；`,
-      `丟棄 ${rejected.length} 項${rejected.length > 0 ? `（${rejected.map((r) => `${r.item}：${r.reason}`).join('；')}）` : ''}。`,
-    ]
-    if (accepted.change) parts.push(`\n${accepted.change}`)
-    return parts.join('')
-  }
 
   function start(trigger: IntegrationTrigger, deep: boolean): Promise<string> {
     if (running) return running
-    running = integrate(trigger, deep)
+    running = runIntegration(deps, config, trigger, deep)
       .catch((error: unknown) => {
         logger.error('integration failed: %s', error)
         return `整合失敗：${String(error)}`

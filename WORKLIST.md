@@ -215,6 +215,13 @@
   - `experiments/eval/lib/cost.ts`（價表與彙總）與 `experiments/eval/cost.ts`（CLI）：每個 run 分開算，離峰與尖峰各一個數。flash 的價格來自 `research/log/2026-10-28-s02.md:9`；deepseek-v4-pro 查不到，留空、花費標為未知；尖峰時段沒有記錄，所以不猜。
   - 未驗證：模擬使用者回應中的用量欄位名（OpenAI 相容格式）依 DeepSeek 文件，repo 中還沒有實際回應可對照。
   - 測試：假串流（測試替身）含 usage 與 finish chunk；成本算術的表驅動測試。以既有的 rdv4h1 紀錄試跑 CLI（只讀），舊紀錄沒有模擬使用者的用量，照實標為低估。
+- [x] 第 6 項：其他「程式替模型決定」的地方改成驗證與重問（提示的意思不變，重問說明只重述提示本來的要求）。
+  - RD 全部扣除：附 `ALL_EXCLUDED_NOTE` 重問一次；仍全部扣除就照實記下 `chosen: -1`，準備訊息寫「沒有準備好的做法」，不再退回分數最高的（`chooseAmong`）。
+  - 事後比對：`released` 中認不得的懸念編號列為問題，納入第 2 項的重問（能量開時）。
+  - 整合：`proposalProblems` 列出缺少穩定性或適應性判斷的 PC 修訂，解析不了也算；重問一次（`runIntegration`，可注入 `call`）。仍缺時保留為提案，理由寫「沒有判斷」而不是「不成立」。
+  - 技能閘門：`composeProblems` 看不懂時重問一次；仍不合格就記為 reject，理由附上問題。
+  - 測試：`individual/test/offline-judgments.test.ts`（驗證器與控制流，測試替身）。
+  - 效果未驗證（需真實測試）。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID

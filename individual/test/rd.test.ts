@@ -140,6 +140,13 @@ test('parseOutcome: the judgment is mandatory; every missing or invalid required
   assert.deepEqual(problems(required({ significance: 'huge' })), ['significance 不是 daily、notable、major、pivotal 之一'])
   assert.deepEqual(problems('{}'), ['reward 不是數', 'matched 不是 yes、partly 或 no', 'didAction 是空的', 'significance 不是 daily、notable、major、pivotal 之一'])
   assert.deepEqual(problems('不是 JSON'), ['不是 JSON 物件'])
+  // 能量開時（給了編號），released 的編號要認得；沒有給編號（能量關）時不檢查。
+  const labels = new Map([['P1', 'left:a#0']])
+  const withRefs = required({ released: [{ item: 'p1', how: '做到了' }, { item: 'P7', how: '?' }, { item: 'g:1234abcd', how: '?' }] })
+  const checked = parseOutcome(withRefs, labels)
+  assert.deepEqual(checked.ok ? [] : checked.problems, ['released 的「P7」不是輸入中列出的懸著的事的編號', 'released 的「g:1234abcd」不是輸入中列出的懸著的事的編號'])
+  assert.ok(parseOutcome(withRefs).ok)
+  assert.ok(parseOutcome(required({ released: [{ item: 'P1', how: '做到了' }] }), labels).ok)
 })
 
 function decision(store: LifeStore, session: string, situation: string, action: string): ReturnType<LifeStore['append']> {
@@ -283,9 +290,14 @@ test('PC = ST + E − RD = A: RD subtracts candidates the individual rules out; 
   const text = renderPreparation(d, plain, [])
   assert.match(text, /1\. 直接給建議.*你扣除了這個做法：上次對方說只想抒發/)
   assert.match(text, /你準備：第 2 個做法（扣除不做的之後剩下的）/)
-  // 全部都被扣除時，扣除照實保留，選擇退回全部候選。
+  // 全部都被扣除時，扣除照實保留，程式不替個體改選：沒有準備好的做法（改進清單第 6 項）。
   const all = [candidate('a', 60), candidate('b', 40)].map((c) => ({ ...c, excluded: true }))
-  assert.equal(chooseAmong([0.1, 0.9], all), 1)
+  assert.equal(chooseAmong([0.1, 0.9], all), -1)
+  const none = uncorrected(all)
+  assert.equal(none.chosen, -1)
+  const prep = renderPreparation({ situation: 'x', drive: '', activated: [], similar: [], people: [], candidates: all }, none, [])
+  assert.match(prep, /你扣除了全部的做法，沒有準備好的做法；怎麼回應，由你在回應時決定。/)
+  assert.doesNotMatch(prep, /你準備：/)
   assert.equal(chooseAmong([0.9, 0.1], [{ ...candidate('a', 60), excluded: true }, candidate('b', 40)]), 1)
 })
 

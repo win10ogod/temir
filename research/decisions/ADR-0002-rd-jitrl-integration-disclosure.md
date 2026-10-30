@@ -389,6 +389,23 @@ e2e-14 中，線索理解把繁體的話擷取成簡體的事實（「对方表�
 - 「成本與延遲」一節中「所有輔助呼叫都用最低推理等級」的寫法，自此改為「不關閉思考的最低推理等級」。
 - **驗證**：單元測試；e2e-37（DeepSeek 與本機各一次，輔助呼叫 9/9 有思考內容）。退化檢查見 dev10。
 
+## D22　做法的種類也是強制判斷（使用者 2026-10-30）
+
+- **使用者原文**：雲端 session（s08）問「第 2 項的 didKind……要不要也改成強制」，使用者答「要」。
+- **問題**：
+  - 事後比對的 `didKind` 與思考候選的 `kind`，認不得時程式填「其他」（`rd/aux.ts` 的 `kindOf`）。
+  - 種類會進入經驗比對：D20 的強制判斷以「同一類的經驗」決定哪些扣除需要判斷（`exclusionReviews`），`experiences()` 以 `didKind` 作為那次經驗的做法。
+  - 所以填「其他」等於程式替個體決定那次做的是哪一類，違反規則 2。
+- **決定**：
+  - `parseOutcome`：`didKind` 列入必填，認不得時列為問題，附上 `outcomeRetryNote` 重問一次；仍不合格就寫 `rd/outcome-failed`（同改進清單第 2 項）。
+  - `parseDeliberation`：改為回傳 `{ ok, deliberation } | { ok: false, problems }`。
+    - 不合格的情形：做法的 `kind` 認不得、不是 JSON、沒有 candidates，或少於兩個可用的做法。
+    - 不合格時附上 `deliberationRetryNote(problems)` 重問一次，它取代 D21 的 `DELIBERATION_RETRY_NOTE`，並列出不合格的地方。
+    - 仍不合格就寫 `rd/deliberation-failed`（內容為對方的話與兩次的問題），不做準備，由主模型直接回應。
+  - 「全部扣除」的重問，輸出不合格時保留第一次的。
+  - 提示本來就要求種類是 KINDS 之一，沒有改。
+- **驗證**：單元測試（`rd.test.ts`、`rd-step.test.ts`）；真實模型的檢查見 session log s09。
+
 ## 成本與延遲
 
 每個使用者回合的輔助呼叫：

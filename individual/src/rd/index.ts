@@ -28,12 +28,14 @@ import { auxRecord, modelCaller, type AuxRoute, type CallModel, type Log } from 
 import { clip, clipEnds, sessionSoFar } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
-import { ALL_EXCLUDED_NOTE, DELIBERATION_RETRY_NOTE, REVISION_SYSTEM, deliberateSystem, outcomeRetryNote, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, revisionRetryNote, withoutExclusions } from './aux.ts'
+import { ALL_EXCLUDED_NOTE, REVISION_SYSTEM, deliberateSystem, deliberationRetryNote, outcomeRetryNote, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, revisionRetryNote, withoutExclusions } from './aux.ts'
 import { DEFAULT_PARAMS, allExcluded, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
 import { adoptedParamsOf } from './replay.ts'
 import {
   DECISION_KIND,
   OUTCOME_FAILED_KIND,
+  DELIBERATION_FAILED_KIND,
+  type DeliberationFailedData,
   OUTCOME_KIND,
   experiences,
   experiencesOfRecalled,
@@ -353,18 +355,32 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
       ].join('\n')
       const system = deliberateSystem(energy, subtraction, perPerson)
       const output = await call('deliberate', route, system, input, session, [], signal)
-      let parsed = output === undefined ? undefined : parseDeliberation(output, labels)
-      // 輸出不完整時重試一次（e2e-37：本機模型有一次只寫了處境與 people，沒有 candidates）。呼叫失敗時不重試。
-      if (output !== undefined && !parsed && !signal.aborted) {
-        const again = await call('deliberate', route, `${system}\n${DELIBERATION_RETRY_NOTE}`, input, session, [], signal)
-        parsed = again === undefined ? undefined : parseDeliberation(again, labels)
+      const first = output === undefined ? undefined : parseDeliberation(output, labels)
+      let parsed = first?.ok ? first.deliberation : undefined
+      // 輸出不合格時附上問題重試一次（e2e-37：本機模型有一次只寫了處境與 people，沒有 candidates；
+      // 做法的 kind 認不得也是不合格，程式不替它填「其他」）。呼叫失敗時不重試。
+      if (first && !first.ok && !signal.aborted) {
+        const problems = first.problems.map((p) => `第 1 次：${p}`)
+        const again = await call('deliberate', route, `${system}\n${deliberationRetryNote(first.problems)}`, input, session, [], signal)
+        const second = again === undefined ? undefined : parseDeliberation(again, labels)
+        if (second?.ok) parsed = second.deliberation
+        else {
+          // 仍不合格就照實記下，不做準備，由主模型直接回應。
+          problems.push(...(second ? second.problems.map((p) => `第 2 次：${p}`) : ['第 2 次：思考的呼叫失敗']))
+          if (life.isOpen && !signal.aborted) {
+            const failed: DeliberationFailedData = { cue: clip(cue, 500), problems }
+            life.append({ kind: DELIBERATION_FAILED_KIND, origin: 'self', session, data: failed, text: `思考沒有結果：${problems.join('；')}` })
+          }
+          return undefined
+        }
       }
       if (!parsed) return undefined
-      // 全部的做法都被扣除時，附上說明重問一次（程式不替個體改選）；重問的輸出不能用時保留第一次的。
+      // 全部的做法都被扣除時，附上說明重問一次（程式不替個體改選）；重問的輸出不合格時保留第一次的。
       // 仍全部扣除，就照實記下：沒有準備好的做法（chosen＝-1），由主模型在回應時決定。
       if (subtraction && allExcluded(parsed.candidates) && !signal.aborted) {
         const again = await call('deliberate', route, `${system}\n${ALL_EXCLUDED_NOTE}`, input, session, [], signal)
-        parsed = (again === undefined ? undefined : parseDeliberation(again, labels)) ?? parsed
+        const retried = again === undefined ? undefined : parseDeliberation(again, labels)
+        if (retried?.ok) parsed = retried.deliberation
       }
       // 處境、drive、候選與扣除理由都會進入準備訊息與紀錄：把編號換成那件事的描述（編號只在這次思考的輸入中有意義）。
       // dev5：處境寫著「她欠我回覆的：…（P1」，主模型的推理跟著寫「不該再讓 P1、P2 無限懸著」。

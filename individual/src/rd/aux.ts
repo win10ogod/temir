@@ -128,8 +128,13 @@ export function revisionRetryNote(problems: readonly string[]): string {
   return `（重寫一次：上一次的判斷不完整。每一個列出的做法都要剛好一筆判斷，decision 只能是 keep 或 lift，why 不能是空的，refs 要引用列出的 X 編號。不合格的地方：${problems.join('；')}）`
 }
 
-/** 思考的輸出無法解析時，重試一次所附的說明（不同模型照格式的能力不同；插件不能只對某些模型有效）。 */
-export const DELIBERATION_RETRY_NOTE = '（重寫一次：上一次的輸出不是完整的 JSON 物件，或缺少 candidates。只輸出一個完整的 JSON 物件，candidates 剛好 3 個做法。）'
+/**
+ * 思考的輸出不合格時，重試一次所附的說明，列出不合格的地方（不同模型照格式的能力不同；插件不能只對某些模型有效）。
+ * 不合格：不是完整的 JSON、少於兩個可用的做法，或做法的 kind 不是 KINDS 之一（parseDeliberation 的 problems）。
+ */
+export function deliberationRetryNote(problems: readonly string[]): string {
+  return `（重寫一次：上一次的輸出不合格。只輸出一個完整的 JSON 物件，candidates 剛好 3 個做法，每個做法的 kind 只能是 ${KINDS.join('／')} 之一。不合格的地方：${problems.join('；')}）`
+}
 
 /** 思考把全部做法都扣除時，重問一次所附的說明（提示本來就要求「至少保留一個不扣除的做法」；改進清單第 6 項）。 */
 export const ALL_EXCLUDED_NOTE = '（重寫一次：上一次的輸出把全部的做法都扣除了。至少保留一個不扣除的做法：candidates 中至少一個的 excluded 是 false。要扣除哪些、保留哪一個，仍由你判斷。）'
@@ -174,18 +179,27 @@ function text(value: unknown, max: number): string {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : ''
 }
 
-function kindOf(value: unknown): string {
+/**
+ * 做法的種類（KINDS 之一）。認不得時回傳 undefined，由解析列為問題、呼叫端重問；程式不替模型填「其他」
+ * （使用者 2026-10-30：didKind 也要強制）。種類會進入經驗比對（memory.ts 的 exclusionReviews 找同一類的經驗）。
+ */
+function kindOf(value: unknown): string | undefined {
   const k = text(value, 10)
-  return (KINDS as readonly string[]).includes(k) ? k : '其他'
+  return (KINDS as readonly string[]).includes(k) ? k : undefined
 }
 
+export type DeliberationParse = { readonly ok: true; readonly deliberation: Deliberation } | { readonly ok: false; readonly problems: readonly string[] }
+
 /**
- * 解析思考結果。labels 把提示中的經驗編號（E1、E2……）對應到 rd/decision 事件 id；
- * 無法辨識的編號直接略過。少於兩個可用的候選時回傳 undefined（呼叫端不做準備，直接讓主模型回應）。
+ * 解析思考結果。labels 把提示中的經驗編號（E1、E2……）對應到 rd/decision 事件 id；無法辨識的編號直接略過。
+ * 不合格（列出 problems，呼叫端附上 deliberationRetryNote 重問；仍不合格就不做準備，直接讓主模型回應）：
+ * 不是 JSON 物件、沒有 candidates、少於兩個可用的做法、有做法的 kind 不是 KINDS 之一。
  */
-export function parseDeliberation(output: string, labels: ReadonlyMap<string, string>): Deliberation | undefined {
+export function parseDeliberation(output: string, labels: ReadonlyMap<string, string>): DeliberationParse {
   const obj = extractJson(output)
-  if (!obj || !Array.isArray(obj['candidates'])) return undefined
+  if (!obj) return { ok: false, problems: ['不是 JSON 物件'] }
+  if (!Array.isArray(obj['candidates'])) return { ok: false, problems: ['沒有 candidates'] }
+  const problems: string[] = []
   const ids = (value: unknown) =>
     strings(value, 10, 8)
       .map((label) => labels.get(label.toUpperCase()))
@@ -201,9 +215,11 @@ export function parseDeliberation(output: string, labels: ReadonlyMap<string, st
     // 舊版提示（D20 第一、二版）的選填欄位，現行的提示已經沒有；照舊解析，只為了相容（jitrl.ts 的 Candidate.revised）。
     // 現行的機制是強制判斷（memory.ts 的 exclusionReviews、parseJudgments）。
     const revised = text(c['revised'], 200)
+    const kind = kindOf(c['kind'])
+    if (kind === undefined) problems.push(`做法「${action}」的 kind「${text(c['kind'], 10)}」不是 ${KINDS.join('／')} 之一`)
     candidates.push({
       action,
-      kind: kindOf(c['kind']),
+      kind: kind ?? '',
       prediction: text(c['prediction'], 300),
       confidence,
       sameAs: ids(c['sameAs']),
@@ -212,8 +228,9 @@ export function parseDeliberation(output: string, labels: ReadonlyMap<string, st
     })
     if (candidates.length >= 4) break
   }
-  if (candidates.length < 2) return undefined
-  return {
+  if (candidates.length < 2) problems.push(`可用的做法只有 ${candidates.length} 個`)
+  if (problems.length > 0) return { ok: false, problems }
+  const deliberation: Deliberation = {
     situation: text(obj['situation'], 600),
     drive: text(obj['drive'], 300),
     activated: strings(obj['activated'], 8, 40),
@@ -229,6 +246,7 @@ export function parseDeliberation(output: string, labels: ReadonlyMap<string, st
     }).slice(0, 6),
     candidates,
   }
+  return { ok: true, deliberation }
 }
 
 export interface OutcomeJudgement {
@@ -275,10 +293,10 @@ function releases(value: unknown): { text: string; refs: string[] } {
 
 /**
  * 事後比對的強制判斷（使用者 2026-10-30「有問題的是沒有作強制要求判斷」）：程式不替模型填預設值。
- * 必填：reward 是數（夾到 [-1, 1]）、matched 是 yes／partly／no、didAction 不是空的、significance 合法。
+ * 必填：reward 是數（夾到 [-1, 1]）、matched 是 yes／partly／no、didAction 不是空的、didKind 是 KINDS 之一、significance 合法。
  * matched 會進入意外的勢能（self/energy.ts）與 D20「預測有沒有成真」（memory.ts），significance 決定感受紀錄與深度整合，
  * 所以缺了就列出問題，由呼叫端附上 outcomeRetryNote 重問；仍不合格就記下失敗，不當成經驗。
- * didKind 不在必填之列（改進清單第 2 項的範圍），認不得時仍記為「其他」。
+ * didKind 也是必填（使用者 2026-10-30）：它會進入經驗比對（memory.ts 的 experiences、exclusionReviews），程式不替模型填「其他」。
  * labels＝輸入中懸著的事的編號（能量開時）：released 寫了認不得的編號也是問題，不靜默丟掉（改進清單第 6 項）。
  */
 export type OutcomeParse = { readonly ok: true; readonly judgment: OutcomeJudgement } | { readonly ok: false; readonly problems: readonly string[] }
@@ -293,16 +311,18 @@ export function parseOutcome(output: string, labels?: ReadonlyMap<string, string
   if (matched !== 'yes' && matched !== 'partly' && matched !== 'no') problems.push('matched 不是 yes、partly 或 no')
   const didAction = text(obj['didAction'], 200)
   if (!didAction) problems.push('didAction 是空的')
+  const didKind = kindOf(obj['didKind'])
+  if (didKind === undefined) problems.push(`didKind 不是 ${KINDS.join('／')} 之一`)
   const significance = text(obj['significance'], 10)
   if (!(SIGNIFICANCE as readonly string[]).includes(significance)) problems.push(`significance 不是 ${SIGNIFICANCE.join('、')} 之一`)
   const released = releases(obj['released'])
   if (labels) for (const ref of released.refs) if (!labels.has(ref.trim().toUpperCase())) problems.push(`released 的「${ref}」不是輸入中列出的懸著的事的編號`)
-  if (problems.length > 0 || typeof reward !== 'number' || (matched !== 'yes' && matched !== 'partly' && matched !== 'no')) return { ok: false, problems }
+  if (problems.length > 0 || typeof reward !== 'number' || (matched !== 'yes' && matched !== 'partly' && matched !== 'no') || didKind === undefined) return { ok: false, problems }
   return {
     ok: true,
     judgment: {
       didAction,
-      didKind: kindOf(obj['didKind']),
+      didKind,
       actual: text(obj['actual'], 400),
       matched,
       error: text(obj['error'], 300),
@@ -320,5 +340,5 @@ export function parseOutcome(output: string, labels?: ReadonlyMap<string, string
 
 /** 事後比對不合格時重問一次所附的說明，列出缺少或不合格的部分（提示本來就要求這些欄位）。 */
 export function outcomeRetryNote(problems: readonly string[]): string {
-  return `（重寫一次：上一次的比對不完整。只輸出一個完整的 JSON 物件；didAction 不能是空的，matched 只能是 yes、partly 或 no，reward 是 -1 到 1 之間的數，significance 只能是 ${SIGNIFICANCE.join('、')} 之一。不合格的地方：${problems.join('；')}）`
+  return `（重寫一次：上一次的比對不完整。只輸出一個完整的 JSON 物件；didAction 不能是空的，didKind 只能是 ${KINDS.join('／')} 之一，matched 只能是 yes、partly 或 no，reward 是 -1 到 1 之間的數，significance 只能是 ${SIGNIFICANCE.join('、')} 之一。不合格的地方：${problems.join('；')}）`
 }

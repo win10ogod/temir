@@ -91,6 +91,18 @@ export interface OutcomeFailedData {
   readonly provisional?: true
 }
 
+/**
+ * 思考沒有結果：兩次的輸出都不合格（parseDeliberation 的 problems，例如做法的 kind 認不得），或重問的呼叫失敗。
+ * 這一步沒有做準備、沒有寫 rd/decision；記下來，失敗才數得出來（使用者 2026-10-30：didKind 也要強制）。
+ */
+export const DELIBERATION_FAILED_KIND = 'rd/deliberation-failed'
+
+export interface DeliberationFailedData {
+  /** 對方剛說的話（截斷）。 */
+  readonly cue: string
+  readonly problems: readonly string[]
+}
+
 export interface RevaluationData {
   readonly outcome: string
   readonly decision: string

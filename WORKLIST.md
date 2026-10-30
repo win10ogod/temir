@@ -208,6 +208,7 @@
   - 不合格時附 `outcomeRetryNote(problems)` 重問一次；仍不合格或呼叫失敗時寫 `rd/outcome-failed`（決定 id 與兩次的 problems），不寫 `rd/outcome`。沉默計時器看到失敗紀錄就不再每分鐘重做暫時比對；對方回話時仍會正式比對。提示內容不變。
   - 測試：每一種缺漏的 problems；第一次壞、第二次好時一筆 outcome；兩次都壞時一筆失敗紀錄、沒有 outcome；呼叫失敗。
   - 效果未驗證（需真實測試）：重問會多一次模型呼叫，不合格的比對不再以預設值成為經驗。
+- [x] 第 4 項：強制判斷重問時保留兩次的問題。`review.failed` 寫「第 1 次：…；第 2 次：…」；第二次的呼叫失敗時，第一次的問題也留著。只影響紀錄，不改變模型可見的內容。測試：`rd-step.test.ts`。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID

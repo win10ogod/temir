@@ -39,7 +39,10 @@ export interface DecisionData {
   readonly activated?: readonly string[]
   /** 這次涉及的人與各自與這次有關的事（ADR-0002 D17）；舊紀錄沒有這個欄位。 */
   readonly people?: readonly { readonly who: string; readonly relevant: readonly string[] }[]
-  /** D20 第三版：需要強制判斷的扣除有幾個；判斷不合格或呼叫失敗時的原因（這時維持原本的扣除）。舊紀錄沒有這個欄位。 */
+  /**
+   * D20 第三版：需要強制判斷的扣除有幾個；判斷不合格或呼叫失敗時的原因（這時維持原本的扣除）。舊紀錄沒有這個欄位。
+   * 重問過的，兩次的問題都留著（「第 1 次：…；第 2 次：…」）；2026-10-30 之前的紀錄只有第二次的問題。
+   */
   readonly review?: { readonly required: number; readonly failed?: string }
 }
 

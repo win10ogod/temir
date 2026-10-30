@@ -145,7 +145,7 @@ test('mandatory judgment: two invalid answers are recorded as review.failed and 
     await rd.step(input('主管又念我了'))
     assert.equal(calls.filter((c) => c.purpose === 'revise').length, 2, 'asked again only once')
     const data = decisions(store)[0]!.data as DecisionData
-    assert.deepEqual(data.review, { required: 1, failed: '做法 1 的 decision 不是 keep 或 lift；做法 1 沒有寫理由；做法 1 沒有引用列出的經驗' })
+    assert.deepEqual(data.review, { required: 1, failed: '第 1 次：做法 1 沒有判斷；第 2 次：做法 1 的 decision 不是 keep 或 lift；第 2 次：做法 1 沒有寫理由；第 2 次：做法 1 沒有引用列出的經驗' }, 'the problems of both answers are kept (item 4)')
     assert.equal(data.candidates[0]!.excluded, true)
     assert.equal(data.candidates[0]!.judgment, undefined)
     assert.notEqual(data.chosen, 0, 'the excluded candidate is not chosen')
@@ -160,6 +160,18 @@ test('mandatory judgment: a failed call is recorded as review.failed and the exc
     assert.equal(calls.filter((c) => c.purpose === 'revise').length, 1, 'a failed call is not asked again')
     const data = decisions(store)[0]!.data as DecisionData
     assert.deepEqual(data.review, { required: 1, failed: '判斷的呼叫失敗' })
+    assert.equal(data.candidates[0]!.excluded, true)
+  }))
+
+test('mandatory judgment (item 4): when the second call fails, the problems of the first answer are kept', () =>
+  withStore(async (store) => {
+    pastAdvice(store)
+    const { call, calls } = scripted({ deliberate: [DELIBERATION], revise: ['{"judgments":[]}', new Error('連線中斷')] })
+    const rd = createRd({ life: store, call, logger: recorder().logger }, CONFIG)
+    await rd.step(input('主管又念我了'))
+    assert.equal(calls.filter((c) => c.purpose === 'revise').length, 2)
+    const data = decisions(store)[0]!.data as DecisionData
+    assert.deepEqual(data.review, { required: 1, failed: '第 1 次：做法 1 沒有判斷；第 2 次：判斷的呼叫失敗' })
     assert.equal(data.candidates[0]!.excluded, true)
   }))
 

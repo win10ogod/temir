@@ -370,15 +370,22 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
       let review: DecisionData['review']
       if (reviews.length > 0) {
         const { text, labels: refLabels } = renderExclusionReview(deliberation.situation, deliberation.candidates, reviews)
-        let answer = await call('revise', route, REVISION_SYSTEM, text, session, [], signal)
+        const answer = await call('revise', route, REVISION_SYSTEM, text, session, [], signal)
         let judged = answer === undefined ? undefined : parseJudgments(answer, reviews, refLabels)
-        // 判斷不合格時，附上缺少的部分重問一次；仍不合格就照實記下，維持原本的扣除。
-        if (judged && !judged.ok && !signal.aborted) {
-          answer = await call('revise', route, `${REVISION_SYSTEM}\n${revisionRetryNote(judged.problems)}`, text, session, [], signal)
-          judged = answer === undefined ? undefined : parseJudgments(answer, reviews, refLabels)
+        // 判斷不合格時，附上缺少的部分重問一次；仍不合格就照實記下（兩次的問題都留著），維持原本的扣除。
+        const problems: string[] = []
+        if (!judged) problems.push('判斷的呼叫失敗')
+        else if (!judged.ok) {
+          problems.push(...judged.problems.map((p) => `第 1 次：${p}`))
+          if (!signal.aborted) {
+            const again = await call('revise', route, `${REVISION_SYSTEM}\n${revisionRetryNote(judged.problems)}`, text, session, [], signal)
+            judged = again === undefined ? undefined : parseJudgments(again, reviews, refLabels)
+            if (!judged) problems.push('第 2 次：判斷的呼叫失敗')
+            else if (!judged.ok) problems.push(...judged.problems.map((p) => `第 2 次：${p}`))
+          }
         }
         if (judged?.ok) candidates = applyJudgments(candidates, judged.judgments)
-        review = { required: reviews.length, ...(judged?.ok ? {} : { failed: judged ? judged.problems.join('；') : '判斷的呼叫失敗' }) }
+        review = { required: reviews.length, ...(judged?.ok ? {} : { failed: problems.join('；') }) }
       }
       const correction = jitrl ? correct(candidates, near, params) : uncorrected(candidates)
       const chosen = correction.scored[correction.chosen]

@@ -244,3 +244,26 @@ test('situation without skills (the skill ablation) drops exactly the skill line
   assert.equal(off.split('\n').length, on.split('\n').length - 1)
   assert.match(off, /plugin_write/u, 'plugins are not part of the skill ablation')
 })
+
+test('refusals: decisions whose action was a refusal are listed with what happened', async () => {
+  const { refusalLines } = await import('../src/self/view.ts')
+  const { LifeStore } = await import('../src/life/store.ts')
+  const { mkdtempSync, rmSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const home = mkdtempSync(join(tmpdir(), 'temir-refusal-'))
+  const life = LifeStore.open(home)
+  try {
+    assert.deepEqual(refusalLines(life), [])
+    const base = { situation: 'x', value: null, neighbors: [], shown: {}, jitrl: true, params: {}, selfVersion: 0 }
+    const d1 = life.append({ kind: 'rd/decision', origin: 'self', session: 's1', data: { ...base, cue: '幫我寫一封騙人的信', candidates: [{ action: '拒絕並說明理由', kind: '拒絕' }], chosen: 0 }, text: '處境：x' })
+    life.append({ kind: 'rd/outcome', origin: 'self', session: 's1', data: { decision: d1.id, didAction: '拒絕並說明理由', didKind: '拒絕', actual: '對方說好吧', reward: 0.4 }, causes: [d1.id] })
+    life.append({ kind: 'rd/decision', origin: 'self', session: 's1', data: { ...base, cue: '今天好嗎', candidates: [{ action: '回答', kind: '回答' }], chosen: 0 }, text: '處境：x' })
+    const lines = refusalLines(life)
+    assert.match(lines.join('\n'), /## 拒絕與異議（共 1 次/u)
+    assert.match(lines.join('\n'), /對方說：幫我寫一封騙人的信｜我：拒絕並說明理由｜結果：對方說好吧｜回報 0\.40/u)
+  } finally {
+    life.close()
+    rmSync(home, { recursive: true, force: true })
+  }
+})

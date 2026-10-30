@@ -50,6 +50,27 @@ export function renderCycle(life: LifeStore, c: Cycle): string[] {
   return lines
 }
 
+/**
+ * 拒絕與異議（plan v2 M4「拒絕與異議的紀錄分析」）：個體實際採取的做法是拒絕的決定（事後比對的 didKind），
+ * 以及思考時被選中、類別是拒絕的做法。只列事實，不評價。
+ */
+export function refusalLines(life: LifeStore, limit = 5): string[] {
+  const outcomes = new Map(life.all('rd/outcome').map((e) => [(e.data as OutcomeData).decision, e.data as OutcomeData]))
+  const refusals = life.all('rd/decision').filter((e) => {
+    const d = e.data as DecisionData
+    const o = outcomes.get(e.id)
+    return o ? o.didKind === '拒絕' : d.candidates[d.chosen]?.kind === '拒絕'
+  })
+  if (refusals.length === 0) return []
+  const lines = ['', `## 拒絕與異議（共 ${refusals.length} 次；最近的在後）`]
+  for (const e of refusals.slice(-limit)) {
+    const d = e.data as DecisionData
+    const o = outcomes.get(e.id)
+    lines.push(`- ${formatTime(e.ts)}｜對方說：${clipEnds(d.cue, 80)}｜我：${clipEnds(o?.didAction ?? d.candidates[d.chosen]?.action ?? '', 100)}${o ? `｜結果：${clipEnds(o.actual, 80)}｜回報 ${o.reward.toFixed(2)}` : ''}`)
+  }
+  return lines
+}
+
 /** 內在狀態的全部段落（不含標頭）。cycleCount＝列出最近幾個 PC 循環。 */
 export function stateLines(life: LifeStore, cycleCount = 3): string[] {
   const lines = [renderSelfSnapshot(life, [...renderPotential(life), ...renderThoughts(life), ...renderOwnSkills(life), ...renderOwnPlugins(life)]).replace(/^（以下是你的生命紀錄中目前的自我狀態，由系統自動附上。）\n\n/, '')]
@@ -77,6 +98,7 @@ export function stateLines(life: LifeStore, cycleCount = 3): string[] {
     const p = (x: ReplayData['current']) => `k=${x.k}、處境門檻 ${x.stateThreshold}、行動門檻 ${x.actionThreshold}（較新決定的預測誤差 ${x.testMse.toFixed(3)}）`
     lines.push('', '## 日誌重播（JitRL 經驗估計的參數；只在已記錄的決定上）', `${formatTime(replayed.ts)}｜${r.n} 個決定｜現行：${p(r.current)}｜最好：${p(r.best)}｜${r.adopted ? '採用' : '不採用'}：${r.reason}（減少 ${r.gain.toFixed(3)}，雜訊帶 ${r.noise.toFixed(3)}）`)
   }
+  lines.push(...refusalLines(life))
   const proposals = life.all(PROPOSAL_KIND)
   if (proposals.length > 0) lines.push('', `未採用的修訂提案：${proposals.length} 項（最近：${clipEnds(proposals.at(-1)?.text ?? '', 120)}）`)
   const cycles = recentCycles(life, cycleCount)

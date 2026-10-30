@@ -114,6 +114,7 @@ export function experiences(life: LifeStore, gamma: number): Experience[] {
       if (ret === undefined || !outcome) return
       const data = event.data as DecisionData
       const planned = data.candidates[data.chosen]
+      const excludedThen = data.candidates.filter((c) => c.excluded).map((c) => ({ action: c.action, reason: c.excludeReason ?? '' }))
       // 經驗中的行動是實際採取的做法；主模型可能沒有照準備去做。
       const action = outcome.didAction || planned?.action || ''
       if (!action) return
@@ -127,6 +128,7 @@ export function experiences(life: LifeStore, gamma: number): Experience[] {
         ret,
         outcome: [outcome.actual, outcome.lesson && `教訓：${outcome.lesson}`].filter(Boolean).join('；'),
         session: event.session,
+        ...(excludedThen.length > 0 ? { excludedThen } : {}),
       })
     })
   }
@@ -212,10 +214,15 @@ export function shownExperiences(fromRecall: readonly Experience[], lexical: rea
   return out
 }
 
-export function renderExperiences(shown: readonly Experience[]): string {
+/** revision＝D20：每筆經驗附上當時扣除、沒有做的做法與理由；消融（patches/no-revision.yml）時不附。 */
+export function renderExperiences(shown: readonly Experience[], revision = true): string {
   if (shown.length === 0) return '沒有找到類似的經驗。'
   return shown
-    .map((e, i) => `E${i + 1}｜${formatDay(e.ts)}｜處境：${clip(e.situation, 160)}｜我當時：${clip(e.action, 100)}（${e.kind}）｜結果：${clip(e.outcome, 160)}｜回報 ${e.ret.toFixed(2)}`)
+    .map((e, i) => {
+      const line = `E${i + 1}｜${formatDay(e.ts)}｜處境：${clip(e.situation, 160)}｜我當時：${clip(e.action, 100)}（${e.kind}）｜結果：${clip(e.outcome, 160)}｜回報 ${e.ret.toFixed(2)}`
+      const excluded = revision ? (e.excludedThen ?? []).slice(0, 2) : []
+      return excluded.length === 0 ? line : `${line}｜當時扣除：${excluded.map((x) => `${clip(x.action, 60)}${x.reason ? `（${clip(x.reason, 60)}）` : ''}`).join('；')}`
+    })
     .join('\n')
 }
 
@@ -251,7 +258,8 @@ export function renderPreparation(delib: Deliberation, correction: Correction, n
     const basis = c.support > 0 ? `${c.support} 個相符的經驗` : c.optimistic ? '沒有相符的經驗，傾向嘗試' : '沒有相符的經驗'
     const adjust = c.q === null ? '' : `｜經驗修正 ${c.normalized >= 0 ? '+' : ''}${c.normalized.toFixed(2)}（${basis}）`
     const subtracted = c.excluded ? `｜你扣除了這個做法${c.excludeReason ? `：${c.excludeReason}` : ''}` : ''
-    lines.push(`${i + 1}. ${c.action}（${c.kind}）——預期：${c.prediction}｜你的傾向 ${Math.round(c.confidence)}%${adjust}${subtracted}`)
+    const revised = c.revised ? `｜你依經驗改變了扣除：${c.revised}` : ''
+    lines.push(`${i + 1}. ${c.action}（${c.kind}）——預期：${c.prediction}｜你的傾向 ${Math.round(c.confidence)}%${adjust}${subtracted}${revised}`)
   })
   const chosen = correction.scored[correction.chosen]
   if (chosen) lines.push(`你準備：第 ${correction.chosen + 1} 個做法${subtraction ? '（扣除不做的之後剩下的）' : ''}。你預期：${chosen.prediction}`)

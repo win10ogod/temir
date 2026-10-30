@@ -297,7 +297,8 @@ test('ablation without subtraction: no subtraction wording or fields; the action
   assert.doesNotMatch(off, /扣除|excluded|reason/u)
   assert.match(off, /預測各自的後果，再決定傾向哪一個。/u)
   assert.equal(deliberateSystem(true, true), DELIBERATE_SYSTEM)
-  assert.equal(off.split('\n').length, DELIBERATE_SYSTEM.split('\n').length - 2, 'only the two subtraction fields are removed')
+  // 扣除的兩個欄位，加上 D20（扣除本身會被經驗改變）的兩行：沒有扣除，就沒有扣除的修正。
+  assert.equal(off.split('\n').length, DELIBERATE_SYSTEM.split('\n').length - 4, 'only the subtraction fields and the D20 revision lines are removed')
   assert.doesNotMatch(deliberateSystem(false, false), /drive|activated|扣除/u)
   const d = parseDeliberation('{"situation":"x","candidates":[{"action":"給建議","confidence":70,"excluded":true,"reason":"她說過不要"},{"action":"聽她說","confidence":30}]}', new Map())!
   const plain = withoutExclusions(d)
@@ -360,4 +361,37 @@ test('experiencesOfRecalled: decisions made in the turns recall brought in, even
     assert.deepEqual(shownExperiences(fromRecall, lexical, 5).map((e) => e.id), [d.id, other.id])
     assert.deepEqual(shownExperiences(fromRecall, lexical, 1).map((e) => e.id), [d.id])
   })
+})
+
+test('D20 the subtraction itself changes with experience: past exclusions are shown with what followed, and revisions are recorded', async () => {
+  const { deliberateSystem, DELIBERATE_SYSTEM, withoutRevised } = await import('../src/rd/aux.ts')
+  const { renderExperiences } = await import('../src/rd/memory.ts')
+  // 提示：預設有「扣除本身也會被經驗改變」與 revised；關閉 revision 時只少這兩行與欄位；關閉扣除時連同 revision 一起拿掉。
+  assert.match(DELIBERATE_SYSTEM, /扣除本身也會被經驗改變/u)
+  assert.match(DELIBERATE_SYSTEM, /"reason": "", "revised": ""\}/u)
+  const off = deliberateSystem(true, true, true, false)
+  assert.doesNotMatch(off, /扣除本身也會被經驗改變|revised/u)
+  assert.match(off, /- excluded：/u)
+  assert.equal(DELIBERATE_SYSTEM.split('\n').length - off.split('\n').length, 2)
+  assert.ok(off.split('\n').every((l) => DELIBERATE_SYSTEM.split('\n').includes(l) || l.includes('"candidates"')))
+  assert.doesNotMatch(deliberateSystem(true, false), /扣除本身|revised|excluded/u)
+  // 解析：revised 是一句話；沒有就不出現。
+  const d = parseDeliberation('{"situation":"x","candidates":[{"action":"直接給她兩個方法","excluded":false,"revised":"E1 當時扣除了給方法，之後她說算了，這次不扣除"},{"action":"只陪伴","excluded":true,"reason":"上次只陪伴她很失望"}]}', new Map())
+  assert.equal(d?.candidates[0]?.revised, 'E1 當時扣除了給方法，之後她說算了，這次不扣除')
+  assert.equal(d?.candidates[1]?.revised, undefined)
+  assert.equal(withoutRevised(d!).candidates[0]?.revised, undefined)
+  // 經驗帶著當時的扣除；呈現時附上，關閉 revision 時不附。
+  withStore((store) => {
+    const c = (action: string, excluded: boolean, excludeReason = '') => ({ ...candidate(action, 50), z: 0, q: null, support: 0, optimistic: null, advantage: 0, normalized: 0, zPrime: 0, ...(excluded ? { excluded, excludeReason } : {}) })
+    const data: DecisionData = { cue: '又被罵了', situation: '對方在抒發', candidates: [c('只陪伴', false), c('給兩個方法', true, '她是在抒發，不是求助')], chosen: 0, value: null, neighbors: [], shown: {}, jitrl: true, params: DEFAULT_PARAMS, selfVersion: 0 }
+    const e = store.append({ kind: DECISION_KIND, origin: 'self', session: 's1', data, text: '處境：對方在抒發' })
+    outcome(store, e.id, -0.5, '只陪伴')
+    const [x] = experiences(store, DEFAULT_PARAMS.gamma)
+    assert.deepEqual(x?.excludedThen, [{ action: '給兩個方法', reason: '她是在抒發，不是求助' }])
+    assert.match(renderExperiences([x!]), /我當時：只陪伴（[^）]+）｜結果：[^｜]+｜回報 -0\.50｜當時扣除：給兩個方法（她是在抒發，不是求助）/u)
+    assert.doesNotMatch(renderExperiences([x!], false), /當時扣除/u)
+  })
+  // 準備訊息寫出依經驗改變的扣除。
+  const prep = renderPreparation(d!, uncorrected(d!.candidates), [])
+  assert.match(prep, /直接給她兩個方法（[^）]+）——預期：[^\n]*｜你依經驗改變了扣除：E1 當時扣除了給方法/u)
 })

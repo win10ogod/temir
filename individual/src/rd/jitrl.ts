@@ -59,6 +59,11 @@ export interface Candidate {
    */
   readonly excluded?: boolean
   readonly excludeReason?: string
+  /**
+   * 扣除本身會被經驗改變（使用者 2026-10-30；ADR-0002 D20）：這個做法的扣除與否，因為過去類似處境的經驗而與當時不同時，
+   * 個體寫下是哪一次的經驗、為什麼改變。由個體自己判斷，沒有數值門檻。舊紀錄沒有這個欄位。
+   */
+  readonly revised?: string
 }
 
 /** 一個有回報的過去決定 (s, a, G)。 */
@@ -78,6 +83,8 @@ export interface Experience {
   readonly outcome: string
   /** 決定所在的 session（把回憶帶進來的經歷對應回當時的決定用）。 */
   readonly session?: string | null
+  /** 當時扣除、沒有做的做法與理由（D20：扣除之後發生了什麼，就是這筆經驗的結果）。 */
+  readonly excludedThen?: readonly { readonly action: string; readonly reason: string }[]
 }
 
 export function termSet(text: string): Set<string> {

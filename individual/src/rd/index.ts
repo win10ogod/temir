@@ -24,7 +24,7 @@ import { callModel, type AuxRoute } from '../recall/aux.ts'
 import { clip, clipEnds, sessionSoFar } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
-import { deliberateSystem, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, withoutExclusions } from './aux.ts'
+import { deliberateSystem, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, withoutExclusions, withoutRevised } from './aux.ts'
 import { DEFAULT_PARAMS, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
 import { REPLAY_KIND, adoptedParams } from './replay.ts'
 import {
@@ -77,6 +77,11 @@ export interface Config {
   readonly subtraction?: boolean
   /** 相關的記憶逐一檢查每一個人（ADR-0002 D17，預設開；消融時關閉）。 */
   readonly perPerson?: boolean
+  /**
+   * 扣除本身會被經驗改變（使用者 2026-10-30；ADR-0002 D20，預設開）：思考時列出過去類似處境中當時扣除的做法，
+   * 個體可依扣除之後的結果改變扣除，並寫下 revised。消融（patches/no-revision.yml）時回到 D19。
+   */
+  readonly revision?: boolean
 }
 
 function textOf(content: readonly { readonly type: string; readonly text?: string }[]): string {
@@ -96,6 +101,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const energy = config?.energy ?? true
   const subtraction = config?.subtraction ?? true
   const perPerson = config?.perPerson ?? true
+  const revision = (config?.revision ?? true) && subtraction
   const silenceMs = (config?.silenceMinutes ?? 10) * 60_000
   const logger = ctx.logger('temir-rd')
 
@@ -287,17 +293,17 @@ export function apply(ctx: Context, config: Config | undefined): void {
           soFar.length > 0 ? soFar.join('\n') : '（這段對話剛開始）',
           '',
           '## 過去類似處境的經驗',
-          renderExperiences(shown),
+          renderExperiences(shown, revision),
           '',
           '## 對方剛說的話',
           clip(cue, 3000),
         ].join('\n')
-        const output = await call('deliberate', route, deliberateSystem(energy, subtraction, perPerson), input, session, [], payload.signal)
+        const output = await call('deliberate', route, deliberateSystem(energy, subtraction, perPerson, revision), input, session, [], payload.signal)
         const parsed = output === undefined ? undefined : parseDeliberation(output, labels)
         if (!parsed) return decision
         // 處境、drive、候選與扣除理由都會進入準備訊息與紀錄：把編號換成那件事的描述（編號只在這次思考的輸入中有意義）。
         // dev5：處境寫著「她欠我回覆的：…（P1」，主模型的推理跟著寫「不該再讓 P1、P2 無限懸著」。
-        const deliberation = mapDeliberationText(subtraction ? parsed : withoutExclusions(parsed), (s) => unlabel(s, potentialLabels, heldNow))
+        const deliberation = mapDeliberationText(subtraction ? (revision ? parsed : withoutRevised(parsed)) : withoutExclusions(parsed), (s) => unlabel(s, potentialLabels, heldNow))
 
         const near = jitrl ? neighbors(deliberation.situation, memory, params, deliberation.similar) : []
         const correction = jitrl ? correct(deliberation.candidates, near, params) : uncorrected(deliberation.candidates)

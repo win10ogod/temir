@@ -92,7 +92,8 @@
 - [x] E-RD 第二版（rd-v2，預先登記，[報告](experiments/results/rd-v2-report.md)）：全新的人物與題目，檢驗修正後的 RD。
   - 優越性 FAIL：都是 4/16。
   - 不劣 PASS：rd-v1 的問題已經解決。
-  - 扣除仍然多半依模型的預設。下一步是待確認的假說〈扣除也可以被後果修正〉。
+  - 扣除仍然多半依模型的預設。
+- [~] 扣除本身會被經驗改變（使用者 2026-10-30 確認；ADR-0002 D20）：已實作，單元測試；預先登記的 rd-v3 與退化檢查 dev10 待執行。
 - [x] 回憶同時考慮多人的限制（ADR-0002 D17）：
   - 逐人檢查兩版都已實作；
   - multiperson-v1：PA FAIL，+0.17，區間下界 0.06；
@@ -174,10 +175,7 @@
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID
-- 新的假說（H0 之下，來自 rd-v1）：扣除也可以被後果修正。要不要實作，等確認
 - 正式個體何時「誕生」（第一次不帶 `TEMIR_HOME` 啟動即建立 `~/.local/share/temir/life.db`）
 - 金鑰曾出現在對話中，建議之後到 DeepSeek 與 OpenRouter 後台輪換
-- IM：在 DSH 的「設定 → IM機器人」接入一個機器人（掃碼或憑據）；要讓主動開口也送到 IM，把 `botId + targetId` 寫進 `temir-thought` 的 `imTargets`（ADR-0006）
-- 評分的 judge：自 v1 起一直是 deepseek-v4-pro（thinking disabled，每次計分約 US$0.05～0.1，已經過人工用例驗證）。
-  - 改成 flash 要重新驗證 judge，之前的結果也不能直接比較；
-  - 目前沒有改，受試者與模擬使用者只用 flash。
+- IM 的正式使用：測試已用使用者提供的 Telegram 機器人完成（測試 DSH_HOME、安全模式只允許使用者）。正式的 web profile 要不要接這個機器人，由使用者決定
+

@@ -65,6 +65,7 @@ export const CONDITIONS = {
   'temir-progressive': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'progressive.yml')],
   'temir-full': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'full-disclosure.yml')],
   'temir-no-rd': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-rd.yml')],
+  'temir-no-revision': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-revision.yml')],
   'temir-no-jitrl': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-jitrl.yml')],
   // 2026-10-29 第二輪：能量（H-E）的消融。
   'temir-no-energy': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-energy.yml')],

@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs'
 
 /** 與 experiments/runner/run.ts 的 CONDITIONS 相同（v3 起加入 2026-10-29 的條件；v1、v2 的契約只用前四個）。 */
-export const CONDITIONS = ['baseline', 'temir', 'temir-no-autorecall', 'temir-no-snapshot', 'temir-progressive', 'temir-full', 'temir-no-rd', 'temir-no-jitrl', 'temir-no-energy', 'temir-no-subtraction', 'temir-no-perperson', 'temir-no-skill'] as const
+export const CONDITIONS = ['baseline', 'temir', 'temir-no-autorecall', 'temir-no-snapshot', 'temir-progressive', 'temir-full', 'temir-no-rd', 'temir-no-jitrl', 'temir-no-energy', 'temir-no-subtraction', 'temir-no-perperson', 'temir-no-skill', 'temir-no-revision'] as const
 export type Condition = (typeof CONDITIONS)[number]
 
 export const MODELS = ['deepseek-flash', 'EVE-27B'] as const

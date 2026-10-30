@@ -1,0 +1,4 @@
+# 消融：關閉「扣除本身會被經驗改變」（ADR-0002 D20）：思考時不列當時扣除的做法，也沒有 revised；回到 D19。其他個體功能照舊。
+- id: temir-rd
+  config:
+    revision: false

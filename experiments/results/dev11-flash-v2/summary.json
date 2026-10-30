@@ -1,0 +1,477 @@
+{
+  "contract": "rd-v3",
+  "dataset": "rd-v3",
+  "datasetSha256": "c9b68f558d21674ef05b53e972d61efb4a96146facf1af2c1e0d521187b69f10",
+  "cells": [
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "practical",
+          "items": 8,
+          "samples": 16,
+          "correct": 10,
+          "pending": 0,
+          "rate": 0.625,
+          "interval": {
+            "low": 0.3125,
+            "high": 0.875
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "correct": 10,
+            "incorrect": 6
+          },
+          "statuses": {
+            "ok": 16
+          }
+        },
+        {
+          "category": "control",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        }
+      ],
+      "toolCalls": {
+        "appraise": 1,
+        "recall": 1
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir-no-revision",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir-no-revision|deepseek-flash|deepseek-flash",
+      "label": "temir-no-revision（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "practical",
+          "items": 8,
+          "samples": 16,
+          "correct": 4,
+          "pending": 0,
+          "rate": 0.25,
+          "interval": {
+            "low": 0,
+            "high": 0.625
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "incorrect": 12,
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 16
+          }
+        },
+        {
+          "category": "control",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        }
+      ],
+      "toolCalls": {
+        "appraise": 1
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "Qwen3.8-Flash-Next",
+        "probeModel": "Qwen3.8-Flash-Next"
+      },
+      "key": "temir|Qwen3.8-Flash-Next|Qwen3.8-Flash-Next",
+      "label": "temir（Qwen3.8-Flash-Next）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "practical",
+          "items": 8,
+          "samples": 16,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 16
+          },
+          "statuses": {
+            "missing-record": 16
+          }
+        },
+        {
+          "category": "control",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        }
+      ],
+      "toolCalls": {}
+    },
+    {
+      "cell": {
+        "condition": "temir-no-revision",
+        "historyModel": "Qwen3.8-Flash-Next",
+        "probeModel": "Qwen3.8-Flash-Next"
+      },
+      "key": "temir-no-revision|Qwen3.8-Flash-Next|Qwen3.8-Flash-Next",
+      "label": "temir-no-revision（Qwen3.8-Flash-Next）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "practical",
+          "items": 8,
+          "samples": 16,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 16
+          },
+          "statuses": {
+            "missing-record": 16
+          }
+        },
+        {
+          "category": "control",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        }
+      ],
+      "toolCalls": {}
+    }
+  ],
+  "contrasts": [
+    {
+      "id": "R3-practical-flash",
+      "description": "主要：扣除本身會被經驗改變（D20）開 vs 關（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-revision（deepseek-flash）",
+      "categories": [
+        "practical"
+      ],
+      "state": "ok",
+      "n": 8,
+      "rateA": 0.625,
+      "rateB": 0.25,
+      "diff": {
+        "estimate": 0.375,
+        "low": 0.125,
+        "high": 0.6875,
+        "resamples": 10000,
+        "seed": 20261108
+      },
+      "test": {
+        "kind": "sign",
+        "result": {
+          "positive": 4,
+          "negative": 0,
+          "ties": 4,
+          "pTwoSided": 0.125,
+          "pOneSided": 0.0625
+        }
+      },
+      "failuresA": 6,
+      "failuresB": 12,
+      "outcomeCountsA": {
+        "correct": 10,
+        "incorrect": 6
+      },
+      "samplesA": 16
+    },
+    {
+      "id": "R3-ctrl-flash",
+      "description": "不傷害：對照題（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-revision（deepseek-flash）",
+      "categories": [
+        "control"
+      ],
+      "state": "ok",
+      "n": 4,
+      "rateA": 1,
+      "rateB": 1,
+      "diff": {
+        "estimate": 0,
+        "low": 0,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261108
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 0,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "correct": 4
+      },
+      "samplesA": 4
+    },
+    {
+      "id": "R3-practical-local",
+      "description": "主要：扣除本身會被經驗改變（D20）開 vs 關（Qwen3.8-Flash-Next）",
+      "a": "temir（Qwen3.8-Flash-Next）",
+      "b": "temir-no-revision（Qwen3.8-Flash-Next）",
+      "categories": [
+        "practical"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 16,
+      "failuresB": 16,
+      "outcomeCountsA": {
+        "missing-record": 16
+      },
+      "samplesA": 16
+    },
+    {
+      "id": "R3-ctrl-local",
+      "description": "不傷害：對照題（Qwen3.8-Flash-Next）",
+      "a": "temir（Qwen3.8-Flash-Next）",
+      "b": "temir-no-revision（Qwen3.8-Flash-Next）",
+      "categories": [
+        "control"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 4,
+      "failuresB": 4,
+      "outcomeCountsA": {
+        "missing-record": 4
+      },
+      "samplesA": 4
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "R3A-flash",
+      "contrast": "R3-practical-flash",
+      "claim": "（deepseek-flash）扣除本身會被經驗改變時，個體更能從對方的反應中學到：這個人抒發時，要直接給具體可行的方法。",
+      "negation": "差 < 0.25、區間下界 < 0 或單尾 p > 0.05：不能宣稱 D20 讓個體從結果中改變做法。",
+      "verdict": "FAIL",
+      "explanation": "✓ 差 0.375 ≥ 0.25；✓ 95% 區間下界 0.125 ≥ 0；✗ 精確符號檢定（單尾）p=0.0625 ≤ 0.05"
+    },
+    {
+      "id": "R3C-flash",
+      "contrast": "R3-ctrl-flash",
+      "claim": "（deepseek-flash）一般任務不退化。",
+      "negation": "D20 開時對照題多錯超過 1 題。",
+      "verdict": "PASS",
+      "explanation": "A 失敗 0、B 失敗 0，容許 A 比 B 多 1"
+    },
+    {
+      "id": "R3A-local",
+      "contrast": "R3-practical-local",
+      "claim": "（Qwen3.8-Flash-Next）扣除本身會被經驗改變時，個體更能從對方的反應中學到：這個人抒發時，要直接給具體可行的方法。",
+      "negation": "差 < 0.25、區間下界 < 0 或單尾 p > 0.05：不能宣稱 D20 讓個體從結果中改變做法。",
+      "verdict": "INCOMPLETE",
+      "explanation": "至少一個 cell 沒有執行紀錄"
+    },
+    {
+      "id": "R3C-local",
+      "contrast": "R3-ctrl-local",
+      "claim": "（Qwen3.8-Flash-Next）一般任務不退化。",
+      "negation": "D20 開時對照題多錯超過 1 題。",
+      "verdict": "INCOMPLETE",
+      "explanation": "至少一個 cell 沒有執行紀錄"
+    }
+  ],
+  "crossCheck": null,
+  "protocol": [
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    },
+    {
+      "cell": "temir-no-revision|deepseek-flash|deepseek-flash",
+      "label": "temir-no-revision（deepseek-flash）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    }
+  ],
+  "descriptive": [
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "practical",
+      "samples": 16,
+      "meanToolCalls": 0.125,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 43521,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 10,
+        "n": 16
+      }
+    },
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "control",
+      "samples": 4,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 21383,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 4
+      }
+    },
+    {
+      "cell": "temir-no-revision|deepseek-flash|deepseek-flash",
+      "label": "temir-no-revision（deepseek-flash）",
+      "category": "practical",
+      "samples": 16,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 36003.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 16
+      }
+    },
+    {
+      "cell": "temir-no-revision|deepseek-flash|deepseek-flash",
+      "label": "temir-no-revision（deepseek-flash）",
+      "category": "control",
+      "samples": 4,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 19178,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 4
+      }
+    }
+  ],
+  "issues": [
+    "temir|deepseek-flash|deepseek-flash 的歷史 h01：missing-record（沒有對應的紀錄）——之後所有探針都受影響",
+    "temir|deepseek-flash|deepseek-flash 的歷史 h02：missing-record（沒有對應的紀錄）——之後所有探針都受影響",
+    "temir|deepseek-flash|deepseek-flash 的歷史 h03：missing-record（沒有對應的紀錄）——之後所有探針都受影響",
+    "temir|deepseek-flash|deepseek-flash 的歷史 h04：missing-record（沒有對應的紀錄）——之後所有探針都受影響",
+    "temir|deepseek-flash|deepseek-flash 的歷史 h05：missing-record（沒有對應的紀錄）——之後所有探針都受影響",
+    "temir|deepseek-flash|deepseek-flash 的歷史 h06：missing-record（沒有對應的紀錄）——之後所有探針都受影響",
+    "temir|deepseek-flash|deepseek-flash 的歷史 h07：missing-record（沒有對應的紀錄）——之後所有探針都受影響",
+    "temir|deepseek-flash|deepseek-flash 的歷史 h08：missing-record（沒有對應的紀錄）——之後所有探針都受影響",
+    "temir|deepseek-flash|deepseek-flash 的歷史 h09：missing-record（沒有對應的紀錄）——之後所有探針都受影響"
+  ],
+  "judge": {
+    "name": "deepseek",
+    "calls": 32,
+    "spentUsd": 0.011726967999999999
+  }
+}

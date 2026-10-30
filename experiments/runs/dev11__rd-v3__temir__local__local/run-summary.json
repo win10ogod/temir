@@ -1,0 +1,22 @@
+{
+  "runId": "dev11__rd-v3__temir__local__local",
+  "endedAt": "2026-10-30T09:20:25.684Z",
+  "histories": 0,
+  "historyFrom": "rdv3r2__rd-v3__temir__local__local",
+  "probes": 12,
+  "probeSessions": 20,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": null,
+  "unsettledSelfStatements": null,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 110,
+      "errors": 3
+    },
+    "probes": {
+      "calls": 44,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

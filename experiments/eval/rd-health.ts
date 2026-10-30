@@ -49,7 +49,7 @@ export function main(argv: readonly string[], root: string): string {
     renderHealth(rows),
     '',
     `- 機制門檻（dev14 規格，合計）：思考沒有結果 ≤ 5% ${v.deliberation ? 'PASS' : 'FAIL'}；事後比對沒有結果 ≤ 5% ${v.outcome ? 'PASS' : 'FAIL'}；列出的經驗都逐筆判斷 ${v.coverage ? 'PASS' : 'FAIL'}。`,
-    `- 思考的 token（有回報的合計）：${total.reasoningTokens}。`,
+    `- 思考的 token：usage 有回報的呼叫 ${pct(total.withReasoningTokens, total.auxCalls)}，合計 ${total.reasoningTokens}；思考的字數（reasoningChars）合計 ${total.reasoningChars}。`,
   ].join('\n')
   if (file) writeFileSync(file, `${text}\n`)
   return text

@@ -11,10 +11,13 @@ const OUTCOME = JSON.stringify({ didAction: '先聽', didKind: '表達感受', m
 
 test('listed labels and retry reasons come from the individual’s own parsers', () => {
   assert.deepEqual([...listedLabels(INPUT).keys()], ['E1'])
-  assert.equal(deliberateReason(JSON.stringify({ situation: 'x', candidates }), INPUT), '經驗判斷')
-  assert.equal(deliberateReason(JSON.stringify({ situation: 'x', candidates: [{ action: 'a', kind: '勸' }, { action: 'b', kind: '回答' }] }), ''), '種類')
-  assert.equal(deliberateReason('想一想', ''), 'JSON 不完整')
-  assert.equal(deliberateReason(JSON.stringify({ situation: 'x', candidates: candidates.map((c) => ({ ...c, excluded: true })) }), ''), '全部扣除')
+  // 紀錄的輸入經過 clip，換行壓成空白（dev14：只看行首時一個編號也找不到）。
+  assert.deepEqual([...listedLabels(INPUT.replace(/\s+/g, ' ')).keys()], ['E1'])
+  const none = new Map<string, string>()
+  assert.equal(deliberateReason(JSON.stringify({ situation: 'x', candidates }), listedLabels(INPUT)), '經驗判斷')
+  assert.equal(deliberateReason(JSON.stringify({ situation: 'x', candidates: [{ action: 'a', kind: '勸' }, { action: 'b', kind: '回答' }] }), none), '種類')
+  assert.equal(deliberateReason('想一想', none), 'JSON 不完整')
+  assert.equal(deliberateReason(JSON.stringify({ situation: 'x', candidates: candidates.map((c) => ({ ...c, excluded: true })) }), none), '全部扣除')
   assert.equal(outcomeReason(JSON.stringify({ didAction: '先聽', matched: 'maybe', reward: 0.5, significance: 'daily' })), 'matched、didKind')
   assert.equal(outcomeReason('不是 JSON'), 'JSON 不完整')
 })
@@ -42,11 +45,18 @@ test('health: retries, failures, D23 coverage and aux records are counted per li
   assert.deepEqual([h.candidates, h.sameAs, h.supported], [2, 1, 1])
   assert.deepEqual([h.outcomeCalls, h.outcomeErrors, h.outcomeRetries, h.outcomes, h.outcomeFailed], [3, 1, 1, 1, 1])
   assert.equal(h.outcomeRetryReasons['reward、matched、didAction、didKind、significance'], 1)
-  assert.deepEqual([h.auxCalls, h.auxWithUsage, h.reasoningTokens], [8, 6, 30])
+  assert.deepEqual([h.auxCalls, h.auxWithUsage, h.withReasoningTokens, h.reasoningTokens, h.reasoningChars], [8, 6, 6, 30, 0])
   assert.deepEqual(h.finish, { stop: 6, 'max-tokens': 1, '（呼叫失敗）': 1 })
   // 一個決定之前的思考輸出都沒有判斷列出的經驗時，算沒有逐筆判斷。
   const bare = addHealth(emptyHealth(), [aux('deliberate', INPUT, JSON.stringify({ situation: 'x', candidates })), { kind: 'rd/decision', data: { shown: { E1: 'l:a' }, candidates: [] } }])
   assert.equal(bare.uncovered, 1)
+  // 重問的理由用之後那個決定列出的經驗歸類；紀錄的輸入被截掉、找不到編號時也一樣。
+  const clipped = addHealth(emptyHealth(), [
+    aux('deliberate', '（截掉了）', JSON.stringify({ situation: 'x', candidates })),
+    aux('deliberate', '（截掉了）', JSON.stringify({ situation: 'x', candidates, experiences: [{ id: 'E1', sameSituation: false, sameAction: [] }] })),
+    { kind: 'rd/decision', data: { shown: { E1: 'l:a' }, candidates: [] } },
+  ])
+  assert.deepEqual(clipped.deliberateRetryReasons, { 經驗判斷: 1 })
   assert.deepEqual(healthVerdict(h), { deliberation: false, outcome: false, coverage: true }, '1 of 2 is above 5%')
   assert.deepEqual(healthVerdict(emptyHealth()), { deliberation: true, outcome: true, coverage: true })
 })

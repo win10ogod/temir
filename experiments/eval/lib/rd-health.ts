@@ -5,6 +5,8 @@
  *
  * 重問的辨認：同一個目的（deliberate／outcome）連續兩次呼叫的輸入相同（rd/index.ts 重問時輸入不變，只在 system 加上說明）。
  * 重問的理由：用個體自己的解析（individual/src/rd/aux.ts）重新解析前一次的輸出，依 problems 歸類。
+ *   列出的經驗編號取自重問之後的決定（rd/decision 的 shown）；沒有決定時才從紀錄的輸入找。
+ *   紀錄的輸入經過 clip（換行壓成空白、最多 8000 字），經驗可能被截掉（dev14：只看行首時一個編號也找不到）。
  */
 import { parseDeliberation, parseOutcome } from '../../../individual/src/rd/aux.ts'
 import type { LifeRow } from './rd-mechanism.ts'
@@ -33,11 +35,13 @@ export interface Health {
   candidates: number
   sameAs: number
   supported: number
-  /** 輔助呼叫（全部目的）：次數、有 usage 的、finish 的分布、思考的 token（有回報的合計）。 */
+  /** 輔助呼叫（全部目的）：次數、有 usage 的、finish 的分布、usage 有思考 token 的次數與合計、思考的字數（reasoningChars）合計。 */
   auxCalls: number
   auxWithUsage: number
   finish: Record<string, number>
+  withReasoningTokens: number
   reasoningTokens: number
+  reasoningChars: number
 }
 
 export function emptyHealth(): Health {
@@ -45,7 +49,7 @@ export function emptyHealth(): Health {
     deliberateCalls: 0, deliberateErrors: 0, deliberateRetries: 0, deliberateRetryReasons: {}, decisions: 0, deliberationFailed: 0,
     outcomeCalls: 0, outcomeErrors: 0, outcomeRetries: 0, outcomeRetryReasons: {}, outcomes: 0, outcomeFailed: 0,
     withShown: 0, shown: 0, judgedNeighbors: 0, uncovered: 0, candidates: 0, sameAs: 0, supported: 0,
-    auxCalls: 0, auxWithUsage: 0, finish: {}, reasoningTokens: 0,
+    auxCalls: 0, auxWithUsage: 0, finish: {}, withReasoningTokens: 0, reasoningTokens: 0, reasoningChars: 0,
   }
 }
 
@@ -56,6 +60,7 @@ interface AuxData {
   readonly error?: string
   readonly finish?: string
   readonly usage?: { readonly reasoningTokens?: number } | null
+  readonly reasoningChars?: number
 }
 
 interface DecisionLike {
@@ -64,14 +69,19 @@ interface DecisionLike {
   readonly candidates: readonly { readonly sameAs?: readonly string[]; readonly support?: number }[]
 }
 
-/** 思考的輸入中列出的經驗編號（renderExperiences 的「E1｜…」），對應到假的 id（只為了重新解析）。 */
+/** 經驗編號對應到假的 id（只為了重新解析）。 */
+function asLabels(ids: readonly string[]): Map<string, string> {
+  return new Map(ids.map((id) => [id, `label:${id}`]))
+}
+
+/** 思考的輸入中列出的經驗編號（renderExperiences 的「E1｜…」；紀錄的輸入換行已壓成空白，不能只看行首）。 */
 export function listedLabels(input: string): Map<string, string> {
-  return new Map([...input.matchAll(/^(E\d+)｜/gmu)].map((m) => [m[1]!, `label:${m[1]}`]))
+  return asLabels([...input.matchAll(/(?:^|\s)(E\d+)｜/gu)].map((m) => m[1]!))
 }
 
 /** 思考不合格的理由，歸成幾類。 */
-export function deliberateReason(output: string, input: string): string {
-  const parsed = parseDeliberation(output, listedLabels(input))
+export function deliberateReason(output: string, labels: ReadonlyMap<string, string>): string {
+  const parsed = parseDeliberation(output, labels)
   if (parsed.ok) return parsed.deliberation.candidates.every((c) => c.excluded) ? '全部扣除' : '其他'
   const p = parsed.problems.join('；')
   if (/不是 JSON|沒有 candidates/u.test(p)) return 'JSON 不完整'
@@ -99,12 +109,22 @@ export function addHealth(h: Health, rows: readonly LifeRow[]): Health {
   const last: Partial<Record<string, AuxData>> = {}
   // 上一個決定之後的思考輸出（第一次、重問、全部扣除的重問）；決定由其中一次產生。
   let sinceDecision: string[] = []
+  // 重問了、還沒歸類的前一次輸出：等到決定（用它的 shown）或沒有結果（用紀錄的輸入）時再歸類。
+  let pending: AuxData[] = []
+  const classify = (labels: (a: AuxData) => ReadonlyMap<string, string>) => {
+    for (const a of pending) bump(h.deliberateRetryReasons, deliberateReason(a.output!, labels(a)))
+    pending = []
+  }
   for (const row of rows) {
     if (row.kind === 'memory/aux') {
       const a = row.data as AuxData
       h.auxCalls++
       if (a.usage) h.auxWithUsage++
-      if (a.usage?.reasoningTokens) h.reasoningTokens += a.usage.reasoningTokens
+      if (a.usage?.reasoningTokens !== undefined) {
+        h.withReasoningTokens++
+        h.reasoningTokens += a.usage.reasoningTokens
+      }
+      h.reasoningChars += a.reasoningChars ?? 0
       if (a.finish) bump(h.finish, a.finish)
       else if (a.error) bump(h.finish, '（呼叫失敗）')
       else bump(h.finish, '（沒有記下）')
@@ -117,7 +137,7 @@ export function addHealth(h: Health, rows: readonly LifeRow[]): Health {
           if (a.error) h.deliberateErrors++
           if (retry) {
             h.deliberateRetries++
-            bump(h.deliberateRetryReasons, deliberateReason(before.output!, before.input ?? ''))
+            pending.push(before)
           }
           if (a.output !== undefined) sinceDecision.push(a.output)
         } else {
@@ -135,6 +155,7 @@ export function addHealth(h: Health, rows: readonly LifeRow[]): Health {
       const d = row.data as DecisionLike
       h.decisions++
       const labels = Object.keys(d.shown ?? {})
+      classify(() => asLabels(labels))
       if (labels.length > 0) {
         h.withShown++
         h.shown += labels.length
@@ -150,11 +171,13 @@ export function addHealth(h: Health, rows: readonly LifeRow[]): Health {
       }
     } else if (row.kind === 'rd/deliberation-failed') {
       h.deliberationFailed++
+      classify((a) => listedLabels(a.input ?? ''))
       sinceDecision = []
     }
     else if (row.kind === 'rd/outcome') h.outcomes++
     else if (row.kind === 'rd/outcome-failed') h.outcomeFailed++
   }
+  classify((a) => listedLabels(a.input ?? ''))
   return h
 }
 

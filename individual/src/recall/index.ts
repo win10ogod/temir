@@ -21,8 +21,9 @@ import type {} from '@deepseek-ai/dsh-agent'
 import { createUserMessage, type ContextFormed } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
-import { runAux, type AuxCall, type AuxPurpose, type AuxRoute } from './aux.ts'
+import { modelCaller, runAux, type AuxCall, type AuxPurpose, type AuxRoute, type CallModel, type Log } from './aux.ts'
 import { FACTS_KIND, clip, hybridRecall, knownFacts, recalledOf, recentPages, renderRecall, resolveIds, selectFacts, shadowedIds, workingSetDue, type FactsData } from './retrieve.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
@@ -73,8 +74,37 @@ function textOf(content: readonly { readonly type: string; readonly text?: strin
     .join('\n')
 }
 
-export function apply(ctx: Context, config: Config | undefined): void {
-  const life = ctx.life
+/** temir-recall 的依賴：生命日誌、輔助模型呼叫（正式執行是 modelCaller(ctx)；單元測試以測試替身注入）與記錄。 */
+export interface RecallDeps {
+  readonly life: LifeStore
+  readonly call: CallModel
+  readonly logger: Log
+}
+
+/** 一個含有對方新訊息的步驟中，回憶需要的輸入（由 apply 從 DSH 的 pre-step 取出）。 */
+export interface RecallStepInput {
+  readonly session: string
+  readonly route: AuxRoute
+  /** 對方剛說的話。 */
+  readonly cue: string
+  /** 對方這一步的訊息 id：擷取到的事實等這些訊息寫進生命日誌後才寫成 memory/facts。 */
+  readonly messageIds: readonly string[]
+  readonly signal: AbortSignal
+}
+
+export interface Recall {
+  /** pre-step：線索理解與自動回憶；回傳回憶訊息的文字，沒有可以帶入的就回傳 undefined。 */
+  step(input: RecallStepInput): Promise<string | undefined>
+  /** 對方的訊息寫進 session 之後（source＝生命日誌中的事件 id）：把 pre-step 擷取到的事實寫成 memory/facts。 */
+  heard(session: string, messageId: string, source: string): void
+  /** 自己的回覆：在背景擷取立場與承諾。 */
+  said(source: string, session: string, route: AuxRoute, text: string): Promise<void>
+  /** 等背景的擷取完成。 */
+  settle(): Promise<void>
+}
+
+export function createRecall(deps: RecallDeps, config: Config | undefined): Recall {
+  const { life, logger } = deps
   const automatic = config?.automatic ?? true
   const expansion = config?.expansion ?? true
   const progressive = (config?.disclosure ?? 'progressive') === 'progressive'
@@ -82,18 +112,11 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const render = progressive ? { expand: config?.expand ?? 3 } : {}
   // 輔助呼叫的逾時（思考開著時要留餘裕：本機的思考模型在負載下第 90 百分位 77 秒，DeepSeek low 最慢 52 秒；dev10）
   const timeoutMs = config?.auxTimeoutMs ?? 180_000
-  const logger = ctx.logger('temir-recall')
 
   /** pre-step 擷取到的事實，等對應的 user/message 寫進生命日誌後再寫成 memory/facts。 */
   const pendingFacts = new Map<string, { readonly facts: readonly string[]; readonly lasting: readonly string[] }>()
   /** 背景擷取（自己的回覆）；卸載前等它們完成，避免程序結束時遺失。 */
   const background = new Set<Promise<void>>()
-  ctx.effect(
-    () => async () => {
-      await Promise.allSettled([...background])
-    },
-    'temir-recall: finish background extraction',
-  )
 
   async function aux(
     purpose: AuxPurpose,
@@ -106,7 +129,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
     const deadline = signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs)
     const model = `${route.provider}/${route.model}`
     try {
-      const call = await runAux(ctx, purpose, route, input, deadline)
+      const call = await runAux(deps.call, purpose, route, input, deadline)
       life.append({
         kind: 'memory/aux',
         origin: 'self',
@@ -160,6 +183,89 @@ export function apply(ctx: Context, config: Config | undefined): void {
     life.append({ kind: FACTS_KIND, origin: 'self', session, data, text: facts.join('\n'), causes: [source] })
   }
 
+  async function step({ session, route, cue, messageIds, signal }: RecallStepInput): Promise<string | undefined> {
+    let keywords: string[] = []
+    if (expansion) {
+      // 先等啟動時的補做（有上限），讓上一次程序沒做完的自我陳述也能被回想。
+      await settleWithin(caughtUp, timeoutMs)
+      const call = await aux('heard', route, cue, session, [], signal)
+      if (call?.result) {
+        keywords = call.result.keywords
+        const { facts, lasting } = call.result
+        if (facts.length > 0) for (const id of messageIds) pendingFacts.set(id, { facts, lasting })
+      }
+    }
+    if (!automatic) return undefined
+
+    try {
+      const first = life.inSession(session, 'dsh/user/message', 'asc', 1).length === 0
+      // 記憶分區（ADR-0007）：
+      // - 短期記憶：新 session 開頭帶入最近的對話頁（MemoryOS 的 STM）；session 之內，這段對話就在 DSH 的上下文中。
+      // - 關於對方的長期事實是工作記憶（MemGPT 的 working context）：新 session 開頭帶入，DSH 壓縮上下文之後再帶入一次，
+      //   因為開頭帶入的那一則也會被壓縮成摘要。
+      // - 被壓縮擠出上下文的這段對話，照常可以檢索（MemGPT 的 recall storage）。
+      const { working, afterCompaction, compacted } = workingSetDue(life, session, first)
+      const recent = first ? recentPages(life, session) : []
+      const known = working ? knownFacts(life) : []
+      const person = selectFacts(known, FACTS_BUDGET, [cue, ...keywords].join(' '))
+      const shadowed = compacted ? shadowedIds(life, session) : undefined
+      const recalled = hybridRecall(life, cue, keywords, { limit, excludeSession: session, shadowed, excludeIds: new Set(recent.map((p) => p.heard.id)) })
+      life.append({
+        kind: 'memory/recall',
+        origin: 'self',
+        session,
+        data: {
+          mode: 'automatic',
+          cue: clip(cue, 500),
+          keywords,
+          lastSession: recent.at(-1)?.heard.session ?? null,
+          working,
+          recent: recent.map((p) => p.heard.id),
+          ...(afterCompaction ? { afterCompaction: true } : {}),
+          ...(shadowed ? { shadowed: shadowed.size } : {}),
+          person: [...new Set(person.map((p) => p.id))],
+          hits: recalled.map((r) => ({ id: r.event.id, reply: r.reply?.id ?? null, via: r.via, score: r.score })),
+        },
+        // causes 記下帶進上下文的每一則經歷，包括短期記憶的回合（之後追溯記憶是否參與了決策）。
+        causes: [
+          ...new Set([
+            ...recalled.flatMap((r) => [r.event.id, ...(r.reply ? [r.reply.id] : [])]),
+            ...recent.flatMap((p) => [p.heard.id, ...(p.reply ? [p.reply.id] : [])]),
+            ...person.map((p) => p.id),
+          ]),
+        ],
+      })
+      if (recalled.length === 0 && recent.length === 0 && person.length === 0) return undefined
+      return renderRecall(life, recalled, undefined, HEADER, person, { ...render, recent, omittedFacts: known.length - person.length })
+    } catch (error) {
+      logger.error('automatic recall failed: %s', error)
+      return undefined
+    }
+  }
+
+  return {
+    step,
+    heard(session, messageId, source) {
+      const pending = pendingFacts.get(messageId)
+      if (!pending) return
+      pendingFacts.delete(messageId)
+      appendFacts(session, source, pending.facts, 'heard', pending.lasting)
+    },
+    said: (source, session, route, text) => extractSaid(source, session, route, text),
+    settle: async () => {
+      await Promise.allSettled([...background])
+    },
+  }
+}
+
+export function apply(ctx: Context, config: Config | undefined): void {
+  const life = ctx.life
+  const automatic = config?.automatic ?? true
+  const expansion = config?.expansion ?? true
+  const logger = ctx.logger('temir-recall')
+  const recall = createRecall({ life, call: modelCaller(ctx), logger }, config)
+  ctx.effect(() => () => recall.settle(), 'temir-recall: finish background extraction')
+
   if (automatic || expansion) {
     ctx.on('agent/pre-step', async (payload, next) => {
       const decision = await next()
@@ -167,85 +273,27 @@ export function apply(ctx: Context, config: Config | undefined): void {
       const human = decision.messages.filter((m) => m.source.kind === 'user')
       const cue = human.map((m) => textOf(m.content)).join('\n').trim()
       if (!cue) return decision
-      const session = payload.agent.session.id
-
-      let keywords: string[] = []
-      if (expansion) {
-        // 先等啟動時的補做（有上限），讓上一次程序沒做完的自我陳述也能被回想。
-        await settleWithin(caughtUp, timeoutMs)
-        const route = { provider: payload.modelSelection.provider, model: payload.modelSelection.model }
-        const call = await aux('heard', route, cue, session, [], payload.signal)
-        if (call?.result) {
-          keywords = call.result.keywords
-          const { facts, lasting } = call.result
-          if (facts.length > 0) for (const m of human) pendingFacts.set(m.id, { facts, lasting })
-        }
-      }
-      if (!automatic) return decision
-
-      try {
-        const first = life.inSession(session, 'dsh/user/message', 'asc', 1).length === 0
-        // 記憶分區（ADR-0007）：
-        // - 短期記憶：新 session 開頭帶入最近的對話頁（MemoryOS 的 STM）；session 之內，這段對話就在 DSH 的上下文中。
-        // - 關於對方的長期事實是工作記憶（MemGPT 的 working context）：新 session 開頭帶入，DSH 壓縮上下文之後再帶入一次，
-        //   因為開頭帶入的那一則也會被壓縮成摘要。
-        // - 被壓縮擠出上下文的這段對話，照常可以檢索（MemGPT 的 recall storage）。
-        const { working, afterCompaction, compacted } = workingSetDue(life, session, first)
-        const recent = first ? recentPages(life, session) : []
-        const known = working ? knownFacts(life) : []
-        const person = selectFacts(known, FACTS_BUDGET, [cue, ...keywords].join(' '))
-        const shadowed = compacted ? shadowedIds(life, session) : undefined
-        const recalled = hybridRecall(life, cue, keywords, { limit, excludeSession: session, shadowed, excludeIds: new Set(recent.map((p) => p.heard.id)) })
-        life.append({
-          kind: 'memory/recall',
-          origin: 'self',
-          session,
-          data: {
-            mode: 'automatic',
-            cue: clip(cue, 500),
-            keywords,
-            lastSession: recent.at(-1)?.heard.session ?? null,
-            working,
-            recent: recent.map((p) => p.heard.id),
-            ...(afterCompaction ? { afterCompaction: true } : {}),
-            ...(shadowed ? { shadowed: shadowed.size } : {}),
-            person: [...new Set(person.map((p) => p.id))],
-            hits: recalled.map((r) => ({ id: r.event.id, reply: r.reply?.id ?? null, via: r.via, score: r.score })),
-          },
-          // causes 記下帶進上下文的每一則經歷，包括短期記憶的回合（之後追溯記憶是否參與了決策）。
-          causes: [
-            ...new Set([
-              ...recalled.flatMap((r) => [r.event.id, ...(r.reply ? [r.reply.id] : [])]),
-              ...recent.flatMap((p) => [p.heard.id, ...(p.reply ? [p.reply.id] : [])]),
-              ...person.map((p) => p.id),
-            ]),
-          ],
-        })
-        if (recalled.length === 0 && recent.length === 0 && person.length === 0) return decision
-        const recall = createUserMessage({
-          content: [{ type: 'text', text: renderRecall(life, recalled, undefined, HEADER, person, { ...render, recent, omittedFacts: known.length - person.length }) }],
-          source: { kind: 'temir-recall', form: 'recall' },
-        })
-        return { ...decision, messages: [recall, ...decision.messages] }
-      } catch (error) {
-        logger.error('automatic recall failed: %s', error)
-        return decision
-      }
+      const text = await recall.step({
+        session: payload.agent.session.id,
+        route: { provider: payload.modelSelection.provider, model: payload.modelSelection.model },
+        cue,
+        messageIds: human.map((m) => m.id),
+        signal: payload.signal,
+      })
+      if (text === undefined) return decision
+      const message = createUserMessage({ content: [{ type: 'text', text }], source: { kind: 'temir-recall', form: 'recall' } })
+      return { ...decision, messages: [message, ...decision.messages] }
     })
 
     ctx.on('session/event', (session: Session, event: SessionEvent) => {
       try {
         if (event.type === 'user/message') {
-          const pending = pendingFacts.get(event.data.id)
-          if (pending) {
-            pendingFacts.delete(event.data.id)
-            appendFacts(session.id, `${session.id}#${event.seq}`, pending.facts, 'heard', pending.lasting)
-          }
+          recall.heard(session.id, event.data.id, `${session.id}#${event.seq}`)
         } else if (expansion && event.type === 'assistant/message') {
           const said = textOf(event.data.message.content as readonly { type: string; text?: string }[]).trim()
           if (!said) return
           const source = event.data.message.source
-          void extractSaid(`${session.id}#${event.seq}`, session.id, { provider: source.provider, model: source.model }, said)
+          void recall.said(`${session.id}#${event.seq}`, session.id, { provider: source.provider, model: source.model }, said)
         }
       } catch (error) {
         logger.error('fact bookkeeping failed: %s', error)

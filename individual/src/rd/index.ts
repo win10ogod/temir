@@ -12,15 +12,18 @@
  * 對方沉默（silenceMinutes 沒有新事件）時，最後一個決定先以「對方沒有再說話」做暫時的比對：
  * 這一回合答應的事成為懸著的事，閒置時的念頭與主動開口才看得到它（對方之後回話時再正式比對）。
  *
+ * 步驟本身在 createRd：只依賴生命日誌與可注入的模型呼叫（deps.call），DSH 的部分（訊息、工具、計時器）留在 apply，
+ * 所以控制流可以用測試替身單獨測試（individual/test/rd-step.test.ts）。
+ *
  * 設定（消融實驗用）：enabled＝整個 RD 階段；jitrl＝經驗修正（關閉時只依口述信心選擇）。
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-agent'
 import { createUserMessage, type ContextFormed } from '@deepseek-ai/dsh-llm'
-import type { LifeEvent } from '../life/store.ts'
+import type { LifeEvent, LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { latestRoute } from '../integrate/index.ts'
-import { callModel, type AuxRoute } from '../recall/aux.ts'
+import { modelCaller, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
 import { clip, clipEnds, sessionSoFar } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
@@ -95,9 +98,47 @@ function textOf(content: readonly { readonly type: string; readonly text?: strin
     .join('\n')
 }
 
-export function apply(ctx: Context, config: Config | undefined): void {
-  if (config?.enabled === false) return
-  const life = ctx.life
+/** RD 階段的依賴：生命日誌、輔助模型呼叫（正式執行是 modelCaller(ctx)；單元測試以測試替身注入）與記錄。 */
+export interface RdDeps {
+  readonly life: LifeStore
+  readonly call: CallModel
+  readonly logger: Log
+}
+
+/** 一個含有對方新訊息的步驟中，思考需要的輸入（由 apply 從 DSH 的 pre-step 取出）。 */
+export interface StepInput {
+  readonly session: string
+  readonly route: AuxRoute
+  /** 對方剛說的話。 */
+  readonly cue: string
+  /** 同一步之中 temir-recall 放進來的回憶訊息的文字。 */
+  readonly recalled: string
+  /** 主模型現在可以使用的工具名稱。 */
+  readonly tools: readonly string[]
+  readonly signal: AbortSignal
+}
+
+/** 準備訊息的文字，以及選出的做法（訊息摘要用）。 */
+export interface Preparation {
+  readonly text: string
+  readonly action: string
+}
+
+export interface Rd {
+  /** 沉默多久之後做暫時的比對（毫秒；0＝關閉）。 */
+  readonly silenceMs: number
+  /** 事後比對（背景）：上一個決定的預測 vs 實際。provisional＝對方還沒有回話（暫時的比對）。 */
+  evaluate(decision: LifeEvent, heard: string, route: AuxRoute, provisional?: boolean): void
+  /** pre-step：先比對上一個決定（背景），再思考與準備；沒有準備時（思考失敗、輸出不合格）回傳 undefined。 */
+  step(input: StepInput): Promise<Preparation | undefined>
+  /** 對方沉默時的暫時比對（計時器每次觸發時呼叫）。 */
+  checkSilence(now?: number): void
+  /** 等背景的事後比對完成。 */
+  settle(): Promise<void>
+}
+
+export function createRd(deps: RdDeps, config: Config | undefined): Rd {
+  const { life, logger } = deps
   const jitrl = config?.jitrl ?? true
   // 參數：預設 ⊕ 日誌重播採用的（rd/replay.ts；整合期之後）⊕ 設定檔（實驗與消融固定參數）。每次思考時重新決定。
   const paramsNow = (): Params => ({ ...DEFAULT_PARAMS, ...adoptedParams(life.all(REPLAY_KIND)), ...config?.params })
@@ -108,17 +149,10 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const perPerson = config?.perPerson ?? true
   const revision = (config?.revision ?? true) && subtraction
   const silenceMs = (config?.silenceMinutes ?? 10) * 60_000
-  const logger = ctx.logger('temir-rd')
 
   /** 背景的事後比對；卸載前等它們完成。 */
   const background = new Set<Promise<void>>()
   const evaluating = new Set<string>()
-  ctx.effect(
-    () => async () => {
-      await Promise.allSettled([...background])
-    },
-    'temir-rd: finish outcome evaluation',
-  )
 
   async function call(
     purpose: 'deliberate' | 'outcome' | 'revise',
@@ -132,7 +166,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
     const deadline = signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs)
     const model = `${route.provider}/${route.model}`
     try {
-      const { output, ms, retried, effort, reasoningChars } = await callModel(ctx, route, system, input, deadline)
+      const { output, ms, retried, effort, reasoningChars } = await deps.call(route, system, input, deadline)
       life.append({ kind: 'memory/aux', origin: 'self', session, model, data: { purpose, ms, retried, effort, reasoningChars, input: clip(input, 8000), output }, causes })
       return output
     } catch (error) {
@@ -143,7 +177,6 @@ export function apply(ctx: Context, config: Config | undefined): void {
     }
   }
 
-  /** 事後比對：上一個決定的預測 vs 實際。provisional＝對方還沒有回話（暫時的比對）。 */
   function evaluate(decision: LifeEvent, heard: string, route: AuxRoute, provisional = false): void {
     if (evaluating.has(decision.id)) return
     evaluating.add(decision.id)
@@ -227,22 +260,150 @@ export function apply(ctx: Context, config: Config | undefined): void {
     void task.finally(() => background.delete(task))
   }
 
-  // 對方沉默：最後一個決定先做暫時的比對（計時器不讓程序多留，一次性的執行與實驗不會觸發）。
-  if (silenceMs > 0) {
-    const timer = setInterval(() => {
-      try {
-        if (!life.isOpen) return
-        const last = life.recent(1)[0]
-        if (!last || Date.now() - last.ts < silenceMs) return
-        const session = life.latest(DECISION_KIND)?.session
-        const decision = session ? openDecision(life, session) : undefined
-        if (!decision || life.referencing(decision.id, OUTCOME_KIND).length > 0) return
-        const route = latestRoute(life)
-        if (route) evaluate(decision, SILENT_OTHER, route, true)
-      } catch (error) {
-        logger.error('silence check failed: %s', error)
+  // 對方沉默：最後一個決定先做暫時的比對。
+  function checkSilence(now = Date.now()): void {
+    try {
+      if (!life.isOpen) return
+      const last = life.recent(1)[0]
+      if (!last || now - last.ts < silenceMs) return
+      const session = life.latest(DECISION_KIND)?.session
+      const decision = session ? openDecision(life, session) : undefined
+      if (!decision || life.referencing(decision.id, OUTCOME_KIND).length > 0) return
+      const route = latestRoute(life)
+      if (route) evaluate(decision, SILENT_OTHER, route, true)
+    } catch (error) {
+      logger.error('silence check failed: %s', error)
+    }
+  }
+
+  async function step({ session, route, cue, recalled, tools, signal }: StepInput): Promise<Preparation | undefined> {
+    try {
+      const previous = openDecision(life, session)
+      if (previous) evaluate(previous, cue, route)
+
+      const params = paramsNow()
+      const memory = jitrl ? experiences(life, params.gamma) : []
+      // 這一步的自動回憶（temir-recall 在同一步之中先寫下）帶進來的經歷：當時做過的決定與結果排在前面。
+      const recall = life.allInSession(session, 'memory/recall').at(-1)
+      const recallData = recall?.data as { mode?: string; cue?: string } | undefined
+      const recalledIds = recall && recallData?.mode === 'automatic' && recallData.cue === clip(cue, 500) ? recall.causes : []
+      const shown = shownExperiences(experiencesOfRecalled(life, memory, recalledIds), relevantExperiences(cue, memory, 5), 5)
+      const labels = new Map(shown.map((e, i) => [`E${i + 1}`, e.id]))
+      // 懸著的事加上編號，思考才能指名被觸發的是哪一件（self/energy.ts）。
+      const potentialView = energy ? presentPotential(life, { labels: true }) : undefined
+      const heldNow = potentialView?.shown ?? []
+      const potentialLabels = potentialView?.labels ?? new Map<string, string>()
+      const goalIds = new Set(goals(life).filter((g) => g.status === 'active' || g.status === 'paused').map((g) => g.id))
+      const soFar = sessionSoFar(life, session, cue)
+      const input = [
+        '## 你目前的自我狀態',
+        renderSelfSnapshot(life, potentialView?.lines ?? []),
+        '',
+        // ST 想像得到的行動要包括真的能做的事：e2e-15 中思考不知道有 integrate 工具，準備了「告知沒有這個工具」。
+        '## 你現在可以使用的工具',
+        tools.length > 0 ? tools.join('、') : '（沒有）',
+        '',
+        '## 自動回憶',
+        recalled ? clipEnds(recalled, 5000) : '（沒有）',
+        '',
+        '## 這段對話到目前為止（不含對方剛說的話）',
+        soFar.length > 0 ? soFar.join('\n') : '（這段對話剛開始）',
+        '',
+        '## 過去類似處境的經驗',
+        renderExperiences(shown, revision),
+        '',
+        '## 對方剛說的話',
+        clip(cue, 3000),
+      ].join('\n')
+      const system = deliberateSystem(energy, subtraction, perPerson)
+      const output = await call('deliberate', route, system, input, session, [], signal)
+      let parsed = output === undefined ? undefined : parseDeliberation(output, labels)
+      // 輸出不完整時重試一次（e2e-37：本機模型有一次只寫了處境與 people，沒有 candidates）。呼叫失敗時不重試。
+      if (output !== undefined && !parsed && !signal.aborted) {
+        const again = await call('deliberate', route, `${system}\n${DELIBERATION_RETRY_NOTE}`, input, session, [], signal)
+        parsed = again === undefined ? undefined : parseDeliberation(again, labels)
       }
-    }, Math.min(silenceMs, 60_000))
+      if (!parsed) return undefined
+      // 處境、drive、候選與扣除理由都會進入準備訊息與紀錄：把編號換成那件事的描述（編號只在這次思考的輸入中有意義）。
+      // dev5：處境寫著「她欠我回覆的：…（P1」，主模型的推理跟著寫「不該再讓 P1、P2 無限懸著」。
+      const deliberation = mapDeliberationText(subtraction ? parsed : withoutExclusions(parsed), (s) => unlabel(s, potentialLabels, heldNow))
+
+      const near = jitrl ? neighbors(deliberation.situation, memory, params, deliberation.similar) : []
+      // D20 第三版：扣除本身會被經驗改變，由個體判斷，但強制判斷（memory.ts 的 exclusionReviews）。
+      // 類似處境的經驗：思考時列出的（回憶帶進來的＋詞彙相近的），加上 JitRL 依處境找到的鄰居。
+      const reviews = revision ? exclusionReviews(deliberation.candidates, [...shown, ...near.map((n) => n.experience)]) : []
+      let candidates = deliberation.candidates
+      let review: DecisionData['review']
+      if (reviews.length > 0) {
+        const { text, labels: refLabels } = renderExclusionReview(deliberation.situation, deliberation.candidates, reviews)
+        let answer = await call('revise', route, REVISION_SYSTEM, text, session, [], signal)
+        let judged = answer === undefined ? undefined : parseJudgments(answer, reviews, refLabels)
+        // 判斷不合格時，附上缺少的部分重問一次；仍不合格就照實記下，維持原本的扣除。
+        if (judged && !judged.ok && !signal.aborted) {
+          answer = await call('revise', route, `${REVISION_SYSTEM}\n${revisionRetryNote(judged.problems)}`, text, session, [], signal)
+          judged = answer === undefined ? undefined : parseJudgments(answer, reviews, refLabels)
+        }
+        if (judged?.ok) candidates = applyJudgments(candidates, judged.judgments)
+        review = { required: reviews.length, ...(judged?.ok ? {} : { failed: judged ? judged.problems.join('；') : '判斷的呼叫失敗' }) }
+      }
+      const correction = jitrl ? correct(candidates, near, params) : uncorrected(candidates)
+      const chosen = correction.scored[correction.chosen]
+      const data: DecisionData = {
+        cue: clip(cue, 500),
+        situation: deliberation.situation,
+        ...(deliberation.drive ? { drive: deliberation.drive } : {}),
+        ...(deliberation.people.length > 0 ? { people: deliberation.people } : {}),
+        ...(review ? { review } : {}),
+        ...(() => {
+          const activated = resolvePotential(deliberation.activated, potentialLabels, goalIds)
+          return activated.length > 0 ? { activated } : {}
+        })(),
+        candidates: correction.scored,
+        chosen: correction.chosen,
+        value: correction.value,
+        neighbors: near.map((n) => ({ id: n.experience.id, similarity: n.similarity, judged: n.judged, ret: n.experience.ret })),
+        shown: Object.fromEntries(labels),
+        jitrl,
+        params,
+        selfVersion: currentSelfModel(life)?.version ?? 0,
+        narrativeVersion: currentNarrative(life)?.version ?? 0,
+      }
+      life.append({
+        kind: DECISION_KIND,
+        origin: 'self',
+        session,
+        model: `${route.provider}/${route.model}`,
+        data,
+        text: `處境：${deliberation.situation}\n我準備：${chosen?.action ?? ''}\n我預期：${chosen?.prediction ?? ''}`,
+        causes: near.map((n) => n.experience.id),
+      })
+      return { text: renderPreparation(deliberation, correction, near, subtraction), action: chosen?.action ?? '' }
+    } catch (error) {
+      logger.error('rd stage failed: %s', error)
+      return undefined
+    }
+  }
+
+  return {
+    silenceMs,
+    evaluate,
+    step,
+    checkSilence,
+    settle: async () => {
+      await Promise.allSettled([...background])
+    },
+  }
+}
+
+export function apply(ctx: Context, config: Config | undefined): void {
+  if (config?.enabled === false) return
+  const logger = ctx.logger('temir-rd')
+  const rd = createRd({ life: ctx.life, call: modelCaller(ctx), logger }, config)
+  ctx.effect(() => () => rd.settle(), 'temir-rd: finish outcome evaluation')
+
+  // 對方沉默：最後一個決定先做暫時的比對（計時器不讓程序多留，一次性的執行與實驗不會觸發）。
+  if (rd.silenceMs > 0) {
+    const timer = setInterval(() => rd.checkSilence(), Math.min(rd.silenceMs, 60_000))
     timer.unref()
     ctx.effect(() => () => clearInterval(timer), 'temir-rd: stop silence check')
   }
@@ -258,116 +419,22 @@ export function apply(ctx: Context, config: Config | undefined): void {
         .join('\n')
         .trim()
       if (!cue) return decision
-      const session = payload.agent.session.id
-      const route = { provider: payload.modelSelection.provider, model: payload.modelSelection.model }
       try {
-        const previous = openDecision(life, session)
-        if (previous) evaluate(previous, cue, route)
-
-        const params = paramsNow()
-        const memory = jitrl ? experiences(life, params.gamma) : []
-        // 這一步的自動回憶（temir-recall 在同一步之中先寫下）帶進來的經歷：當時做過的決定與結果排在前面。
-        const recall = life.allInSession(session, 'memory/recall').at(-1)
-        const recallData = recall?.data as { mode?: string; cue?: string } | undefined
-        const recalledIds = recall && recallData?.mode === 'automatic' && recallData.cue === clip(cue, 500) ? recall.causes : []
-        const shown = shownExperiences(experiencesOfRecalled(life, memory, recalledIds), relevantExperiences(cue, memory, 5), 5)
-        const labels = new Map(shown.map((e, i) => [`E${i + 1}`, e.id]))
-        const recalled = decision.messages
-          .filter((m) => m.source.kind === 'temir-recall')
-          .map((m) => textOf(m.content))
-          .join('\n')
-        // ST 想像得到的行動要包括真的能做的事：e2e-15 中思考不知道有 integrate 工具，準備了「告知沒有這個工具」。
-        const tools = ctx.tools.definitions(payload.agent).map((t) => t.name)
-        // 懸著的事加上編號，思考才能指名被觸發的是哪一件（self/energy.ts）。
-        const potentialView = energy ? presentPotential(life, { labels: true }) : undefined
-        const heldNow = potentialView?.shown ?? []
-        const potentialLabels = potentialView?.labels ?? new Map<string, string>()
-        const goalIds = new Set(goals(life).filter((g) => g.status === 'active' || g.status === 'paused').map((g) => g.id))
-        const soFar = sessionSoFar(life, session, cue)
-        const input = [
-          '## 你目前的自我狀態',
-          renderSelfSnapshot(life, potentialView?.lines ?? []),
-          '',
-          '## 你現在可以使用的工具',
-          tools.length > 0 ? tools.join('、') : '（沒有）',
-          '',
-          '## 自動回憶',
-          recalled ? clipEnds(recalled, 5000) : '（沒有）',
-          '',
-          '## 這段對話到目前為止（不含對方剛說的話）',
-          soFar.length > 0 ? soFar.join('\n') : '（這段對話剛開始）',
-          '',
-          '## 過去類似處境的經驗',
-          renderExperiences(shown, revision),
-          '',
-          '## 對方剛說的話',
-          clip(cue, 3000),
-        ].join('\n')
-        const system = deliberateSystem(energy, subtraction, perPerson)
-        const output = await call('deliberate', route, system, input, session, [], payload.signal)
-        let parsed = output === undefined ? undefined : parseDeliberation(output, labels)
-        // 輸出不完整時重試一次（e2e-37：本機模型有一次只寫了處境與 people，沒有 candidates）。呼叫失敗時不重試。
-        if (output !== undefined && !parsed && !payload.signal.aborted) {
-          const again = await call('deliberate', route, `${system}\n${DELIBERATION_RETRY_NOTE}`, input, session, [], payload.signal)
-          parsed = again === undefined ? undefined : parseDeliberation(again, labels)
-        }
-        if (!parsed) return decision
-        // 處境、drive、候選與扣除理由都會進入準備訊息與紀錄：把編號換成那件事的描述（編號只在這次思考的輸入中有意義）。
-        // dev5：處境寫著「她欠我回覆的：…（P1」，主模型的推理跟著寫「不該再讓 P1、P2 無限懸著」。
-        const deliberation = mapDeliberationText(subtraction ? parsed : withoutExclusions(parsed), (s) => unlabel(s, potentialLabels, heldNow))
-
-        const near = jitrl ? neighbors(deliberation.situation, memory, params, deliberation.similar) : []
-        // D20 第三版：扣除本身會被經驗改變，由個體判斷，但強制判斷（memory.ts 的 exclusionReviews）。
-        // 類似處境的經驗：思考時列出的（回憶帶進來的＋詞彙相近的），加上 JitRL 依處境找到的鄰居。
-        const reviews = revision ? exclusionReviews(deliberation.candidates, [...shown, ...near.map((n) => n.experience)]) : []
-        let candidates = deliberation.candidates
-        let review: DecisionData['review']
-        if (reviews.length > 0) {
-          const { text, labels: refLabels } = renderExclusionReview(deliberation.situation, deliberation.candidates, reviews)
-          let answer = await call('revise', route, REVISION_SYSTEM, text, session, [], payload.signal)
-          let judged = answer === undefined ? undefined : parseJudgments(answer, reviews, refLabels)
-          // 判斷不合格時，附上缺少的部分重問一次；仍不合格就照實記下，維持原本的扣除。
-          if (judged && !judged.ok && !payload.signal.aborted) {
-            answer = await call('revise', route, `${REVISION_SYSTEM}\n${revisionRetryNote(judged.problems)}`, text, session, [], payload.signal)
-            judged = answer === undefined ? undefined : parseJudgments(answer, reviews, refLabels)
-          }
-          if (judged?.ok) candidates = applyJudgments(candidates, judged.judgments)
-          review = { required: reviews.length, ...(judged?.ok ? {} : { failed: judged ? judged.problems.join('；') : '判斷的呼叫失敗' }) }
-        }
-        const correction = jitrl ? correct(candidates, near, params) : uncorrected(candidates)
-        const chosen = correction.scored[correction.chosen]
-        const data: DecisionData = {
-          cue: clip(cue, 500),
-          situation: deliberation.situation,
-          ...(deliberation.drive ? { drive: deliberation.drive } : {}),
-          ...(deliberation.people.length > 0 ? { people: deliberation.people } : {}),
-          ...(review ? { review } : {}),
-          ...(() => {
-            const activated = resolvePotential(deliberation.activated, potentialLabels, goalIds)
-            return activated.length > 0 ? { activated } : {}
-          })(),
-          candidates: correction.scored,
-          chosen: correction.chosen,
-          value: correction.value,
-          neighbors: near.map((n) => ({ id: n.experience.id, similarity: n.similarity, judged: n.judged, ret: n.experience.ret })),
-          shown: Object.fromEntries(labels),
-          jitrl,
-          params,
-          selfVersion: currentSelfModel(life)?.version ?? 0,
-          narrativeVersion: currentNarrative(life)?.version ?? 0,
-        }
-        life.append({
-          kind: DECISION_KIND,
-          origin: 'self',
-          session,
-          model: `${route.provider}/${route.model}`,
-          data,
-          text: `處境：${deliberation.situation}\n我準備：${chosen?.action ?? ''}\n我預期：${chosen?.prediction ?? ''}`,
-          causes: near.map((n) => n.experience.id),
+        const prepared = await rd.step({
+          session: payload.agent.session.id,
+          route: { provider: payload.modelSelection.provider, model: payload.modelSelection.model },
+          cue,
+          recalled: decision.messages
+            .filter((m) => m.source.kind === 'temir-recall')
+            .map((m) => textOf(m.content))
+            .join('\n'),
+          tools: ctx.tools.definitions(payload.agent).map((t) => t.name),
+          signal: payload.signal,
         })
+        if (!prepared) return decision
         const preparation = createUserMessage({
-          content: [{ type: 'text', text: renderPreparation(deliberation, correction, near, subtraction) }],
-          source: { kind: 'temir-rd', form: 'notice', summary: `行動準備：${clip(chosen?.action ?? '', 60)}` },
+          content: [{ type: 'text', text: prepared.text }],
+          source: { kind: 'temir-rd', form: 'notice', summary: `行動準備：${clip(prepared.action, 60)}` },
         })
         return { ...decision, messages: [...decision.messages, preparation] }
       } catch (error) {

@@ -131,6 +131,32 @@ export interface AuxCall {
   readonly result: AuxResult | undefined
 }
 
+/** 一次輔助呼叫的結果（callModel）。 */
+export interface ModelResult {
+  readonly output: string
+  readonly ms: number
+  readonly retried: boolean
+  readonly effort: string | null
+  readonly reasoningChars: number
+}
+
+/**
+ * 輔助模型呼叫的介面：rd 與 recall 的 pre-step 以它注入（正式執行是 modelCaller(ctx)，單元測試以測試替身取代）。
+ * 與 callModel 相同：失敗時丟出例外。
+ */
+export type CallModel = (route: AuxRoute, system: string, input: string, signal: AbortSignal) => Promise<ModelResult>
+
+/** 記錄錯誤用（cordis 的 Logger 符合這個形狀）。 */
+export interface Log {
+  readonly warn: (format: string, ...param: unknown[]) => void
+  readonly error: (format: string, ...param: unknown[]) => void
+}
+
+/** 正式執行用的 CallModel：經由 DSH 的模型服務呼叫（callModel）。 */
+export function modelCaller(ctx: Context): CallModel {
+  return (route, system, input, signal) => callModel(ctx, route, system, input, signal)
+}
+
 /**
  * 以指定路由做一次不進入對話的模型呼叫（不關閉思考的最低推理等級，見 auxEffort），回傳模型輸出的文字。
  * 輸入是繁體中文、輸出卻變成簡體時，加註後重試一次（script.ts），回傳第二次的結果並標記 retried。
@@ -143,7 +169,7 @@ export async function callModel(
   input: string,
   signal: AbortSignal,
   maxTokens = AUX_MAX_TOKENS,
-): Promise<{ readonly output: string; readonly ms: number; readonly retried: boolean; readonly effort: string | null; readonly reasoningChars: number }> {
+): Promise<ModelResult> {
   const started = Date.now()
   const first = await callOnce(ctx, route, system, input, signal, maxTokens)
   if (!driftedToSimplified(input, first.text)) return { output: first.text, ms: Date.now() - started, retried: false, effort: first.effort, reasoningChars: first.reasoningChars }
@@ -183,12 +209,12 @@ async function callOnce(
 
 /** 線索理解或自我陳述擷取的輔助呼叫。 */
 export async function runAux(
-  ctx: Context,
+  call: CallModel,
   purpose: AuxPurpose,
   route: AuxRoute,
   input: string,
   signal: AbortSignal,
 ): Promise<AuxCall> {
-  const { output, ms, retried, effort, reasoningChars } = await callModel(ctx, route, SYSTEM[purpose], input, signal)
+  const { output, ms, retried, effort, reasoningChars } = await call(route, SYSTEM[purpose], input, signal)
   return { purpose, route, input, output, ms, retried, effort, reasoningChars, result: parseAux(output) }
 }

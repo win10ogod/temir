@@ -194,6 +194,12 @@
   - 與個體一起執行已驗證。
   - 2026-10-30 Telegram（e2e-38）：IM 上的對話與主動開口送到 Telegram 都已驗證；測試中修正了重啟後無法開口、關閉自動念頭時 relay 也關掉這兩個問題。
 
+## 離線改進（`research/proposals/2026-10-30-offline-improvements.md`，雲端 2026-10-30）
+只跑離線驗證：`npm run typecheck`、`npm test`、`npm run -s test:experiments`；沒有呼叫任何外部 API。
+- [x] 第 3 項：rd、recall 的 pre-step 可注入模型呼叫。
+  - `createRd`、`createRecall` 只依賴生命日誌與 `deps.call`（`recall/aux.ts` 的 `CallModel`；正式執行是 `modelCaller(ctx)`），DSH 的訊息、工具與計時器留在 `apply`。行為不變。
+  - 控制流測試（測試替身）：`individual/test/rd-step.test.ts`（思考重問、強制判斷三種情形）、`recall-step.test.ts`（第一句與壓縮之後的 working、短期記憶 7 頁、excludeIds 不重複）。
+
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID
 - 正式個體何時「誕生」（第一次不帶 `TEMIR_HOME` 啟動即建立 `~/.local/share/temir/life.db`）

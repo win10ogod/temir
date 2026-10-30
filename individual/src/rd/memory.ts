@@ -5,6 +5,7 @@
  * - `rd/outcome`：對某個決定的事後比對：實際做了什麼、發生了什麼、是否符合預測、回報與教訓。
  * JitRL 的記憶 (s, a, G) 從這兩種事件推導，不另外保存，所以回報可以在之後重新評估。
  */
+import { Projection } from '../life/projection.ts'
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import type { ReplayCase } from './replay.ts'
 import { extractJson } from '../recall/aux.ts'
@@ -102,56 +103,95 @@ export interface RevaluationData {
   readonly integration: string
 }
 
+/** experiences 的增量狀態（life/projection.ts）：決定依 session 分組，比對與重新評估以決定 id 索引，每個 session 的經驗快取。 */
+interface ExperienceState {
+  /** 每個決定最新的比對（同一個決定若被評估多次，以最新的為準）。 */
+  readonly outcomes: Map<string, OutcomeData>
+  /** 每個決定最新的重新評估的回報（覆寫比對的回報）。 */
+  readonly revalued: Map<string, number>
+  /** 有 session 的決定，依 session 分組、依時間排列（Map 的順序是每個 session 第一個決定出現的順序）。 */
+  readonly sessions: Map<string, LifeEvent[]>
+  readonly sessionOf: Map<string, string>
+  /** 新的決定、比對或重新評估影響到的 session：它們的折扣回報要重算。 */
+  readonly dirty: Set<string>
+  readonly cache: Map<string, { readonly gamma: number; readonly list: readonly Experience[] }>
+}
+
+const EXPERIENCES = new Projection<ExperienceState>(
+  [DECISION_KIND, OUTCOME_KIND, REVALUATION_KIND],
+  () => ({ outcomes: new Map(), revalued: new Map(), sessions: new Map(), sessionOf: new Map(), dirty: new Set(), cache: new Map() }),
+  (state, event) => {
+    if (event.kind === DECISION_KIND) {
+      if (!event.session) return
+      const list = state.sessions.get(event.session) ?? []
+      list.push(event)
+      state.sessions.set(event.session, list)
+      state.sessionOf.set(event.id, event.session)
+      state.dirty.add(event.session)
+      return
+    }
+    const decision = event.kind === OUTCOME_KIND ? (event.data as OutcomeData).decision : (event.data as RevaluationData).decision
+    if (event.kind === OUTCOME_KIND) state.outcomes.set(decision, event.data as OutcomeData)
+    else state.revalued.set(decision, (event.data as RevaluationData).reward)
+    const session = state.sessionOf.get(decision)
+    if (session) state.dirty.add(session)
+  },
+)
+
+/** 一個 session 的經驗：依時間計算折扣回報，只保留回報已知、而且有做法的決定。 */
+function sessionExperiences(state: ExperienceState, decisions: readonly LifeEvent[], gamma: number): Experience[] {
+  const effective = (id: string): OutcomeData | undefined => {
+    const outcome = state.outcomes.get(id)
+    const reward = state.revalued.get(id)
+    return outcome && reward !== undefined ? { ...outcome, reward } : outcome
+  }
+  const outcomes = decisions.map((d) => effective(d.id))
+  const returns = discountedReturns(outcomes.map((o) => o?.reward), gamma)
+  const out: Experience[] = []
+  decisions.forEach((event, i) => {
+    const ret = returns[i]
+    const outcome = outcomes[i]
+    if (ret === undefined || !outcome) return
+    const data = event.data as DecisionData
+    const planned = data.candidates[data.chosen]
+    const excludedThen = data.candidates.filter((c) => c.excluded).map((c) => ({ action: c.action, kind: c.kind, reason: c.excludeReason ?? '' }))
+    // 經驗中的行動是實際採取的做法；主模型可能沒有照準備去做。
+    const action = outcome.didAction || planned?.action || ''
+    if (!action) return
+    out.push({
+      id: event.id,
+      ts: event.ts,
+      cue: data.cue,
+      situation: data.situation,
+      action,
+      kind: outcome.didAction ? outcome.didKind : (planned?.kind ?? '其他'),
+      ret,
+      outcome: [outcome.actual, outcome.lesson && `教訓：${outcome.lesson}`].filter(Boolean).join('；'),
+      session: event.session,
+      ...(excludedThen.length > 0 ? { excludedThen } : {}),
+      ...(outcome.matched ? { matched: outcome.matched } : {}),
+    })
+  })
+  return out
+}
+
 /**
  * 從生命日誌推導 JitRL 的記憶：每個 session 內依時間計算折扣回報，只保留回報已知的決定。
  * 回報以最新的評估為準：事後比對之後，整合期可能依改變後的自我重新評估（rd/revaluation）。
  * JitRL 論文的回報來自固定的評估者；這裡的評估者是個體自己，它的價值會改變，所以舊的回報可以重新評估（本專案的延伸）。
+ * 增量維護（改進清單第 7 項）：只讀上次之後的新事件；只有受影響的 session 重算折扣回報。結果與每次重讀全表相同（rd-projection.test.ts）。
  */
 export function experiences(life: LifeStore, gamma: number): Experience[] {
-  const outcomes = new Map<string, OutcomeData>()
-  for (const event of life.all(OUTCOME_KIND)) {
-    const data = event.data as OutcomeData
-    outcomes.set(data.decision, data) // 同一個決定若被評估多次，以最新的為準
-  }
-  for (const event of life.all(REVALUATION_KIND)) {
-    const r = event.data as RevaluationData
-    const outcome = outcomes.get(r.decision)
-    if (outcome) outcomes.set(r.decision, { ...outcome, reward: r.reward })
-  }
-  const bySession = new Map<string, LifeEvent[]>()
-  for (const event of life.all(DECISION_KIND)) {
-    if (!event.session) continue
-    const list = bySession.get(event.session) ?? []
-    list.push(event)
-    bySession.set(event.session, list)
-  }
+  const state = EXPERIENCES.of(life)
   const out: Experience[] = []
-  for (const decisions of bySession.values()) {
-    const returns = discountedReturns(decisions.map((d) => outcomes.get(d.id)?.reward), gamma)
-    decisions.forEach((event, i) => {
-      const ret = returns[i]
-      const outcome = outcomes.get(event.id)
-      if (ret === undefined || !outcome) return
-      const data = event.data as DecisionData
-      const planned = data.candidates[data.chosen]
-      const excludedThen = data.candidates.filter((c) => c.excluded).map((c) => ({ action: c.action, kind: c.kind, reason: c.excludeReason ?? '' }))
-      // 經驗中的行動是實際採取的做法；主模型可能沒有照準備去做。
-      const action = outcome.didAction || planned?.action || ''
-      if (!action) return
-      out.push({
-        id: event.id,
-        ts: event.ts,
-        cue: data.cue,
-        situation: data.situation,
-        action,
-        kind: outcome.didAction ? outcome.didKind : (planned?.kind ?? '其他'),
-        ret,
-        outcome: [outcome.actual, outcome.lesson && `教訓：${outcome.lesson}`].filter(Boolean).join('；'),
-        session: event.session,
-        ...(excludedThen.length > 0 ? { excludedThen } : {}),
-        ...(outcome.matched ? { matched: outcome.matched } : {}),
-      })
-    })
+  for (const [session, decisions] of state.sessions) {
+    let cached = state.cache.get(session)
+    if (!cached || cached.gamma !== gamma || state.dirty.has(session)) {
+      cached = { gamma, list: sessionExperiences(state, decisions, gamma) }
+      state.cache.set(session, cached)
+      state.dirty.delete(session)
+    }
+    out.push(...cached.list)
   }
   return out
 }

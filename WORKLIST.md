@@ -222,6 +222,10 @@
   - 技能閘門：`composeProblems` 看不懂時重問一次；仍不合格就記為 reject，理由附上問題。
   - 測試：`individual/test/offline-judgments.test.ts`（驗證器與控制流，測試替身）。
   - 效果未驗證（需真實測試）。
+- [x] 第 7 項：每一步的全表掃描改為增量投影（`individual/src/life/projection.ts` 的 `Projection`：記下 seq，以 `after(seq, kinds)` 增量折疊；transaction 回滾時 LifeStore 的 `generation` 改變，投影從頭重建）。
+  - 改成投影的：`experiences`（重新評估的覆寫照舊；只有受影響的 session 重算折扣回報）、`potentialItems`／`releasedKeys`、`goals`、`opinions`、日誌重播採用的參數（`adoptedParamsOf`）；快照的 `life/born` 只取第一筆。
+  - 測試：`individual/test/projection.test.ts`。隨機事件序列（三個種子，含回滾）之間反覆查詢，結果與原本的實作（逐字保留在測試中）deepEqual；計數用的 LifeStore 包裝（測試替身）確認穩定狀態的一步沒有 `all()`、投影不從 0 讀。拿掉回滾的處理時等價測試會失敗。
+  - 還沒有投影的全表讀取（不在這一項的範圍）：技能（`ownSkills`）、插件、`knownFacts`（只在新 session 的第一句與壓縮之後）、檢視與主動開口的次數。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID

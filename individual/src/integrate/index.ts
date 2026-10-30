@@ -28,7 +28,7 @@ import { INTEGRATION_KIND, collect, integrationStart, renderEvidence, type Integ
 import { DEEP_SYSTEM, INTEGRATE_SYSTEM, applyProposal, integrateRetryNote, parseProposal, proposalProblems, validate } from './proposal.ts'
 import { DEFAULT_PARAMS } from '../rd/jitrl.ts'
 import { replayCases } from '../rd/memory.ts'
-import { REPLAY_KIND, adoptedParams, replay } from '../rd/replay.ts'
+import { REPLAY_KIND, adoptedParamsOf, replay } from '../rd/replay.ts'
 
 export const name = 'temir-integrate'
 export const inject = ['life', 'llm', 'tools']
@@ -126,7 +126,7 @@ export async function runIntegration(deps: IntegrateDeps, config: Config | undef
   if (config?.replay ?? true) {
     // 日誌重播（M2，ADR-0002 D16）：整合之後，在已記錄的決定上評估 JitRL 經驗估計的參數；純計算，不呼叫模型。
     try {
-      const replayed = replay(replayCases(life, DEFAULT_PARAMS.gamma), { ...DEFAULT_PARAMS, ...adoptedParams(life.all(REPLAY_KIND)) })
+      const replayed = replay(replayCases(life, DEFAULT_PARAMS.gamma), { ...DEFAULT_PARAMS, ...adoptedParamsOf(life) })
       if (replayed) life.append({ kind: REPLAY_KIND, origin: 'self', data: replayed, causes: [result.integration] })
     } catch (error) {
       logger.warn('replay failed: %s', error)

@@ -4,6 +4,7 @@
  * 對應 research/pc-theory/hypotheses.md 的 H1：PC 的狀態由個體自己書寫、可追溯來源的紀錄構成，
  * 不是分數。這裡只負責讀出「目前」的樣子；所有修改都是新增事件。
  */
+import { Projection } from '../life/projection.ts'
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 
 /** 個體自評的重要程度（H4）。類別而非數值；「轉折」可觸發深度自我審視（尚未實作）。 */
@@ -158,10 +159,11 @@ export function currentNarrative(life: LifeStore): (NarrativeData & { readonly t
   return { ...(event.data as NarrativeData), ts: event.ts, eventId: event.id }
 }
 
-/** 依事件順序折疊出每個目標的現況與歷史。 */
-export function goals(life: LifeStore): Goal[] {
-  const byId = new Map<string, Goal>()
-  for (const event of life.all(KIND.goalChange)) {
+/** 目標的增量折疊（life/projection.ts；改進清單第 7 項）：每一步都要讀，原本每次全表讀取。 */
+const GOALS = new Projection<Map<string, Goal>>(
+  [KIND.goalChange],
+  () => new Map(),
+  (byId, event) => {
     const change = event.data as GoalChangeData
     const previous = byId.get(change.goalId)
     byId.set(change.goalId, {
@@ -171,14 +173,19 @@ export function goals(life: LifeStore): Goal[] {
       since: previous?.status === change.status ? previous.since : event.ts,
       history: [...(previous?.history ?? []), { ts: event.ts, status: change.status, reason: change.reason }],
     })
-  }
-  return [...byId.values()]
+  },
+)
+
+/** 依事件順序折疊出每個目標的現況與歷史。 */
+export function goals(life: LifeStore): Goal[] {
+  return [...GOALS.of(life).values()]
 }
 
-/** 依事件順序折疊出每個看法的現況與歷史（與 goals 相同的做法）。 */
-export function opinions(life: LifeStore): Opinion[] {
-  const byId = new Map<string, Opinion>()
-  for (const event of life.all(KIND.opinion)) {
+/** 看法的增量折疊（與目標相同的做法）。 */
+const OPINIONS = new Projection<Map<string, Opinion>>(
+  [KIND.opinion],
+  () => new Map(),
+  (byId, event) => {
     const change = event.data as OpinionChangeData
     const previous = byId.get(change.opinionId)
     const text = change.text || previous?.text || ''
@@ -190,8 +197,12 @@ export function opinions(life: LifeStore): Opinion[] {
       evidence: change.evidence.length > 0 ? change.evidence : (previous?.evidence ?? []),
       history: [...(previous?.history ?? []), { ts: event.ts, status: change.status, text, reason: change.reason }],
     })
-  }
-  return [...byId.values()]
+  },
+)
+
+/** 依事件順序折疊出每個看法的現況與歷史（與 goals 相同的做法）。 */
+export function opinions(life: LifeStore): Opinion[] {
+  return [...OPINIONS.of(life).values()]
 }
 
 /** 最近的重大／轉折感受（情感殘留，H1-4、H-M1）。 */
@@ -280,7 +291,7 @@ export function renderSelfSnapshot(life: LifeStore, extra: readonly string[] = [
     }
   }
   lines.push(...extra)
-  const born = life.all('life/born')[0]
+  const born = life.after(0, ['life/born'], 1)[0]
   lines.push('', `生命紀錄：共 ${life.count()} 個事件${born ? `，始於 ${formatTime(born.ts)}` : ''}。現在是 ${formatNow(now)}。`)
   return lines.join('\n')
 }

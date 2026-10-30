@@ -33,7 +33,8 @@
  *   - 向外的承諾與等待列在前面，不會被向內的事擠掉。
  */
 import type { LifeEvent, LifeStore } from '../life/store.ts'
-import { carriedOver } from '../integrate/carried.ts'
+import { INTEGRATION_KIND, carriedOver } from '../integrate/carried.ts'
+import { Projection } from '../life/projection.ts'
 import { OUTCOME_KIND, type LeftType, type OutcomeData } from '../rd/memory.ts'
 import { clip } from '../recall/retrieve.ts'
 import { formatTime } from './state.ts'
@@ -87,43 +88,55 @@ function label(item: PotentialItem): string {
   return item.kind === 'left' && item.type ? TYPE_LABEL[item.type] : KIND_LABEL[item.kind]
 }
 
+const WEIGHTY = new Set(['notable', 'major', 'pivotal'])
+
+const from = (e: LifeEvent) => ({ ts: e.ts, source: e.id, seq: e.seq })
+
+/**
+ * 勢能的增量狀態（life/projection.ts；改進清單第 7 項）：釋放過的 key，以及事後比對與念頭留下的每一件事（依時間先後）。
+ * 每一步至少讀四次，原本每次都對比對、念頭、整合做全表讀取。
+ */
+const POTENTIAL = new Projection<{ readonly released: Set<string>; readonly items: PotentialItem[] }>(
+  [OUTCOME_KIND, THOUGHT_KIND, INTEGRATION_KIND],
+  () => ({ released: new Set(), items: [] }),
+  ({ released, items }, e) => {
+    if (e.kind === INTEGRATION_KIND) {
+      for (const r of (e.data as { released?: readonly { key: string }[] }).released ?? []) released.add(r.key)
+    } else if (e.kind === THOUGHT_KIND) {
+      const t = e.data as ThoughtData
+      for (const k of t.releasedItems ?? []) released.add(k)
+      if (t.intention) items.push({ key: `intention:${e.id}`, kind: 'intention', outward: true, text: t.intention, ...from(e) })
+    } else {
+      const o = e.data as OutcomeData
+      for (const k of o.releasedItems ?? []) released.add(k)
+      if (o.leftItems) {
+        o.leftItems.forEach((l, i) => items.push({ key: `left:${e.id}#${i}`, kind: 'left', type: l.type, outward: l.type !== 'unresolved', text: l.text, ...from(e) }))
+      } else if (o.left) {
+        items.push({ key: `left:${e.id}`, kind: 'left', type: 'legacy', outward: false, text: o.left, ...from(e) })
+      }
+      // 意外只算個體自己評為值得注意以上的；日常的落差留給事後比對的教訓，不成為懸著的事（第三版）。
+      if (o.matched === 'no' && WEIGHTY.has(o.significance ?? 'daily')) {
+        items.push({ key: `surprise:${e.id}`, kind: 'surprise', outward: false, text: o.error || o.actual, ...from(e) })
+      }
+    }
+  },
+)
+
 /** 個體自己釋放過的勢能。 */
 export function releasedKeys(life: LifeStore): Set<string> {
-  const keys = new Set<string>()
-  for (const e of life.all(OUTCOME_KIND)) for (const k of (e.data as OutcomeData).releasedItems ?? []) keys.add(k)
-  for (const e of life.all(THOUGHT_KIND)) for (const k of (e.data as ThoughtData).releasedItems ?? []) keys.add(k)
-  for (const e of life.all('self/integration')) for (const r of (e.data as { released?: readonly { key: string }[] }).released ?? []) keys.add(r.key)
-  return keys
+  return new Set(POTENTIAL.of(life).released)
 }
-
-const WEIGHTY = new Set(['notable', 'major', 'pivotal'])
 
 /** 目前懸著的事，依時間先後。 */
 export function potentialItems(life: LifeStore): PotentialItem[] {
-  const released = releasedKeys(life)
+  const { released, items: held } = POTENTIAL.of(life)
   const items: PotentialItem[] = []
   const { integration, contradictions, proposals } = carriedOver(life)
-  const from = (e: LifeEvent) => ({ ts: e.ts, source: e.id, seq: e.seq })
   if (integration) {
     contradictions.forEach((text, i) => items.push({ key: `contradiction:${integration.id}#${i}`, kind: 'contradiction', outward: false, text, ...from(integration) }))
   }
   for (const e of proposals) items.push({ key: `proposal:${e.id}`, kind: 'proposal', outward: false, text: e.text ?? '', ...from(e) })
-  for (const e of life.all(OUTCOME_KIND)) {
-    const o = e.data as OutcomeData
-    if (o.leftItems) {
-      o.leftItems.forEach((l, i) => items.push({ key: `left:${e.id}#${i}`, kind: 'left', type: l.type, outward: l.type !== 'unresolved', text: l.text, ...from(e) }))
-    } else if (o.left) {
-      items.push({ key: `left:${e.id}`, kind: 'left', type: 'legacy', outward: false, text: o.left, ...from(e) })
-    }
-    // 意外只算個體自己評為值得注意以上的；日常的落差留給事後比對的教訓，不成為懸著的事（第三版）。
-    if (o.matched === 'no' && WEIGHTY.has(o.significance ?? 'daily')) {
-      items.push({ key: `surprise:${e.id}`, kind: 'surprise', outward: false, text: o.error || o.actual, ...from(e) })
-    }
-  }
-  for (const e of life.all(THOUGHT_KIND)) {
-    const t = e.data as ThoughtData
-    if (t.intention) items.push({ key: `intention:${e.id}`, kind: 'intention', outward: true, text: t.intention, ...from(e) })
-  }
+  items.push(...held)
   // 依來源事件的先後（Array.prototype.sort 是穩定的：同一個事件的多件事維持原本的順序）。
   return items.filter((i) => !released.has(i.key)).sort((a, b) => a.seq - b.seq)
 }

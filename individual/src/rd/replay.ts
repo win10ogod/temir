@@ -1,5 +1,6 @@
 /**
- * 日誌重播：在已記錄的決定上，評估 JitRL 經驗估計的參數（plan v2 M2；ADR-0002 D16）。純函式，可單獨測試。
+ * 日誌重播：在已記錄的決定上，評估 JitRL 經驗估計的參數（plan v2 M2；ADR-0002 D16）。純函式，可單獨測試
+ * （adoptedParamsOf 除外：它從生命日誌增量折疊出最近一次採用的參數）。
  *
  * 依據：
  * - Dream-RSI（arXiv:2609.14858 problem_formulation.tex）：把歷史當成可重播的環境，離線評估候選策略；
@@ -14,6 +15,8 @@
  *   β、λ、α 影響的是選擇，γ 決定 G 本身，在支撐集內都評估不了，維持原值。
  * - 依時間切分：較早的 2/3 選參數，較新的 1/3 驗證；驗證上的改進超過 bootstrap 雜訊帶（z＝2）才採用。
  */
+import { Projection } from '../life/projection.ts'
+import type { LifeStore } from '../life/store.ts'
 import { jaccard, neighbors, termSet, type Experience, type Params } from './jitrl.ts'
 
 export const REPLAY_KIND = 'rd/replay'
@@ -137,4 +140,14 @@ export function adoptedParams(all: readonly { readonly data: unknown }[]): Parti
     if (d.adopted) return { k: d.best.k, stateThreshold: d.best.stateThreshold, actionThreshold: d.best.actionThreshold }
   }
   return {}
+}
+
+/** 生命日誌中最近一次採用的參數，增量折疊（每次思考都要讀；life/projection.ts）。 */
+const ADOPTED = new Projection<{ last: Partial<Tunable> }>([REPLAY_KIND], () => ({ last: {} }), (state, event) => {
+  const adopted = adoptedParams([event])
+  if (Object.keys(adopted).length > 0) state.last = adopted
+})
+
+export function adoptedParamsOf(life: LifeStore): Partial<Tunable> {
+  return ADOPTED.of(life).last
 }

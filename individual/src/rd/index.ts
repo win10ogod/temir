@@ -30,7 +30,7 @@ import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlab
 import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
 import { ALL_EXCLUDED_NOTE, DELIBERATION_RETRY_NOTE, REVISION_SYSTEM, deliberateSystem, outcomeRetryNote, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, revisionRetryNote, withoutExclusions } from './aux.ts'
 import { DEFAULT_PARAMS, allExcluded, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
-import { REPLAY_KIND, adoptedParams } from './replay.ts'
+import { adoptedParamsOf } from './replay.ts'
 import {
   DECISION_KIND,
   OUTCOME_FAILED_KIND,
@@ -144,7 +144,7 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
   const { life, logger } = deps
   const jitrl = config?.jitrl ?? true
   // 參數：預設 ⊕ 日誌重播採用的（rd/replay.ts；整合期之後）⊕ 設定檔（實驗與消融固定參數）。每次思考時重新決定。
-  const paramsNow = (): Params => ({ ...DEFAULT_PARAMS, ...adoptedParams(life.all(REPLAY_KIND)), ...config?.params })
+  const paramsNow = (): Params => ({ ...DEFAULT_PARAMS, ...adoptedParamsOf(life), ...config?.params })
   // 輔助呼叫的逾時（思考開著時要留餘裕：本機的思考模型在負載下第 90 百分位 77 秒，DeepSeek low 最慢 52 秒；dev10）
   const timeoutMs = config?.timeoutMs ?? 180_000
   const energy = config?.energy ?? true

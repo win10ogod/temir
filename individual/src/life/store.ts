@@ -167,6 +167,7 @@ export class LifeStore {
   readonly path: string
   readonly individualId: string
   readonly #db: DatabaseSync
+  #generation = 0
 
   private constructor(path: string, db: DatabaseSync, individualId?: string) {
     this.path = path
@@ -206,6 +207,11 @@ export class LifeStore {
 
   get isOpen(): boolean {
     return this.#db.isOpen
+  }
+
+  /** 回滾的次數：回滾後已讀過的事件可能不存在了（seq 也可能被重用），增量投影據此從頭重建（life/projection.ts）。 */
+  get generation(): number {
+    return this.#generation
   }
 
   /**
@@ -278,6 +284,7 @@ export class LifeStore {
     } catch (error) {
       this.#db.exec('ROLLBACK TO life_append')
       this.#db.exec('RELEASE life_append')
+      this.#generation++
       throw error
     }
     const stored = this.get(id)
@@ -298,6 +305,7 @@ export class LifeStore {
     } catch (error) {
       this.#db.exec('ROLLBACK TO life_tx')
       this.#db.exec('RELEASE life_tx')
+      this.#generation++
       throw error
     }
   }

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { LifeStore } from '../src/life/store.ts'
 import { parseAux } from '../src/recall/aux.ts'
-import { FACTS_KIND, clipEnds, fuse, hybridRecall, knownFacts, lastConversation, personFacts, recalledOf, renderRecall, replyOf, selectFacts, sessionSoFar, shortId } from '../src/recall/retrieve.ts'
+import { COMPACTION_KIND, FACTS_KIND, STM_PAGES, clipEnds, fuse, hybridRecall, knownFacts, lastConversation, personFacts, recalledOf, recentPages, renderRecall, replyOf, selectFacts, sessionSoFar, shadowedIds, shortId, workingSetDue } from '../src/recall/retrieve.ts'
 
 function withStore(fn: (store: LifeStore) => void): void {
   const home = mkdtempSync(join(tmpdir(), 'temir-recall-'))
@@ -368,5 +368,62 @@ test('sessionSoFar: what was heard and said in this session, in order, without t
     assert.deepEqual(sessionSoFar(store, 'now', '還沒寫進日誌的話'), ['對方：今天被家屬罵了', '我：聽起來很委屈。', '對方：嗯。'])
     assert.deepEqual(sessionSoFar(store, 'now', '嗯。', 1), ['我：聽起來很委屈。'])
     assert.deepEqual(sessionSoFar(store, 'empty', '你好'), [])
+  })
+})
+
+/** 依 dsh-compaction-basic 的形狀建立壓縮摘要事件（生命日誌 id 為 `${session}#${seq}`）。 */
+function compaction(store: LifeStore, session: string, seq: number, shadowedSeqs: readonly number[]) {
+  return store.append({ id: `${session}#${seq}`, kind: COMPACTION_KIND, origin: 'session', session, data: { type: 'compaction/summary', seq, data: { shadowedSeqs, summary: [] } } })
+}
+const heardAt = (store: LifeStore, session: string, seq: number, text: string) =>
+  store.append({ id: `${session}#${seq}`, kind: 'dsh/user/message', origin: 'session', session, data: {}, text: `對方說：${text}` })
+
+test('recentPages: the latest pages before this session, oldest first, across sessions, with my final reply', () => {
+  withStore((store) => {
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 'a', data: {}, text: '對方說：第一段的開頭' })
+    assistant(store, 'a', { reply: '回第一段' })
+    for (let i = 0; i < STM_PAGES; i++) {
+      store.append({ kind: 'dsh/user/message', origin: 'session', session: 'b', data: {}, text: `對方說：第二段第 ${i} 句` })
+      assistant(store, 'b', { reasoning: '想', reply: `回第 ${i} 句` })
+      assistant(store, 'b', { tool: 'recall' })
+    }
+    injected(store, 'b', 'runtime-context', '執行環境')
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 'now', data: {}, text: '對方說：現在這段' })
+    const pages = recentPages(store, 'now')
+    assert.equal(pages.length, STM_PAGES)
+    assert.match(pages[0]!.heard.text ?? '', /第二段第 0 句/)
+    assert.equal(replyOf(pages.at(-1)!.reply!), `回第 ${STM_PAGES - 1} 句`)
+    const two = recentPages(store, 'now', STM_PAGES + 1)
+    assert.match(two[0]!.heard.text ?? '', /第一段的開頭/)
+    const text = renderRecall(store, [], undefined, '回憶：', [], { recent: two })
+    assert.match(text, /## 最近的對話（短期記憶：這段對話之前最近的 8 個回合，依時間先後）\n- \[[^\]]+\] 對方說：第一段的開頭\n    ↳ \[[^\]]+\] 我當時的回答：回第一段\n（以下是另一段對話）/)
+    assert.doesNotMatch(text, /最近一次對話|現在這段|執行環境/)
+  })
+})
+
+test('compaction: shadowed parts of this session are recalled again; what is still in context is not', () => {
+  withStore((store) => {
+    heardAt(store, 'now', 3, '我女兒叫小葵，下個月滿五歲')
+    heardAt(store, 'now', 9, '小葵最近在學游泳')
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 'old', data: {}, text: '對方說：小葵喜歡畫畫' })
+    assert.deepEqual(hybridRecall(store, '小葵', [], { limit: 5, excludeSession: 'now' }).map((r) => r.event.session), ['old'])
+    compaction(store, 'now', 20, [1, 3, 5])
+    const shadowed = shadowedIds(store, 'now')
+    assert.deepEqual([...shadowed], ['now#1', 'now#3', 'now#5'])
+    const hits = hybridRecall(store, '小葵', [], { limit: 5, excludeSession: 'now', shadowed })
+    assert.deepEqual(hits.map((r) => r.event.id).sort(), ['now#3', hits.find((r) => r.event.session === 'old')!.event.id].sort())
+    assert.deepEqual(hybridRecall(store, '小葵', [], { limit: 5, excludeSession: 'now', shadowed, excludeIds: new Set(['now#3']) }).map((r) => r.event.session), ['old'])
+  })
+})
+
+test('workingSetDue: long-term facts come back on the first turn and once after each compaction', () => {
+  withStore((store) => {
+    assert.deepEqual(workingSetDue(store, 's', true), { working: true, afterCompaction: false, compacted: false })
+    store.append({ kind: 'memory/recall', origin: 'self', session: 's', data: { mode: 'automatic', working: true } })
+    assert.deepEqual(workingSetDue(store, 's', false), { working: false, afterCompaction: false, compacted: false })
+    compaction(store, 's', 50, [1, 2])
+    assert.deepEqual(workingSetDue(store, 's', false), { working: true, afterCompaction: true, compacted: true })
+    store.append({ kind: 'memory/recall', origin: 'self', session: 's', data: { mode: 'automatic', working: true } })
+    assert.deepEqual(workingSetDue(store, 's', false), { working: false, afterCompaction: false, compacted: true })
   })
 })

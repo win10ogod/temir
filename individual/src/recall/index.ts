@@ -23,7 +23,7 @@ import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '../life/index.ts'
 import { runAux, type AuxCall, type AuxPurpose, type AuxRoute } from './aux.ts'
-import { FACTS_KIND, clip, hybridRecall, knownFacts, lastConversation, recalledOf, renderRecall, resolveIds, selectFacts, type FactsData } from './retrieve.ts'
+import { FACTS_KIND, clip, hybridRecall, knownFacts, recalledOf, recentPages, renderRecall, resolveIds, selectFacts, shadowedIds, workingSetDue, type FactsData } from './retrieve.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -184,10 +184,17 @@ export function apply(ctx: Context, config: Config | undefined): void {
 
       try {
         const first = life.inSession(session, 'dsh/user/message', 'asc', 1).length === 0
-        const last = first ? lastConversation(life, session) : undefined
-        const known = first ? knownFacts(life) : []
+        // 記憶分區（ADR-0007）：
+        // - 短期記憶：新 session 開頭帶入最近的對話頁（MemoryOS 的 STM）；session 之內，這段對話就在 DSH 的上下文中。
+        // - 關於對方的長期事實是工作記憶（MemGPT 的 working context）：新 session 開頭帶入，DSH 壓縮上下文之後再帶入一次，
+        //   因為開頭帶入的那一則也會被壓縮成摘要。
+        // - 被壓縮擠出上下文的這段對話，照常可以檢索（MemGPT 的 recall storage）。
+        const { working, afterCompaction, compacted } = workingSetDue(life, session, first)
+        const recent = first ? recentPages(life, session) : []
+        const known = working ? knownFacts(life) : []
         const person = selectFacts(known, FACTS_BUDGET, [cue, ...keywords].join(' '))
-        const recalled = hybridRecall(life, cue, keywords, { limit, excludeSession: session })
+        const shadowed = compacted ? shadowedIds(life, session) : undefined
+        const recalled = hybridRecall(life, cue, keywords, { limit, excludeSession: session, shadowed, excludeIds: new Set(recent.map((p) => p.heard.id)) })
         life.append({
           kind: 'memory/recall',
           origin: 'self',
@@ -196,15 +203,19 @@ export function apply(ctx: Context, config: Config | undefined): void {
             mode: 'automatic',
             cue: clip(cue, 500),
             keywords,
-            lastSession: last?.session ?? null,
+            lastSession: recent.at(-1)?.heard.session ?? null,
+            working,
+            recent: recent.map((p) => p.heard.id),
+            ...(afterCompaction ? { afterCompaction: true } : {}),
+            ...(shadowed ? { shadowed: shadowed.size } : {}),
             person: [...new Set(person.map((p) => p.id))],
             hits: recalled.map((r) => ({ id: r.event.id, reply: r.reply?.id ?? null, via: r.via, score: r.score })),
           },
           causes: [...new Set([...recalled.flatMap((r) => [r.event.id, ...(r.reply ? [r.reply.id] : [])]), ...person.map((p) => p.id)])],
         })
-        if (recalled.length === 0 && !last && person.length === 0) return decision
+        if (recalled.length === 0 && recent.length === 0 && person.length === 0) return decision
         const recall = createUserMessage({
-          content: [{ type: 'text', text: renderRecall(life, recalled, last, HEADER, person, { ...render, omittedFacts: known.length - person.length }) }],
+          content: [{ type: 'text', text: renderRecall(life, recalled, undefined, HEADER, person, { ...render, recent, omittedFacts: known.length - person.length }) }],
           source: { kind: 'temir-recall', form: 'recall' },
         })
         return { ...decision, messages: [recall, ...decision.messages] }

@@ -11,6 +11,8 @@
  * - 我的回覆只呈現說出口的話，不含當時的推理；過長時保留開頭與結尾，因為結論常在最後一行。
  *   這兩點是本專案的延伸：v2 實驗中只截取開頭，模型看到的多半是推理的前幾句，看不到自己最後的選擇。
  * - 新 session 開頭另附「關於對方，我記得的長期事實」，見 personFacts（hypotheses.md H-M2）。
+ * - 記憶分區（ADR-0007）：短期記憶是這段對話（DSH 的上下文）與新 session 開頭的「最近的對話」（recentPages）；
+ *   長期記憶是生命日誌，以檢索帶回。被 DSH 壓縮擠出上下文的部分照常可以檢索（shadowedIds）。
  */
 import { indexTerms, type LifeEvent, type LifeStore } from '../life/store.ts'
 import { SIGNIFICANCE_LABEL, formatDay, formatTime, type AppraisalData } from '../self/state.ts'
@@ -117,23 +119,36 @@ function factsOf(life: LifeStore, id: string): string[] {
 export interface RecallOptions {
   readonly limit: number
   readonly excludeSession?: string | undefined
+  /** excludeSession 中已被 DSH 壓縮擠出上下文的事件（shadowedIds）：不在上下文中了，照常可以回憶。 */
+  readonly shadowed?: ReadonlySet<string> | undefined
+  /** 已經另外呈現的回合（例如短期記憶中的回合），不再重複。 */
+  readonly excludeIds?: ReadonlySet<string> | undefined
 }
 
 /** 混合回憶：原句＋擴充線索詞；事實命中對應回原始經歷，對話命中擴成整個回合。 */
 export function hybridRecall(life: LifeStore, cue: string, keywords: readonly string[], options: RecallOptions): Recalled[] {
   const per = Math.max(options.limit * 4, 16)
-  const search = (query: string) =>
-    life.search(query, { limit: per, excludeSession: options.excludeSession, excludeKindPrefixes: EXCLUDED_KIND_PREFIXES })
+  const search = (query: string) => {
+    const other = life.search(query, { limit: per, excludeSession: options.excludeSession, excludeKindPrefixes: EXCLUDED_KIND_PREFIXES })
+    const shadowed = options.shadowed
+    if (!options.excludeSession || !shadowed || shadowed.size === 0) return other
+    const evicted = life
+      .search(query, { limit: per, onlySession: options.excludeSession, excludeKindPrefixes: EXCLUDED_KIND_PREFIXES })
+      .filter((h) => shadowed.has(sourceId(h)))
+    // 同一個查詢、同一個索引上的 bm25 可以互相比較（越小越相關），所以合併後依分數排序。
+    return [...other, ...evicted].sort((a, b) => a.score - b.score).slice(0, per)
+  }
   const lists = [{ name: 'lexical', ids: search(cue).map(sourceId) }]
   if (keywords.length > 0) lists.push({ name: 'expansion', ids: search(keywords.join(' ')).map(sourceId) })
   const out: Recalled[] = []
   const byKey = new Map<string, number>()
   for (const { id, score, via } of fuse(lists)) {
     const hit = life.get(id)
-    if (!hit || (options.excludeSession && hit.session === options.excludeSession)) continue
+    if (!hit || (options.excludeSession && hit.session === options.excludeSession && !options.shadowed?.has(hit.id))) continue
     if (hit.kind === HEARD && !isHeard(hit)) continue // DSH 注入的內容不是經歷
     const round = roundOf(life, hit)
     const event = round?.heard ?? round?.said[0] ?? hit
+    if (options.excludeIds?.has(event.id)) continue
     const index = byKey.get(event.id)
     if (index !== undefined) {
       const kept = out[index]!
@@ -177,6 +192,62 @@ export interface LastConversation {
   readonly session: string
   readonly heard: LifeEvent | undefined
   readonly said: LifeEvent | undefined
+}
+
+/** 短期記憶的回合數：MemoryOS 的 STM 是固定長度的對話頁佇列，實驗設定為 7（papers/2506.06326 tex/latex/acl_latex.tex〈Experimental Settings〉）。 */
+export const STM_PAGES = 7
+
+/** 一個對話頁：對方的一句話，以及我在那一回合最後說出口的回覆（MemoryOS 的 page = {Q, R, T}）。 */
+export interface Page {
+  readonly heard: LifeEvent
+  readonly reply: LifeEvent | undefined
+}
+
+/**
+ * 短期記憶：目前 session 之前最近的 n 個對話頁，依時間先後，跨越 session 的邊界。
+ * MemoryOS〈Memory Storage Module〉的 STM「stores real-time conversation data in units called dialogue pages」，
+ * 回應時「All dialogue pages are retrieved」（〈Memory Retrieval Module〉）。本專案只在新 session 開頭帶入；
+ * session 之內，這段對話本身就在 DSH 的上下文中。
+ */
+export function recentPages(life: LifeStore, currentSession: string | undefined, n = STM_PAGES): Page[] {
+  return life
+    .latestElsewhere(HEARD, currentSession, HEARD_PREFIX, n)
+    .reverse()
+    .map((heard) => ({ heard, reply: roundOf(life, heard)?.said.filter((e) => replyOf(e) !== '').at(-1) }))
+}
+
+/** DSH 的上下文壓縮（dsh-compaction-basic）留下的摘要事件。 */
+export const COMPACTION_KIND = 'dsh/compaction/summary'
+
+/**
+ * 這個 session 中被 DSH 壓縮、以摘要取代而不在上下文中的事件 id。
+ * `shadowedSeqs` 是「all shadowed surface nodes」（dsh-compaction types.d.ts）；生命日誌的 id 是 `${session}#${seq}`（life/ingest.ts）。
+ * MemGPT〈Queue Manager〉：被擠出的訊息「are no longer in-context …, however they are stored indefinitely in recall storage
+ * and readable」（papers/2310.08560 tex/sections/method_rewrite.tex）。
+ */
+export function shadowedIds(life: LifeStore, session: string): Set<string> {
+  const ids = new Set<string>()
+  for (const e of life.allInSession(session, COMPACTION_KIND)) {
+    const seqs = (e.data as { data?: { shadowedSeqs?: unknown } } | null)?.data?.shadowedSeqs
+    if (Array.isArray(seqs)) for (const seq of seqs) if (Number.isInteger(seq)) ids.add(`${session}#${seq}`)
+  }
+  return ids
+}
+
+/**
+ * 這一步要不要帶入工作記憶（關於對方的長期事實）：新 session 的第一句，或這個 session 在上次帶入之後被 DSH 壓縮過。
+ * 帶入過的 memory/recall 事件記有 `working: true`。
+ */
+export function workingSetDue(life: LifeStore, session: string, first: boolean): { readonly working: boolean; readonly afterCompaction: boolean; readonly compacted: boolean } {
+  if (first) return { working: true, afterCompaction: false, compacted: false }
+  const compactions = life.allInSession(session, COMPACTION_KIND)
+  if (compactions.length === 0) return { working: false, afterCompaction: false, compacted: false }
+  const lastWorking = life
+    .allInSession(session, 'memory/recall')
+    .filter((e) => (e.data as { working?: boolean } | null)?.working === true)
+    .at(-1)
+  const afterCompaction = !lastWorking || compactions.at(-1)!.seq > lastWorking.seq
+  return { working: afterCompaction, afterCompaction, compacted: true }
 }
 
 /** 最近一次（目前 session 以外）對話的第一句與最後說出口的回覆。 */
@@ -341,6 +412,8 @@ export interface RenderOptions {
   readonly expand?: number
   /** 長期事實中因為上限而沒有列出的條數（見 selectFacts）。 */
   readonly omittedFacts?: number
+  /** 短期記憶：最近的對話頁（recentPages）；給了就取代「最近一次對話」。 */
+  readonly recent?: readonly Page[]
 }
 
 /** 索引行的要點：擷取的第一條事實，沒有就取事件文字的開頭與結尾。 */
@@ -350,7 +423,7 @@ function gist(r: Recalled): string {
   return clipEnds(r.event.kind === SAID ? replyOf(r.event) : (r.event.text ?? ''), 80)
 }
 
-/** 回憶的呈現：關於對方的長期事實（若有）＋最近一次對話（若有）＋相關片段（依時間排列），各自附上事實與感受。 */
+/** 回憶的呈現：關於對方的長期事實（若有）＋短期記憶或最近一次對話（若有）＋相關片段（依時間排列），各自附上事實與感受。 */
 export function renderRecall(
   life: LifeStore,
   recalled: readonly Recalled[],
@@ -371,7 +444,16 @@ export function renderRecall(
     }
     if (options.omittedFacts) lines.push(`（另有 ${options.omittedFacts} 條較早、和現在的話題比較無關的事實沒有列出；需要時用 recall 找。）`)
   }
-  if (last && (last.heard || last.said)) {
+  if (options.recent && options.recent.length > 0) {
+    lines.push('', `## 最近的對話（短期記憶：這段對話之前最近的 ${options.recent.length} 個回合，依時間先後）`)
+    let session: string | null = null
+    for (const [i, p] of options.recent.entries()) {
+      if (i > 0 && p.heard.session !== session) lines.push('（以下是另一段對話）')
+      session = p.heard.session
+      lines.push(line(p.heard, 240))
+      if (p.reply) lines.push(`    ↳ [${shortId(p.reply.id)}] 我當時的回答：${clipEnds(replyOf(p.reply), 300)}`)
+    }
+  } else if (last && (last.heard || last.said)) {
     lines.push('', '## 最近一次對話')
     if (last.heard) lines.push(line(last.heard, 240))
     if (last.said) lines.push(line(last.said, 300))

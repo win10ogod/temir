@@ -126,3 +126,18 @@ test('preceding finds the last message the other person actually said, skipping 
     rmSync(home, { recursive: true, force: true })
   }
 })
+
+test('store queries for the memory partition: allInSession, latestElsewhere, search onlySession', () => {
+  withStore((store) => {
+    store.append({ kind: 'dsh/compaction/summary', origin: 'session', session: 's1', data: { n: 1 } })
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 's1', data: {}, text: '對方說：早安，小葵' })
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 's1', data: {}, text: '[runtime-context] 100%_ 環境' })
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 's2', data: {}, text: '對方說：午安，小葵' })
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 'now', data: {}, text: '對方說：晚安，小葵' })
+    assert.equal(store.allInSession('s1', 'dsh/compaction/summary').length, 1)
+    assert.deepEqual(store.latestElsewhere('dsh/user/message', 'now', '對方說：', 5).map((e) => e.text), ['對方說：午安，小葵', '對方說：早安，小葵'])
+    assert.deepEqual(store.latestElsewhere('dsh/user/message', undefined, '對方說：', 1).map((e) => e.text), ['對方說：晚安，小葵'])
+    assert.equal(store.latestElsewhere('dsh/user/message', 'now', '100%_', 5).length, 0)
+    assert.deepEqual(store.search('小葵', { onlySession: 'now' }).map((e) => e.session), ['now'])
+  })
+})

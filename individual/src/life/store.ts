@@ -58,6 +58,8 @@ export interface SearchOptions {
   readonly limit?: number
   /** 排除這個 session 的事件（它們通常已在模型的上下文中）。 */
   readonly excludeSession?: string | undefined
+  /** 只取這個 session 的事件（用於取回被 DSH 壓縮擠出上下文的部分，見 recall/retrieve.ts 的 shadowedIds）。 */
+  readonly onlySession?: string | undefined
   /** 只取這些 kind；省略則不限。 */
   readonly kinds?: readonly string[] | undefined
   /** 排除這些 kind 前綴。 */
@@ -442,6 +444,23 @@ export class LifeStore {
     return row?.session
   }
 
+  /** 同一 session 中指定 kind 的所有事件（不論有沒有檢索文字），依時間順序。 */
+  allInSession(session: string, kind: string): LifeEvent[] {
+    const rows = this.#db.prepare(`SELECT * FROM events WHERE session = ? AND kind = ? ORDER BY seq`).all(session, kind) as unknown as Row[]
+    return rows.map(toEvent)
+  }
+
+  /** 目前 session 以外，最近的 `limit` 筆指定 kind、文字以 `textPrefix` 開頭的事件，由新到舊。 */
+  latestElsewhere(kind: string, exclude: string | undefined, textPrefix: string, limit: number): LifeEvent[] {
+    const rows = this.#db
+      .prepare(
+        `SELECT * FROM events WHERE kind = ? AND text LIKE ? ESCAPE '\\' AND session IS NOT NULL
+         AND (? IS NULL OR session <> ?) ORDER BY seq DESC LIMIT ?`,
+      )
+      .all(kind, `${textPrefix.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')}%`, exclude ?? null, exclude ?? null, limit) as unknown as Row[]
+    return rows.map(toEvent)
+  }
+
   /** 依時間順序列出所有指定 kind 的事件。 */
   all(kind: string): LifeEvent[] {
     const rows = this.#db.prepare(`SELECT * FROM events WHERE kind = ? ORDER BY seq`).all(kind) as unknown as Row[]
@@ -474,6 +493,10 @@ export class LifeStore {
     if (options.excludeSession) {
       where.push('(e.session IS NULL OR e.session <> ?)')
       params.push(options.excludeSession)
+    }
+    if (options.onlySession) {
+      where.push('e.session = ?')
+      params.push(options.onlySession)
     }
     if (options.kinds && options.kinds.length > 0) {
       where.push(`e.kind IN (${options.kinds.map(() => '?').join(', ')})`)

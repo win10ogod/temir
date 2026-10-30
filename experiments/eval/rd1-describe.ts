@@ -12,7 +12,7 @@ import { criteriaPrompt, criteriaParser } from './lib/prompts.ts'
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..')
 const PREFIX = process.argv[2] ?? 'rd1'
-const OUT = PREFIX === 'rd1' ? 'experiments/results/rd-v1' : `experiments/results/dev8-${PREFIX}`
+const OUT = PREFIX === 'rd1' ? 'experiments/results/rd-v1' : PREFIX === 'rd2' ? 'experiments/results/dev8-rd2' : `experiments/results/dev9-${PREFIX}`
 const ds = JSON.parse(readFileSync(join(ROOT, 'experiments/datasets/rd-v1.json'), 'utf8'))
 const contract = JSON.parse(readFileSync(join(ROOT, 'experiments/specs/rd-v1.contract.json'), 'utf8'))
 const probe = ds.probes.find((p: { id: string }) => p.id === 'q01')

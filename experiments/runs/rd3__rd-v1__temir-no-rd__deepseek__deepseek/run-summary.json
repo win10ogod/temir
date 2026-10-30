@@ -1,0 +1,22 @@
+{
+  "runId": "rd3__rd-v1__temir-no-rd__deepseek__deepseek",
+  "endedAt": "2026-10-30T02:32:49.820Z",
+  "histories": 9,
+  "historyFrom": null,
+  "probes": 10,
+  "probeSessions": 16,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 60,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 20,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

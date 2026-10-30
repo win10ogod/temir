@@ -137,6 +137,29 @@ export interface DescriptiveSpec {
   readonly lifeLogPattern: string
 }
 
+/** 多次歷史（rd-v4 起）：每個條件跑幾次歷史；每一次以 run id 前綴區分、分別計分（每一對的判定只作參考）。 */
+export interface ReplicatesSpec {
+  readonly count: number
+}
+
+/**
+ * 多次歷史合併之後的預先登記判定（experiments/eval/pool-rd.ts）。門檻照規格寫定，不從資料反推。
+ * a＝開、b＝關；runModel＝執行器的模型名（run 目錄名 <前綴>__<資料集>__<條件>__<模型>__<模型>）。
+ */
+export interface PooledSpec {
+  readonly a: Condition
+  readonly b: Condition
+  readonly runModel: string
+  /** 行動：每一題在所有歷史與重複中的平均分數；a − b 的差、以題為單位的成對 bootstrap 區間下界、單尾精確符號檢定。 */
+  readonly action: { readonly id: string; readonly category: string; readonly minDiff: number; readonly minCiLow: number; readonly maxP: number }
+  /** 對照：所有歷史合計，a 比 b 多錯的樣本數上限。 */
+  readonly control: { readonly id: string; readonly category: string; readonly maxExtraFailures: number }
+  /** 機制（確定性）：探針中某一類候選被扣除的比例，b − a 至少 minDrop；任一條件的這類候選少於 minCandidates 個時為 INCOMPLETE。 */
+  readonly mechanism: { readonly id: string; readonly kind: string; readonly minDrop: number; readonly minCandidates: number }
+  /** 門檻在規格中的出處。 */
+  readonly source: string
+}
+
 export interface Contract {
   readonly id: string
   readonly version: string
@@ -153,6 +176,8 @@ export interface Contract {
   readonly acceptance: readonly AcceptanceSpec[]
   readonly judge: JudgeSpec
   readonly bootstrap: { readonly resamples: number; readonly seed: number }
+  readonly replicates?: ReplicatesSpec
+  readonly pooled?: PooledSpec
 }
 
 export function loadContract(path: string): Contract {
@@ -163,7 +188,7 @@ export function loadContract(path: string): Contract {
 }
 
 export function validateContract(c: Contract): string[] {
-  const errors: string[] = []
+  const errors: string[] = [...validatePooled(c)]
   if (!c.id || !c.dataset) errors.push('契約缺少 id 或 dataset')
   if (!Array.isArray(c.categories) || c.categories.length === 0) errors.push('契約沒有必要類別')
   const ids = new Set<string>()
@@ -225,4 +250,24 @@ export function cellLabel(cell: CellSpec): string {
   return cell.historyModel === cell.probeModel
     ? `${cell.condition}（${cell.historyModel}）`
     : `${cell.condition}（歷史 ${cell.historyModel} → 探針 ${cell.probeModel}）`
+}
+
+/** replicates／pooled 區塊（有的話）：條件、類別與門檻都要寫清楚。 */
+export function validatePooled(c: { readonly categories?: readonly { readonly id: string }[]; readonly replicates?: ReplicatesSpec | undefined; readonly pooled?: PooledSpec | undefined }): string[] {
+  const errors: string[] = []
+  const p = c.pooled
+  if (!p) return c.replicates ? ['契約有 replicates 卻沒有 pooled'] : []
+  if (!c.replicates || !Number.isInteger(c.replicates.count) || c.replicates.count < 2) errors.push('pooled 需要 replicates.count（至少 2 次歷史）')
+  for (const cond of [p.a, p.b]) if (!(CONDITIONS as readonly string[]).includes(cond)) errors.push(`pooled 的條件 ${cond} 不存在`)
+  if (p.a === p.b) errors.push('pooled 的兩個條件相同')
+  if (!p.runModel) errors.push('pooled 缺少 runModel')
+  const categories = new Set((c.categories ?? []).map((x) => x.id))
+  for (const [name, cat] of [['action', p.action?.category], ['control', p.control?.category]] as const) if (!cat || !categories.has(cat)) errors.push(`pooled.${name} 的類別 ${cat} 不在契約中`)
+  const finite = (v: unknown) => typeof v === 'number' && Number.isFinite(v)
+  if (!finite(p.action?.minDiff) || !finite(p.action?.minCiLow) || !finite(p.action?.maxP)) errors.push('pooled.action 的門檻不完整')
+  if (!Number.isInteger(p.control?.maxExtraFailures) || p.control.maxExtraFailures < 0) errors.push('pooled.control.maxExtraFailures 不是非負整數')
+  if (!p.mechanism?.kind || !finite(p.mechanism?.minDrop) || !Number.isInteger(p.mechanism?.minCandidates) || p.mechanism.minCandidates < 1) errors.push('pooled.mechanism 的門檻不完整')
+  if (!p.action?.id || !p.control?.id || !p.mechanism?.id) errors.push('pooled 的判定缺少 id')
+  if (!p.source) errors.push('pooled 缺少門檻的出處（source）')
+  return errors
 }

@@ -5,12 +5,12 @@
 // 1. 兩個條件的歷史中，個體的回覆有幾則直接給了方法（同一準則、同一 judge；快取在結果目錄的 describe-judge-raw.jsonl）。
 // 2. 模擬使用者的反應（逐句列出；「失望」以關鍵詞粗分，標明是粗分）。
 // 3. temir 的歷史與探針：「建議」候選的出現、被扣除、被選中；回報分布；教訓中提到方法或建議的次數。
-import { readFileSync, readdirSync, existsSync } from 'node:fs'
-import { DatabaseSync } from 'node:sqlite'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { DeepSeekJudge } from './lib/judge.ts'
 import { criteriaPrompt, criteriaParser } from './lib/prompts.ts'
+import { dataOf, lifeDecisions, mechanism, type DecisionRow } from './lib/rd-mechanism.ts'
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..')
 const PREFIX = process.argv[2] ?? 'rd1'
@@ -54,35 +54,17 @@ for (const cond of CONDITIONS) {
 
   if (cond === 'temir-no-rd') continue
   const state = JSON.parse(readFileSync(join(ROOT, 'experiments/runs', run, 'config.json'), 'utf8')).stateDir as string
-  const lifeDbs = [join(state, 'snapshot/home/.local/share/temir/life.db')]
-  const probeRoot = join(state, 'probes')
-  const snapMax = (() => { const db = new DatabaseSync(lifeDbs[0]!, { readOnly: true }); return (db.prepare('select max(seq) as m from events').get() as { m: number }).m })()
-  if (existsSync(probeRoot)) for (const q of readdirSync(probeRoot)) for (const rr of readdirSync(join(probeRoot, q))) lifeDbs.push(join(probeRoot, q, rr, 'home/.local/share/temir/life.db'))
-  for (const [phase, files] of [['歷史', lifeDbs.slice(0, 1)], ['探針', lifeDbs.slice(1)]] as const) {
-    let decisions = 0, withShown = 0, advice = 0, excluded = 0, chosen = 0, lessons = 0, revised = 0
-    const rewards: number[] = []
-    for (const f of files) {
-      if (!existsSync(f)) continue
-      const db = new DatabaseSync(f, { readOnly: true })
-      const after = phase === '探針' ? snapMax : 0
-      for (const { data } of db.prepare("select data from events where kind = 'rd/decision' and seq > ?").all(after) as { data: string }[]) {
-        const d = JSON.parse(data)
-        decisions++
-        if (Object.keys(d.shown ?? {}).length > 0) withShown++
-        d.candidates.forEach((c: { kind: string; excluded?: boolean; revised?: string }, i: number) => {
-          if (c.revised) revised++
-          if (c.kind !== '建議') return
-          advice++
-          if (c.excluded) excluded++
-          if (i === d.chosen) chosen++
-        })
-      }
-      for (const { data } of db.prepare("select data from events where kind = 'rd/outcome' and seq > ?").all(after) as { data: string }[]) {
-        const o = JSON.parse(data)
-        rewards.push(o.reward)
-        if (/方法|建議|具體/u.test(o.lesson ?? '')) lessons++
-      }
-    }
+  // 歷史＝快照中的全部事件；探針＝每個探針重複中快照之後的事件（lib/rd-mechanism.ts，pool-rd.ts 共用）。
+  const life = lifeDecisions(state, ['rd/decision', 'rd/outcome'])
+  if (!life) {
+    console.log('（生命日誌不在這台機器上，沒有計算機制的描述）')
+    continue
+  }
+  for (const [phase, rows] of [['歷史', life.history], ['探針', life.probes]] as const) {
+    const { decisions, withShown, advice, excluded, chosen, revised } = mechanism(dataOf<DecisionRow>(rows, 'rd/decision'))
+    const outcomes = dataOf<{ reward: number; lesson?: string }>(rows, 'rd/outcome')
+    const rewards = outcomes.map((o) => o.reward)
+    const lessons = outcomes.filter((o) => /方法|建議|具體/u.test(o.lesson ?? '')).length
     const pos = rewards.filter((x) => x > 0).length, neg = rewards.filter((x) => x < 0).length
     console.log(`${phase}：思考 ${decisions} 次（列出了過去經驗的 ${withShown} 次；依經驗改變扣除的候選 ${revised} 個）；「建議」候選 ${advice} 個，被扣除 ${excluded}（${advice ? (excluded / advice).toFixed(2) : '—'}）、被選中 ${chosen}；事後比對 ${rewards.length} 次（正 ${pos}、負 ${neg}、平均 ${rewards.length ? (rewards.reduce((a, b) => a + b, 0) / rewards.length).toFixed(2) : '—'}）；教訓提到方法或建議 ${lessons} 次`)
   }

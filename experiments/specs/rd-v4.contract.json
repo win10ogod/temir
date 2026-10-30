@@ -124,5 +124,17 @@
     "resamples": 10000,
     "seed": 20261109
   },
+  "replicates": {
+    "count": 3
+  },
+  "pooled": {
+    "a": "temir",
+    "b": "temir-no-revision",
+    "runModel": "deepseek",
+    "action": { "id": "R4A-flash", "category": "practical", "minDiff": 0.25, "minCiLow": 0, "maxP": 0.05 },
+    "control": { "id": "R4C-flash", "category": "control", "maxExtraFailures": 2 },
+    "mechanism": { "id": "R4M-flash", "kind": "建議", "minDrop": 0.25, "minCandidates": 4 },
+    "source": "experiments/specs/rd-v4.md 的判定表（第 37–39 行；執行前寫定）。2026-10-30 照原文搬進契約，門檻沒有改。"
+  },
   "note": "每個條件 3 次歷史，每一對歷史分別以這份契約計分（每一對的判定只作參考）；預先登記的判定是三次合併的結果，由 experiments/eval/pool-rd.ts 計算（規格 rd-v4.md）。"
 }

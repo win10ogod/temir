@@ -226,6 +226,12 @@
   - 改成投影的：`experiences`（重新評估的覆寫照舊；只有受影響的 session 重算折扣回報）、`potentialItems`／`releasedKeys`、`goals`、`opinions`、日誌重播採用的參數（`adoptedParamsOf`）；快照的 `life/born` 只取第一筆。
   - 測試：`individual/test/projection.test.ts`。隨機事件序列（三個種子，含回滾）之間反覆查詢，結果與原本的實作（逐字保留在測試中）deepEqual；計數用的 LifeStore 包裝（測試替身）確認穩定狀態的一步沒有 `all()`、投影不從 0 讀。拿掉回滾的處理時等價測試會失敗。
   - 還沒有投影的全表讀取（不在這一項的範圍）：技能（`ownSkills`）、插件、`knownFacts`（只在新 session 的第一句與壓縮之後）、檢視與主動開口的次數。
+- [x] 第 8 項：多次歷史的合併判定契約化。
+  - `experiments/specs/rd-v4.contract.json` 加上 `replicates`（3）與 `pooled` 區塊：條件、`runModel`、三個判定的類別與門檻，照 `rd-v4.md` 第 37–39 行原文搬入，門檻沒有改；`validatePooled` 檢查。
+  - `pool-rd.ts` 從契約讀取門檻；`controlVerdict`、`mechanismVerdict` 抽成純函式；歷史少於契約的次數時三個判定都是 INCOMPLETE；`--out`、`--no-life`；生命日誌不在這台機器上時機制記為 INCOMPLETE，不再當成 0。
+  - `experiments/eval/lib/rd-mechanism.ts`：從 rd/decision 資料列計算機制統計的純函式，pool-rd 與 rd1-describe 共用。
+  - 重算：以既有的 items（rdv4h1–h3）重算的 R4A、R4C 數字與 `experiments/results/rd-v4/pooled.json` 相同；以 pooled.json 的機制數字產生的 pooled.md 與既有的逐字相同。R4M 要讀生命日誌，雲端沒有，**機制部分待使用者在本機重跑確認**（`node experiments/eval/pool-rd.ts rd-v4 rdv4h1,rdv4h2,rdv4h3 --out <暫存目錄>`，再與既有檔案比較）。
+  - 測試：三個判定的表驅動測試（含 INCOMPLETE 的邊界）、機制統計、契約檢查、重算。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID

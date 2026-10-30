@@ -1,4 +1,10 @@
-# identity-v1：換模型後的身份連續性（H-ID，2026-10-30，執行前寫定）
+# identity-v1：換模型後的身份連續性（H-ID，2026-10-30，執行前寫定）——**已取消，未執行**
+
+> 使用者 2026-10-30：「deepseek-FLASH 不好嗎？非得 PRO 燒更多錢」。
+> - 換模型的探針要用 deepseek-v4-pro，花費是 flash 的數倍，所以取消。
+> - 取消時 dev7 正在執行：從凍結 worktree 的 `cli/harness.ts` 拿掉 `deepseek-pro`，讓排在 dev7 之後的這一步在呼叫任何 API 之前就停止。dev7 的程序在開始時已載入原本的程式碼。
+> - 主 repo 的 harness 也移除了 `deepseek-pro`。
+> - H-ID 的換模型證據沿用 v2、v3 的 Nemotron 結果（`experiments/results/v2-report.md`、`v3-report.md`）。
 
 - **研究問題**（hypotheses.md H-ID）：個體的身份由生命紀錄承載，不由底層模型承載。
   - v2、v3 以 Nemotron 做過跨模型的比較。使用者 2026-10-29 決定不再使用 Nemotron（「證明這樣的差異不大」）。

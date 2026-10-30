@@ -135,8 +135,10 @@
   - 有計畫的：e2e-25，個體用 DSH 的排程工具準時送出提醒；
   - 閒置念頭的：送出機制已驗證（e2e-29），四個情境中個體都判斷不必開口（e2e-26～28、32）；
   - 由念頭決定並送出的開口，要在長時間的真實使用中才可能出現。
-- [ ] 拒絕與異議紀錄分析
-- [ ] 身份連續性實驗（H-ID）
+- [x] 拒絕與異議紀錄分析：狀態檢視列出實際採取的做法是拒絕的決定與結果（`self/view.ts` 的 refusalLines）。
+- [x] 身份連續性（H-ID）：
+  - 換模型的證據沿用 v2、v3 的 Nemotron 結果；
+  - 用 deepseek-v4-pro 的換模型實驗（identity-v1）依使用者決定取消：「deepseek-FLASH 不好嗎？非得 PRO 燒更多錢」。
 - [x] Web 的內在狀態面板（temir-panel）：
   - 掛在 DSH 自己的 Web 伺服器上：`/temir/`（狀態）、`/temir/timeline`（生命日誌）、`/temir/search`（回憶搜尋）；
   - 唯讀，只回應本機，並檢查 Host 標頭（擋下 DNS rebinding）；

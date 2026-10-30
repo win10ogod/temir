@@ -16,8 +16,6 @@ export const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 export const MODELS = {
   deepseek: { provider: 'deepseek-official', model: 'deepseek-flash', patches: [] as readonly string[] },
-  /** 同一個供應商的另一個模型（身份連續性的換模型實驗用）。 */
-  'deepseek-pro': { provider: 'deepseek-official', model: 'deepseek-v4-pro', patches: [] as readonly string[] },
   local: { provider: 'local-eve', model: 'EVE-27B', patches: [join(REPO, 'dsh', 'local-model.patch.yml')] as readonly string[] },
   nemotron: {
     provider: 'or-nemotron',

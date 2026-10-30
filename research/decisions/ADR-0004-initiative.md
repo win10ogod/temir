@@ -54,5 +54,7 @@
 
 ## 限制
 
-- 只會在「最近一段對話」開口；沒有其他通道（Telegram／LINE／Discord 插件仍未做）。
-- DSH 的程序要還在、那段對話的 agent 還在記憶中。一次性的 headless 執行沒有閒置時間。
+- 只會在「最近一段對話」開口。那段對話若是 Telegram 的聊天，主動開口會經橋接送到聊天（ADR-0006）。
+- DSH 的程序要還在、那段對話的 agent 還在記憶中。DSH 重啟後，要等那段對話再被打開，個體才能在裡面開口；
+  在背景自己 resume 一段對話需要完整的 agent 組裝（session controller 的 composeAgent），容易得到缺工具的 agent，所以不做。
+  一次性的 headless 執行沒有閒置時間。

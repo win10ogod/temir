@@ -242,3 +242,13 @@ test('integration: a proposal whose gate was interrupted (no decision) is compar
     assert.match(result, /念頭做法的修改採用（第 2 版）/u)
     assert.equal((store.all(PROCEDURE_KIND.decision)[0]!.data as ProcedureDecisionData).proposal, pending.id)
   }))
+
+test('pending proposals: the ones the individual made at integration come first; versions left by the round budget wait behind them', () =>
+  withStore(async (store) => {
+    const { pendingProcedureProposals } = await import('../src/self/procedure.ts')
+    const composed = store.append({ kind: PROCEDURE_KIND.proposal, origin: 'self', data: { name: 'thought', text: 'x', reason: 'r', evidence: [], source: 'compose', baseVersion: 1 } satisfies ProcedureProposalData })
+    const own = proposeThought(store, NEW_THOUGHT)
+    assert.deepEqual(pendingProcedureProposals(store).map((e) => e.id), [own.id, composed.id])
+    store.append({ kind: PROCEDURE_KIND.decision, origin: 'self', data: { proposal: own.id, name: 'thought', verdict: 'reject', reasons: [], probes: [], costChars: 0, gate: 'none' } satisfies ProcedureDecisionData })
+    assert.deepEqual(pendingProcedureProposals(store).map((e) => e.id), [composed.id])
+  }))

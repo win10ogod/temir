@@ -170,11 +170,16 @@ export interface ProcedureDecisionData {
 }
 
 /**
- * 還沒有決定的做法提案，由舊到新：閘門中途中斷（例如程序在探測時結束）時，提案留著，下次整合再對照（ADR-0008 §3）。
+ * 還沒有決定的做法提案（ADR-0008 §3）：
+ * - 整合時提出的（source＝integrate）還沒有決定，是閘門中途中斷（例如程序在探測時結束）；
+ * - 合成時修改後的版本（source＝compose）還沒有決定，可能是閘門中斷，也可能是那次整合的對照輪數用完了。
+ * 兩種都留到下次再對照；整合時提出的排在前面，各自由舊到新。
  */
 export function pendingProcedureProposals(life: LifeStore): LifeEvent[] {
   const decided = new Set(life.all(PROCEDURE_KIND.decision).map((e) => (e.data as ProcedureDecisionData).proposal))
-  return life.all(PROCEDURE_KIND.proposal).filter((e) => !decided.has(e.id))
+  const pending = life.all(PROCEDURE_KIND.proposal).filter((e) => !decided.has(e.id))
+  const fromIntegration = (e: LifeEvent) => (e.data as { source?: string }).source === 'integrate'
+  return [...pending.filter(fromIntegration), ...pending.filter((e) => !fromIntegration(e))]
 }
 
 /** 整合的輸入：目前的五個做法（全文、版本與事件 id）。without＝消融時不列的行（含有這些字詞的，withoutLines）。 */

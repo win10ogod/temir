@@ -161,6 +161,22 @@ export function pendingPivotal(lifeDb: string): boolean {
   }
 }
 
+/**
+ * 整合時提出、還沒有決定的做法提案（ADR-0008 §3）：整合寫下提案之後，閘門還在探測。沉澱階段要等它決定，否則程序在閘門中關閉，
+ * 提案留在快照裡沒有決定（dev15 personality-v3 的歷史）。合成時修改後的版本不算：那可能是對照輪數用完、留到下次整合的
+ * （individual/src/self/procedure.ts 的 pendingProcedureProposals）。
+ */
+export function pendingProcedures(lifeDb: string): number {
+  if (!existsSync(lifeDb)) return 0
+  const db = new DatabaseSync(lifeDb, { readOnly: true })
+  try {
+    const decided = new Set((db.prepare(`SELECT json_extract(data, '$.proposal') AS p FROM events WHERE kind = 'self/procedure-decision'`).all() as { p: string }[]).map((r) => r.p))
+    return (db.prepare(`SELECT id FROM events WHERE kind = 'self/procedure-proposal' AND json_extract(data, '$.source') = 'integrate'`).all() as { id: string }[]).filter((r) => !decided.has(r.id)).length
+  } finally {
+    db.close()
+  }
+}
+
 interface Layout {
   /** 拍快照與還原時複製的頂層目錄。 */
   readonly parts: readonly string[]
@@ -471,8 +487,8 @@ async function main(): Promise<void> {
     let unsettled: number | null = null
     if (condition !== 'baseline') {
       const lifeDb = layout.lifeDb(live)
-      // 待處理的自我陳述擷取，加上還沒整合的轉折（個體啟動後會自己補做深度整合）。
-      const pending = () => pendingSelfStatements(lifeDb) + (pendingPivotal(lifeDb) ? 1 : 0)
+      // 待處理的自我陳述擷取，加上還沒整合的轉折（個體啟動後會自己補做深度整合），以及還沒有決定的做法提案（啟動後會接著對照）。
+      const pending = () => pendingSelfStatements(lifeDb) + (pendingPivotal(lifeDb) ? 1 : 0) + pendingProcedures(lifeDb)
       unsettled = pending()
       if (unsettled > 0) {
         const settler = await launch(historyModel, live, 'settle', settleAt)

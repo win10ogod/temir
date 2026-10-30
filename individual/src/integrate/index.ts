@@ -75,6 +75,35 @@ export function due(life: LifeStore, intervalHours: number, minRounds: number, n
   return { due: rounds > 0 && (deep || (rounds >= minRounds && elapsed)), deep }
 }
 
+/**
+ * 做法提案的閘門（探測、合成；integrate/procedure-gate.ts）：revise 時修改後的版本再對照一輪（每個提案最多兩輪，RRSI 的編輯預算）。
+ * 失敗時提案留著，沒有決定，之後再對照。回傳給個體看的結果。
+ */
+export async function gateProcedures(deps: IntegrateDeps, timeoutMs: number, route: AuxRoute, ids: readonly string[]): Promise<string[]> {
+  const { life, logger } = deps
+  const model = `${route.provider}/${route.model}`
+  const gated: string[] = []
+  const gateCall: GateCall = async (prompt, probeInput, purpose) => {
+    const call = await deps.call(route, prompt, probeInput, AbortSignal.timeout(timeoutMs), purpose === 'procedure-probe' ? 32_000 : undefined)
+    if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose, ...auxRecord(call), input: clipKeepLines(probeInput, 20_000), output: call.output } })
+    return call.output
+  }
+  for (const id of ids) {
+    try {
+      let proposalEvent = life.get(id)
+      for (let round = 0; proposalEvent && round < 2 && life.isOpen; round++) {
+        const { decision, next } = await runProcedureGate(life, proposalEvent, gateCall)
+        gated.push(describeGate(life, decision))
+        proposalEvent = next
+      }
+    } catch (error) {
+      logger.warn('procedure gate failed: %s', error)
+      gated.push(`做法的對照中斷（${String(error)}），提案保留，之後可以再對照。`)
+    }
+  }
+  return gated
+}
+
 /** 整合的依賴：生命日誌、輔助模型呼叫（正式執行是 modelCaller(ctx)；單元測試以測試替身注入）與記錄。 */
 export interface IntegrateDeps {
   readonly life: LifeStore
@@ -127,28 +156,10 @@ export async function runIntegration(deps: IntegrateDeps, config: Config | undef
   if (!proposal) return '整合的輸出無法解析（重問一次之後仍無法解析），這次沒有修改任何紀錄。'
   const { accepted, rejected, deferred } = validate(life, ev, proposal)
   const result = life.transaction(() => applyProposal(life, ev, accepted, rejected, deferred, { trigger, deep, model, output }))
-  // 做法的修訂（ADR-0008 §3）：通過兩項判準的提案進入閘門（探測、合成）；revise 時修改後的版本再對照一輪。失敗時提案留著，沒有決定。
-  // 每次整合最多一個提案進入閘門：這次的新提案優先；沒有新提案時，對照上次中斷、還沒有決定的最舊一個（e2e-40：程序結束時閘門還在探測）。
-  const gated: string[] = []
-  const gateCall: GateCall = async (prompt, probeInput, purpose) => {
-    const call = await deps.call(route, prompt, probeInput, AbortSignal.timeout(timeoutMs), purpose === 'procedure-probe' ? 32_000 : undefined)
-    if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose, ...auxRecord(call), input: clipKeepLines(probeInput, 20_000), output: call.output } })
-    return call.output
-  }
+  // 做法的修訂（ADR-0008 §3）：每次整合最多一個提案進入閘門：這次的新提案優先；沒有新提案時，對照上次中斷、還沒有決定的最舊一個
+  // （e2e-40：程序結束時閘門還在探測）。
   const toGate = result.procedureProposals.length > 0 ? result.procedureProposals : pendingProcedureProposals(life).slice(0, 1).map((e) => e.id)
-  for (const id of toGate) {
-    try {
-      let proposalEvent = life.get(id)
-      for (let round = 0; proposalEvent && round < 2 && life.isOpen; round++) {
-        const { decision, next } = await runProcedureGate(life, proposalEvent, gateCall)
-        gated.push(describeGate(life, decision))
-        proposalEvent = next
-      }
-    } catch (error) {
-      logger.warn('procedure gate failed: %s', error)
-      gated.push(`做法的對照中斷（${String(error)}），提案保留，之後可以再對照。`)
-    }
-  }
+  const gated = await gateProcedures(deps, timeoutMs, route, toGate)
   if (config?.replay ?? true) {
     // 日誌重播（M2，ADR-0002 D16）：整合之後，在已記錄的決定上評估 JitRL 經驗估計的參數；純計算，不呼叫模型。
     try {
@@ -189,7 +200,23 @@ export function apply(ctx: Context, config: Config | undefined): void {
     return running
   }
 
-  // 轉折：回合結束時整合；啟動時若有還沒整合的轉折，稍後補做（不阻塞啟動）。
+  /** 上次程序結束時閘門被中斷、還沒有決定的做法提案：啟動時接著對照最舊的一個（不阻塞啟動；ADR-0008 §3）。 */
+  function startPendingGate(): void {
+    const pending = pendingProcedureProposals(life)[0]
+    const route = latestRoute(life)
+    if (running || !pending || !route) return
+    running = gateProcedures(deps, config?.timeoutMs ?? 180_000, route, [pending.id])
+      .then((lines) => lines.join('\n'))
+      .catch((error: unknown) => {
+        logger.error('procedure gate failed: %s', error)
+        return `做法的對照失敗：${String(error)}`
+      })
+      .finally(() => {
+        running = undefined
+      })
+  }
+
+  // 轉折：回合結束時整合；啟動時若有還沒整合的轉折，稍後補做（不阻塞啟動）；沒有的話，接著對照中斷的做法提案。
   if (config?.pivotal ?? true) {
     ctx.on('session/event', (_session: unknown, event: { readonly type: string }) => {
       try {
@@ -201,6 +228,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
     const startup = setTimeout(() => {
       try {
         if (!running && life.isOpen && pendingPivotal(life)) void start('pivotal', true)
+        else if (life.isOpen) startPendingGate()
       } catch (error) {
         logger.error('pivotal check failed: %s', error)
       }

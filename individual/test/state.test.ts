@@ -267,3 +267,18 @@ test('refusals: decisions whose action was a refusal are listed with what happen
     rmSync(home, { recursive: true, force: true })
   }
 })
+
+test('memory partition view: short-term pages for the next session, long-term counts, compactions', async () => {
+  const { memoryLines } = await import('../src/self/view.ts')
+  withStore((store) => {
+    assert.match(memoryLines(store).join('\n'), /## 記憶分區\n短期（下一段新對話開頭帶入的最近 0 個回合[^\n]*\n還沒有。/u)
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 's1', data: {}, text: '對方說：我叫小晴，在台南開麵包店' })
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 's1', data: {}, text: '[runtime-context] 環境' })
+    store.append({ kind: 'memory/facts', origin: 'self', session: 's1', data: { facts: ['對方叫小晴'], from: 'heard', lasting: ['對方叫小晴'] }, text: '對方叫小晴' })
+    store.append({ kind: 'dsh/compaction/summary', origin: 'session', session: 's1', data: { data: { shadowedSeqs: [1] } } })
+    const text = memoryLines(store).join('\n')
+    assert.match(text, /最近 1 個回合[^\n]*\n- [^｜]+｜我叫小晴，在台南開麵包店/u)
+    assert.match(text, /其中對方說的話 1 則；關於對方的長期事實 1 條；教訓 0 條/u)
+    assert.match(text, /上下文壓縮：1 次/u)
+  })
+})

@@ -344,6 +344,13 @@ export class LifeStore {
     return row.n
   }
 
+  /** 指定 kind（文字以 `textPrefix` 開頭）的事件數。 */
+  countOf(kind: string, textPrefix = ''): number {
+    const pattern = `${textPrefix.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')}%`
+    const row = this.#db.prepare(`SELECT count(*) AS n FROM events WHERE kind = ? AND (? = '' OR text LIKE ? ESCAPE '\\')`).get(kind, textPrefix, pattern) as { n: number }
+    return row.n
+  }
+
   /** 依時間倒序列出最近的事件（可限定 kind）。 */
   recent(limit = 20, kinds?: readonly string[]): LifeEvent[] {
     if (kinds && kinds.length > 0) {

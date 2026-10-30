@@ -7,7 +7,7 @@ import { INTEGRATION_KIND, LESSON_KIND, PROPOSAL_KIND, type IntegrationData, typ
 import { renderOwnPlugins } from '../plugin/plugin.ts'
 import type { DecisionData, OutcomeData } from '../rd/memory.ts'
 import { REPLAY_KIND, type ReplayData } from '../rd/replay.ts'
-import { clipEnds, replyOf } from '../recall/retrieve.ts'
+import { COMPACTION_KIND, STM_PAGES, clipEnds, knownFacts, recentPages, replyOf } from '../recall/retrieve.ts'
 import { SKILL_KIND, renderLedger, renderOwnSkills } from '../skill/skill.ts'
 import { renderThoughts } from '../thought/thought.ts'
 import { recentCycles, type Cycle } from './cycle.ts'
@@ -72,6 +72,23 @@ export function refusalLines(life: LifeStore, limit = 5): string[] {
 }
 
 /** 內在狀態的全部段落（不含標頭）。cycleCount＝列出最近幾個 PC 循環。 */
+/**
+ * 記憶分區（ADR-0007）：短期記憶是下一段新對話開頭會帶入的最近回合（這段對話本身在 DSH 的上下文中）；
+ * 長期記憶是生命日誌與從中整理出的紀錄。
+ */
+export function memoryLines(life: LifeStore): string[] {
+  const pages = recentPages(life, undefined, STM_PAGES)
+  const lines = ['', '## 記憶分區', `短期（下一段新對話開頭帶入的最近 ${pages.length} 個回合；對話之中，這段對話本身就在上下文中）：`]
+  if (pages.length === 0) lines.push('還沒有。')
+  for (const p of pages) lines.push(`- ${formatTime(p.heard.ts)}｜${clipEnds((p.heard.text ?? '').replace(/^對方說：/, ''), 40)}`)
+  lines.push(
+    `長期（生命日誌，只增不改，以檢索帶回）：事件 ${life.count()} 則，其中對方說的話 ${life.countOf('dsh/user/message', '對方說：')} 則；` +
+      `關於對方的長期事實 ${knownFacts(life).length} 條；教訓 ${life.countOf(LESSON_KIND)} 條`,
+    `上下文壓縮：${life.countOf(COMPACTION_KIND)} 次（被壓掉的部分仍可檢索）`,
+  )
+  return lines
+}
+
 export function stateLines(life: LifeStore, cycleCount = 3): string[] {
   const lines = [renderSelfSnapshot(life, [...renderPotential(life), ...renderThoughts(life), ...renderOwnSkills(life), ...renderOwnPlugins(life)]).replace(/^（以下是你的生命紀錄中目前的自我狀態，由系統自動附上。）\n\n/, '')]
   if (life.all(SKILL_KIND.decision).length > 0) lines.push('', '## 技能的帳本（最近；閘門＝行為對照，未經量測）', ...renderLedger(life, 8))
@@ -98,6 +115,7 @@ export function stateLines(life: LifeStore, cycleCount = 3): string[] {
     const p = (x: ReplayData['current']) => `k=${x.k}、處境門檻 ${x.stateThreshold}、行動門檻 ${x.actionThreshold}（較新決定的預測誤差 ${x.testMse.toFixed(3)}）`
     lines.push('', '## 日誌重播（JitRL 經驗估計的參數；只在已記錄的決定上）', `${formatTime(replayed.ts)}｜${r.n} 個決定｜現行：${p(r.current)}｜最好：${p(r.best)}｜${r.adopted ? '採用' : '不採用'}：${r.reason}（減少 ${r.gain.toFixed(3)}，雜訊帶 ${r.noise.toFixed(3)}）`)
   }
+  lines.push(...memoryLines(life))
   lines.push(...refusalLines(life))
   const proposals = life.all(PROPOSAL_KIND)
   if (proposals.length > 0) lines.push('', `未採用的修訂提案：${proposals.length} 項（最近：${clipEnds(proposals.at(-1)?.text ?? '', 120)}）`)

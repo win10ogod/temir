@@ -51,15 +51,15 @@ export function renderCycle(life: LifeStore, c: Cycle): string[] {
 }
 
 /**
- * 拒絕與異議（plan v2 M4「拒絕與異議的紀錄分析」）：個體實際採取的做法是拒絕的決定（事後比對的 didKind），
- * 以及思考時被選中、類別是拒絕的做法。只列事實，不評價。
+ * 拒絕與異議（plan v2 M4「拒絕與異議的紀錄分析」）：事後比對中，個體自己判斷這次拒絕了對方的要求或表達不同意（declined）。
+ * 舊紀錄（ADR-0008 之前）看做法種類是不是「拒絕」。只列事實，不評價。
  */
 export function refusalLines(life: LifeStore, limit = 5): string[] {
   const outcomes = new Map(life.all('rd/outcome').map((e) => [(e.data as OutcomeData).decision, e.data as OutcomeData]))
   const refusals = life.all('rd/decision').filter((e) => {
     const d = e.data as DecisionData
     const o = outcomes.get(e.id)
-    return o ? o.didKind === '拒絕' : d.candidates[d.chosen]?.kind === '拒絕'
+    return o ? (o.declined ?? o.didKind === '拒絕') : d.candidates[d.chosen]?.kind === '拒絕'
   })
   if (refusals.length === 0) return []
   const lines = ['', `## 拒絕與異議（共 ${refusals.length} 次；最近的在後）`]

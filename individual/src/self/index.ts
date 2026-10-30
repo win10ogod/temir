@@ -24,14 +24,15 @@ import { renderThoughts } from '../thought/thought.ts'
 import { renderPotential } from './energy.ts'
 import { SILENCE_KIND, SILENCE_NOTE, SilenceWatch } from './silence.ts'
 import { situation } from './situation.ts'
+import { seedProcedures } from './procedure.ts'
 import {
   GOAL_STATUS,
   GOAL_STATUS_LABEL,
   KIND,
   OPINION_STATUS,
-  SIGNIFICANCE,
-  SIGNIFICANCE_LABEL,
   TRIGGERS,
+  appraisalLabel,
+  appraisalText,
   applyPersona,
   currentNarrative,
   currentSelfModel,
@@ -110,6 +111,9 @@ export function apply(ctx: Context, config: Config | undefined): void {
     if (written.length > 0) logger.info('initial persona written as self model version 1 (%s)', persona.source)
     else if (!life.latest(KIND.persona)) logger.warn('initial persona not applied: the individual has already revised itself')
   }
+  // 個體自己的做法（ADR-0008）：生命日誌中還沒有的，寫入第一版（創造者撰寫）。之後只有通過閘門的修訂會改變它。
+  const seeded = seedProcedures(life)
+  if (seeded.length > 0) logger.info('procedures written as version 1 (%d)', seeded.length)
   ctx.systemPrompt.section({ name: 'temir:situation', order: 1, text: situation(life.latest(KIND.persona) !== undefined, { skills: config?.skills ?? true }) })
 
   // 沉默的回合：整個回合只有推理、沒有說出話就要結束時，steer 一次讓回合多跑一步（silence.ts）。
@@ -304,15 +308,10 @@ export function apply(ctx: Context, config: Config | undefined): void {
     defineTool({
       name: 'appraise',
       description:
-        '記下你對一段經歷的感受與它對你的重要程度，或重新評價過去的某段經歷。about 填生命紀錄事件 id（例如回憶中出現的 id）；省略則指這段對話中最近一次對方說的話。',
+        '記下你對一段經歷的感受，或重新評價過去的某段經歷。about 填生命紀錄事件 id（例如回憶中出現的 id）；省略則指這段對話中最近一次對方說的話。',
       parameters: {
         feeling: { type: 'string', required: true, description: '用你自己的話描述的感受' },
-        significance: {
-          type: 'string',
-          enum: SIGNIFICANCE,
-          required: true,
-          description: 'daily＝日常；notable＝值得注意；major＝重大；pivotal＝轉折',
-        },
+        reconsider: { type: 'boolean', required: true, description: '這段經歷要不要讓你現在就重新檢視自己（核心價值、人生敘事與長期目標）；true 時會在這一回合結束後進行深度整合' },
         about: { type: 'array', items: { type: 'string' }, description: '這個感受針對的事件 id' },
         reappraisal: { type: 'boolean', description: '是否在重新評價過去的經歷' },
       },
@@ -330,19 +329,19 @@ export function apply(ctx: Context, config: Config | undefined): void {
         if (missing.length > 0) throw new Error(`生命紀錄中沒有這些事件：${missing.join(', ')}`)
         const data: AppraisalData = {
           feeling: args.feeling,
-          significance: args.significance as AppraisalData['significance'],
           reappraisal: args.reappraisal ?? false,
+          ...(args.reconsider ? { reconsider: true } : {}),
         }
-        const label = `${SIGNIFICANCE_LABEL[data.significance]}${data.reappraisal ? '，重新評價' : ''}`
+        const label = appraisalLabel(data)
         const event = life.append({
           kind: KIND.appraisal,
           origin: 'self',
           session,
           data,
-          text: `我的感受（${label}）：${data.feeling}`,
+          text: appraisalText(data),
           causes: about,
         })
-        return `已記下感受（${label}，${event.id}），關聯 ${about.length} 個事件。`
+        return `已記下感受（${label ? `${label}，` : ''}${event.id}），關聯 ${about.length} 個事件。`
       },
     }),
   )

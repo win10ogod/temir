@@ -31,6 +31,10 @@
      - 同日稍早談字表時說「不應該有」。
      - 同日又說「你假裝明白有用嗎?根本沒用心去理解整個理論與那些參考用的DSH插件, 甚至是論文都沒有看」。
      - 在讀完理論、參考插件與論文之前，不改人格相關的設計（session log s09）。
+     - 讀完之後的方向（`research/reading/2026-10-30-synthesis.md`），使用者的回答：「思考、扣除、比對、整合、念頭的做法，全部交給個體修訂」「做法的第一版由誰寫:你」。
+       - 實作見 `research/decisions/ADR-0008-own-procedures.md` 與 `hypotheses.md` H-P。
+       - 程式只保留結構：何時需要判斷、輸出的欄位、強制判斷的驗證，以及生命日誌、安全與機密。
+       - 看、歸類、評價時不用寫死的類別。
 5. **初始人設可以給，但必須能在循環中改變**（使用者 2026-10-29 澄清）。
    - 初始人設（名字、身份、性格、背景）是 PC 的初始狀態，寫成自我模型與人生敘事的第一個版本（`temir-self` 的 `persona` 設定或 `TEMIR_PERSONA_FILE`），個體可以修訂；不寫進固定的系統提示。
    - 沒有給的話，個體從空白開始。
@@ -82,4 +86,8 @@ scripts/            env.sh、setup-dev.sh、dsh.sh、dsh_inventory.py
 ## 與使用者的互動
 
 - 回覆用繁體中文；不要在步驟之間敘述計畫或徵求同意，直接做，最後只回報結果與真正的阻礙。
-- commit 由 Claude 自行決定時機（已驗證的里程碑）；不要 push。
+- commit 與 push 由 Claude 自行決定時機（已驗證的里程碑）。
+  - 使用者 2026-10-30：「改這條規則可以PUSH(因為是你擅自說不要PUSH)」。
+  - push 只用 Windows 的 git（`powershell.exe -NoProfile -Command 'Set-Location "F:\特密爾"; git push origin main'`），之後以 `git ls-remote` 確認。
+  - 不改寫歷史、不 force push。
+  - commit 與 push 之前都要掃描機密（規則 8）。

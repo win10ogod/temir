@@ -8,7 +8,7 @@
  *
  * 自發行動（plan v2 M4）：念頭留下打算、而且個體決定現在就說（now）時，在最近一段對話中主動開口：
  * 以 DSH 的 `agent.followup`（dsh-tool-jobs 叫醒閒置 agent 的同一種方式）開始一個由念頭發起的回合。
- * 排程規則（mayInitiate）：上次主動開口之後對方要先說過話；24 小時內最多 INITIATIVE_PER_DAY 次。
+ * 安全保證（mayInitiate）：上次主動開口之後對方要先說過話。一天說幾次由念頭的做法決定（ADR-0008 §4）。
  * 對話已經不在或正在進行時不開口，照實記下。
  *
  * IM（ADR-0006）：dsh-im 的會話同步不轉送由 temir-thought 發起的回合。設定 imTargets（從 dsh-im 設定頁複製的
@@ -23,10 +23,11 @@ import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type {} from '../life/index.ts'
 import { latestRoute } from '../integrate/index.ts'
 import { auxRecord, callModel } from '../recall/aux.ts'
-import { clip } from '../recall/retrieve.ts'
+import { clipKeepLines } from '../recall/retrieve.ts'
 import type { ThoughtData } from '../self/energy.ts'
+import { currentProcedure, procedureVersions } from '../self/procedure.ts'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
-import { INITIATIVE_IM_KIND, INITIATIVE_KIND, InitiativeRelay, THOUGHT_SYSTEM, hasPotential, initiativeNote, mayInitiate, parseThought, recordThought, thoughtInput, type ImTarget, type InitiativeData } from './thought.ts'
+import { INITIATIVE_IM_KIND, INITIATIVE_KIND, InitiativeRelay, hasPotential, initiativeNote, mayInitiate, parseThought, recordThought, thoughtInput, thoughtRetryNote, thoughtSystem, type ImTarget, type InitiativeData } from './thought.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -144,15 +145,26 @@ export function apply(ctx: Context, config: Config | undefined): void {
     if (!route) return
     const model = `${route.provider}/${route.model}`
     const { input, labels } = thoughtInput(life)
+    const procedure = currentProcedure(life, 'thought')
+    const system = thoughtSystem(procedure)
+    // 輸入保留換行：做法的閘門以真實的輸入重跑（ADR-0008 §3）。
+    const used = { procedures: procedureVersions([procedure]), input: clipKeepLines(input, 20_000) }
+    const ask = async (prompt: string) => {
+      const call = await callModel(ctx, route, prompt, input, AbortSignal.timeout(timeoutMs))
+      if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'thought', ...auxRecord(call), ...used, output: call.output } })
+      return parseThought(call.output)
+    }
     try {
-      const call = await callModel(ctx, route, THOUGHT_SYSTEM, input, AbortSignal.timeout(timeoutMs))
+      let parsed = await ask(system)
       if (!life.isOpen) return
-      life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'thought', ...auxRecord(call), input: clip(input, 8000), output: call.output } })
-      const judged = parseThought(call.output)
-      const id = judged ? life.transaction(() => recordThought(life, judged, labels, model)) : undefined
-      if (id && judged?.now && (config?.spontaneous ?? true)) await deliverInitiative(ctx, id)
+      // 強制判斷：不合格時附上問題重問一次；仍不合格就不寫念頭（memory/aux 留著兩次的輸出）。
+      if (!parsed.ok) parsed = await ask(`${system}\n${thoughtRetryNote(parsed.problems)}`)
+      if (!life.isOpen || !parsed.ok) return
+      const judged = parsed.judgment
+      const id = life.transaction(() => recordThought(life, judged, labels, model))
+      if (id && judged.now && (config?.spontaneous ?? true)) await deliverInitiative(ctx, id)
     } catch (error) {
-      if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'thought', error: String(error), input: clip(input, 8000) } })
+      if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'thought', error: String(error), ...used } })
       logger.warn('thought failed: %s', error)
     } finally {
       if (life.isOpen) quietAfter = life.lastSeq()

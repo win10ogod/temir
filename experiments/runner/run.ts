@@ -150,8 +150,12 @@ export function pendingPivotal(lifeDb: string): boolean {
   try {
     const last = db.prepare(`SELECT data FROM events WHERE kind = 'self/integration' ORDER BY seq DESC LIMIT 1`).get() as { data: string } | undefined
     const from = last ? ((JSON.parse(last.data) as { range?: [number, number] }).range?.[1] ?? 0) : 0
-    const rows = db.prepare(`SELECT data FROM events WHERE kind = 'appraisal' AND seq > ?`).all(from) as { data: string }[]
-    return rows.some((r) => (JSON.parse(r.data) as { significance?: string }).significance === 'pivotal')
+    // 與個體的 integrate/evidence.ts 的 reconsiderSince 相同：reconsider（ADR-0008），或舊紀錄的「轉折」。
+    const rows = db.prepare(`SELECT kind, data FROM events WHERE kind IN ('appraisal', 'rd/outcome', 'self/thought') AND seq > ?`).all(from) as { kind: string; data: string }[]
+    return rows.some((r) => {
+      const d = JSON.parse(r.data) as { significance?: string; reconsider?: boolean }
+      return d.reconsider === true || (r.kind === 'appraisal' && d.significance === 'pivotal')
+    })
   } finally {
     db.close()
   }

@@ -15,12 +15,12 @@ import type { LifeStore } from '../life/store.ts'
 import { extractJson, strings } from '../recall/aux.ts'
 import { OUTDATED_KIND, type OutdatedData } from '../recall/retrieve.ts'
 import { REVALUATION_KIND, type OutcomeData, type RevaluationData } from '../rd/memory.ts'
+import { DEFAULT_PROCEDURES, PROCEDURE_KIND, PROCEDURE_LABEL, PROCEDURE_MAX_CHARS, PROCEDURE_NAMES, currentProcedure, procedurePrompt, type Procedure, type ProcedureName } from '../self/procedure.ts'
 import {
   GOAL_STATUS_LABEL,
   KIND,
-  SIGNIFICANCE,
-  SIGNIFICANCE_LABEL,
   TRIGGERS,
+  appraisalText,
   currentNarrative,
   currentSelfModel,
   opinions,
@@ -31,35 +31,45 @@ import {
   type NarrativeData,
   type OpinionChangeData,
   type SelfRevisionData,
-  type Significance,
   type Trigger,
 } from '../self/state.ts'
 import { INTEGRATION_KIND, LESSON_KIND, PROPOSAL_KIND, observe, type Evidence, type IntegrationData, type LessonData, type IntegrationTrigger } from './evidence.ts'
 
-const FORMAT = `只輸出一個 JSON 物件，不要任何其他文字：
-{"lessons": [], "reappraisals": [], "revaluations": [], "selfRevision": null, "story": null, "goals": [], "opinions": [], "outdated": [], "contradictions": [], "release": [], "change": "..."}
-- lessons：從這些經歷學到、以後用得上的教訓，特別是預測與實際不符的地方。每條 {"text": "一句話", "evidence": ["事件 id"]}；不要重複「已有的教訓」。
-- reappraisals：現在回頭看，對某段經歷的感受有沒有改變。每條 {"event": "事件 id", "feeling": "...", "significance": "daily|notable|major|pivotal", "reason": "..."}。
-- revaluations：現在依你在乎的事（特別是自我模型改變之後）回頭看，「預測與實際」中某個結果對你的好壞，和當時評的不一樣嗎？每條 {"outcome": "事件 id", "reward": -1 到 1 之間的數, "reason": "..."}；一樣就不用寫。
-- selfRevision：如果這些經歷讓你對「自己是誰、在乎什麼、傾向怎麼做」有新的理解，寫出完整的新版自我模型 {"text": "...", "reason": "...", "causes": ["事件 id"], "trigger": "internal|external|both", "stability": {...}, "adaptability": {...}}，causes 至少一個；不需要修改就給 null。trigger：這個改變來自你自己的思考與反省（internal）、外界的回饋或事件（external），或兩者（both）。
-- story：如果你的人生敘事需要改寫（加入這段經歷、或重新理解過去），寫出完整的新版本，欄位同 selfRevision；敘事用第一人稱，引用具體經歷；不需要就給 null。
+const CONTRACT = `只輸出一個 JSON 物件，不要任何其他文字：
+{"lessons": [], "reappraisals": [], "revaluations": [], "selfRevision": null, "story": null, "goals": [], "opinions": [], "procedures": [], "outdated": [], "contradictions": [], "release": [], "change": "..."}
+- lessons：以後用得上的教訓。每條 {"text": "一句話", "evidence": ["事件 id"]}；不要重複「已有的教訓」。
+- reappraisals：現在回頭看，對某段經歷的感受有沒有改變。每條 {"event": "事件 id", "feeling": "...", "reason": "..."}。
+- revaluations：現在回頭看，「預測與實際」中某個結果對你的好壞，和當時評的不一樣的。每條 {"outcome": "事件 id", "reward": -1 到 1 之間的數, "reason": "..."}；一樣就不用寫。
+- selfRevision：新版的自我模型（自己是誰、在乎什麼、傾向怎麼做），寫出完整的新版本 {"text": "...", "reason": "...", "causes": ["事件 id"], "trigger": "internal|external|both", "stability": {...}, "adaptability": {...}}，causes 至少一個；不需要修改就給 null。trigger：這個改變來自你自己的思考與反省（internal）、外界的回饋或事件（external），或兩者（both）。
+- story：新版的人生敘事，第一人稱，引用具體經歷；欄位同 selfRevision；不需要就給 null。
 - goals：目標的變更。每條 {"op": "add|pause|abandon|achieve|resume", "goal": "既有目標 id（add 時省略）", "text": "...", "reason": "...", "stability": {...}, "adaptability": {...}}。
-- opinions：你持有的看法或價值（例如什麼重要、某類事該怎麼做）。只寫你真的持有、而且有經歷支持的。每條 {"op": "add|revise|drop", "opinion": "既有看法 id（add 時省略）", "text": "看法本身（drop 時可省略）", "reason": "...", "evidence": ["支持它的事件 id"], "stability": {...}, "adaptability": {...}}。
-- stability 與 adaptability：自我修復要同時兼顧穩定性與適應性，兩者缺一不可。selfRevision、story 與每個 goals、opinions 項目都要寫這兩項，格式 {"holds": true, "reason": "...", "evidence": ["事件 id"]}：
-  - stability：這個改變如何與你原本在乎的事、你的故事保持連貫，而不是無端的跳躍；evidence 可以是任何時候的事件（包括目前自我模型、人生敘事的 id）。
-  - adaptability：這個改變如何回應這段期間的經歷：預測與實際的落差、目標的進展、對方的回饋；evidence 只能用這段期間的事件。
-  - holds 照你的真實判斷寫。兩項都成立、也都有證據，修訂才會採用；不成立的會保留為提案，之後可以再提。
+- opinions：你持有的看法或價值。每條 {"op": "add|revise|drop", "opinion": "既有看法 id（add 時省略）", "text": "看法本身（drop 時可省略）", "reason": "...", "evidence": ["支持它的事件 id"], "stability": {...}, "adaptability": {...}}。
+- procedures：你自己的做法（「我現在的做法」中的思考、扣除、比對、整合、念頭）的修訂。每條 {"name": "deliberate|subtract|outcome|integrate|thought", "text": "完整的新版本", "reason": "...", "evidence": ["事件 id"], "stability": {...}, "adaptability": {...}}；不需要就給空陣列。每次整合最多一條會進入對照：系統用你過去的真實處境，對照修改前後的輸出，再由你決定要不要採用。
+- stability 與 adaptability：自我修復要同時兼顧穩定性與適應性，兩者缺一不可。selfRevision、story 與每個 goals、opinions、procedures 項目都要寫這兩項，格式 {"holds": true, "reason": "...", "evidence": ["事件 id"]}：
+  - stability：這個改變如何與你原本在乎的事、你的故事保持連貫；evidence 可以是任何時候的事件（包括目前自我模型、人生敘事、做法的 id）。
+  - adaptability：這個改變如何回應這段期間的經歷；evidence 只能用這段期間的事件。
+  - holds 照你的真實判斷寫。兩項都成立、也都有證據，修訂才會採用（做法還要通過對照）；不成立的會保留為提案，之後可以再提。
 - outdated：「關於對方的長期事實」中已經不再成立的。每條 {"fact": "原句，一字不差", "replacedBy": "新的事實，沒有就給空字串", "evidence": ["事件 id"]}。
 - contradictions：你持有的看法或價值之間，彼此衝突、還沒解決的地方，每條一句。「懸著的事」中上次整合留下的矛盾，這次解開了就不要再列；還沒解開就再列一次。
 - 「懸著的事」中上次沒有採用的修訂：想採用就照上面的格式重新提出（兩項判準都要寫）；不再需要就不提。
-- release：「懸著的事」中，你決定可以放下的（已經解決、不再需要，或決定不再掛心）。每條 {"item": "P1", "reason": "..."}；沒有列出的會繼續懸著。
+- release：「懸著的事」中，你決定可以放下的。每條 {"item": "P1", "reason": "..."}；沒有列出的會繼續懸著。
 - change：用幾句話說明這段時間你有沒有改變、怎麼改變，引用具體經歷。
-- 所有「事件 id」都只能用下面列出的 id（方括號中的字串）。可以什麼都不改：沒有就給空陣列或 null。
-- 一律使用原文的語言與字體：原文是繁體中文就寫繁體中文，不要轉成簡體。`
+- 所有「事件 id」都只能用下面列出的 id（方括號中的字串）。可以什麼都不改：沒有就給空陣列或 null。`
 
-export const INTEGRATE_SYSTEM = `你是一個人工個體，正在進行整合期：回顧上次整合以後的經歷，整理自己。這是你自己的反省，不是任何人的要求；你可以修改自己，也可以什麼都不改，不需要回到過去的樣子。${FORMAT}`
+/**
+ * 整合的系統提示（框架＋整合做法＋輸出；ADR-0008 §1）。deep＝這段期間有讓個體想重新檢視自己的經歷（H4），由機制觸發，寫在框架。
+ */
+export function integrateSystem(options: { readonly procedure?: Procedure; readonly deep?: boolean } = {}): string {
+  const procedure = options.procedure ?? { name: 'integrate', version: 1, text: DEFAULT_PROCEDURES.integrate }
+  const frame = options.deep
+    ? '你是一個人工個體，正在進行整合期：回顧上次整合以後的經歷，整理自己。這段期間有讓你想現在就重新檢視自己的經歷，所以這次是深度整合：重新檢視你的核心價值、人生敘事與長期目標；需要的話，可以做大幅修訂，也可以確認它們仍然成立。照下面你自己的做法整合，輸出照最後一段的格式。'
+    : '你是一個人工個體，正在進行整合期：回顧上次整合以後的經歷，整理自己。照下面你自己的做法整合，輸出照最後一段的格式。'
+  return procedurePrompt(frame, [procedure], CONTRACT)
+}
 
-export const DEEP_SYSTEM = `你是一個人工個體，正在進行整合期：回顧上次整合以後的經歷，整理自己。這段期間有被你評為「轉折」的經歷，所以這次請重新檢視你的核心價值、人生敘事與長期目標；需要的話，可以做大幅修訂，也可以確認它們仍然成立。這是你自己的反省，不是任何人的要求；你不需要回到過去的樣子。${FORMAT}`
+export const INTEGRATE_SYSTEM = integrateSystem()
+
+export const DEEP_SYSTEM = integrateSystem({ deep: true })
 
 /** 個體自己對一項修訂的判斷（性質 6：自我修復的判準是穩定性與適應性）。 */
 export interface Criterion {
@@ -89,6 +99,16 @@ export interface GoalProposal {
   readonly adaptability: Criterion
 }
 
+/** 做法的修訂提案（ADR-0008 §3）：通過兩項判準之後，還要經過閘門（integrate/procedure-gate.ts）才採用。 */
+export interface ProcedureProposal {
+  readonly name: ProcedureName
+  readonly text: string
+  readonly reason: string
+  readonly evidence: readonly string[]
+  readonly stability: Criterion
+  readonly adaptability: Criterion
+}
+
 export interface OpinionProposal {
   readonly op: 'add' | 'revise' | 'drop'
   readonly opinion: string
@@ -101,7 +121,7 @@ export interface OpinionProposal {
 
 export interface Proposal {
   readonly lessons: readonly { readonly text: string; readonly evidence: readonly string[] }[]
-  readonly reappraisals: readonly { readonly event: string; readonly feeling: string; readonly significance: Significance; readonly reason: string }[]
+  readonly reappraisals: readonly { readonly event: string; readonly feeling: string; readonly reason: string }[]
   /** 依現在的自我重新評估過去結果的回報（H2；ADR-0002 D3 的衝突）。 */
   readonly revaluations: readonly { readonly outcome: string; readonly reward: number; readonly reason: string }[]
   readonly selfRevision: Revision | null
@@ -109,6 +129,8 @@ export interface Proposal {
   readonly goals: readonly GoalProposal[]
   /** 價值與看法（H1-2）。 */
   readonly opinions: readonly OpinionProposal[]
+  /** 做法的修訂（ADR-0008；H-P）。 */
+  readonly procedures: readonly ProcedureProposal[]
   readonly outdated: readonly { readonly fact: string; readonly replacedBy: string; readonly evidence: readonly string[] }[]
   readonly contradictions: readonly string[]
   /** 決定放下的懸著的事（H-E）：模型寫的 P 編號，驗證後換成 key。 */
@@ -164,7 +186,6 @@ export function parseProposal(output: string): Proposal | undefined {
       .map((r) => ({
         event: text(r['event'], 200),
         feeling: text(r['feeling'], 600),
-        significance: (SIGNIFICANCE as readonly string[]).includes(text(r['significance'], 10)) ? (text(r['significance'], 10) as Significance) : 'notable',
         reason: text(r['reason'], 300),
       })),
     revaluations: objects(obj['revaluations'])
@@ -195,6 +216,17 @@ export function parseProposal(output: string): Proposal | undefined {
         evidence: strings(o['evidence'], 10, 200),
         stability: criterion(o['stability']),
         adaptability: criterion(o['adaptability']),
+      })),
+    procedures: objects(obj['procedures'])
+      .slice(0, 5)
+      .filter((p) => (PROCEDURE_NAMES as readonly string[]).includes(text(p['name'], 20)))
+      .map((p) => ({
+        name: text(p['name'], 20) as ProcedureName,
+        text: text(p['text'], PROCEDURE_MAX_CHARS + 1),
+        reason: text(p['reason'], 500),
+        evidence: strings(p['evidence'], 10, 200),
+        stability: criterion(p['stability']),
+        adaptability: criterion(p['adaptability']),
       })),
     outdated: objects(obj['outdated'])
       .slice(0, 12)
@@ -230,12 +262,15 @@ export function proposalProblems(output: string): string[] {
   objects(obj['opinions']).forEach((o, i) => {
     if (['add', 'revise', 'drop'].includes(text(o['op'], 10))) check(`opinions 第 ${i + 1} 項`, o)
   })
+  objects(obj['procedures']).forEach((p, i) => {
+    if ((PROCEDURE_NAMES as readonly string[]).includes(text(p['name'], 20))) check(`procedures 第 ${i + 1} 項`, p)
+  })
   return problems
 }
 
 /** 整合的輸出要重問時所附的說明，列出不合格的地方。 */
 export function integrateRetryNote(problems: readonly string[]): string {
-  return `（重寫一次：上一次的整合輸出不完整。只輸出一個完整的 JSON 物件；selfRevision、story 與每個 goals、opinions 項目都要寫 stability 與 adaptability 兩項判斷，格式 {"holds": true 或 false, "reason": "...", "evidence": ["事件 id"]}，holds 照你的真實判斷寫。不合格的地方：${problems.join('；')}）`
+  return `（重寫一次：上一次的整合輸出不完整。只輸出一個完整的 JSON 物件；selfRevision、story 與每個 goals、opinions、procedures 項目都要寫 stability 與 adaptability 兩項判斷，格式 {"holds": true 或 false, "reason": "...", "evidence": ["事件 id"]}，holds 照你的真實判斷寫。不合格的地方：${problems.join('；')}）`
 }
 
 export interface Rejection {
@@ -245,8 +280,8 @@ export interface Rejection {
 
 /** 內容合格、但個體自己的穩定性或適應性判斷不成立（或沒有證據）的 PC 修訂，保留為提案。 */
 export interface Deferral {
-  readonly kind: 'selfRevision' | 'story' | 'goal' | 'opinion'
-  readonly item: Revision | GoalProposal | OpinionProposal
+  readonly kind: 'selfRevision' | 'story' | 'goal' | 'opinion' | 'procedure'
+  readonly item: Revision | GoalProposal | OpinionProposal | ProcedureProposal
   readonly reason: string
 }
 
@@ -347,6 +382,31 @@ export function validate(life: LifeStore, ev: Evidence, proposal: Proposal): { a
     if (failed) deferred.push({ kind: 'opinion', item: o, reason: failed })
     return !failed
   })
+  // 做法（ADR-0008 §3）：內容合格、兩項判準都成立，才進入閘門；每次整合最多一個（WikiSkill 附錄 Algorithm 1：每輪一個原子提案），
+  // 其餘保留為提案，之後可以再提。
+  let gated = 0
+  const procedureOps = proposal.procedures.filter((p) => {
+    const current = currentProcedure(life, p.name)
+    const reason = !p.reason
+      ? '沒有寫理由'
+      : !p.text
+        ? '沒有內容'
+        : p.text.length > PROCEDURE_MAX_CHARS
+          ? `超過 ${PROCEDURE_MAX_CHARS} 字`
+          : p.text === current.text
+            ? '與目前的版本相同'
+            : p.evidence.length === 0 || !p.evidence.every((id) => life.get(id) !== undefined)
+              ? '沒有可查的經歷支持'
+              : ''
+    if (reason) {
+      rejected.push({ item: `procedure:${p.name}`, reason })
+      return false
+    }
+    const failed = dualCheck(life, ev, p) || (gated > 0 ? '這次整合已經有一個做法的修訂進入對照' : '')
+    if (failed) deferred.push({ kind: 'procedure', item: p, reason: failed })
+    else gated++
+    return !failed
+  })
   const outcomeIds = new Set(ev.outcomes.map((e) => e.id))
   const revaluations = proposal.revaluations.filter((r) => {
     const reason = !outcomeIds.has(r.outcome) ? '不是這次列出的事後比對' : !r.reason ? '沒有寫理由' : ''
@@ -368,17 +428,35 @@ export function validate(life: LifeStore, ev: Evidence, proposal: Proposal): { a
     return !reason
   })
   return {
-    accepted: { ...proposal, lessons, reappraisals, revaluations, selfRevision, story, goals: goalOps, opinions: opinionOps, outdated, release },
+    accepted: { ...proposal, lessons, reappraisals, revaluations, selfRevision, story, goals: goalOps, opinions: opinionOps, procedures: procedureOps, outdated, release },
     rejected,
     deferred,
   }
 }
 
-const DEFERRAL_LABEL = { selfRevision: '自我模型', story: '人生敘事', goal: '目標', opinion: '看法' } as const
+const DEFERRAL_LABEL = { selfRevision: '自我模型', story: '人生敘事', goal: '目標', opinion: '看法', procedure: '做法' } as const
 
 export interface Applied {
   readonly integration: string
   readonly applied: readonly string[]
+  /** 寫下的做法提案（self/procedure-proposal），由呼叫端送進閘門。 */
+  readonly procedureProposals: readonly string[]
+}
+
+/** 做法提案的紀錄（ADR-0008 §3）。integrate＝整合時提出；compose＝閘門判斷 revise 時修改後的版本。 */
+export interface ProcedureProposalData {
+  readonly name: ProcedureName
+  readonly text: string
+  readonly reason: string
+  readonly evidence: readonly string[]
+  readonly source: 'integrate' | 'compose'
+  /** 提出時的版本（閘門比較的是提出時的現行版本與提案）。 */
+  readonly baseVersion: number
+  readonly integration?: string
+  readonly stability?: Criterion
+  readonly adaptability?: Criterion
+  /** compose：被修改的那個提案。 */
+  readonly revises?: string
 }
 
 /**
@@ -401,8 +479,25 @@ export function applyProposal(
     add({ kind: LESSON_KIND, origin: 'self', data, text: `教訓：${l.text}`, causes: l.evidence })
   }
   for (const r of accepted.reappraisals) {
-    const data: AppraisalData = { feeling: r.feeling, significance: r.significance, reappraisal: true }
-    add({ kind: KIND.appraisal, origin: 'self', data: { ...data, reason: r.reason, integration }, text: `我的感受（${SIGNIFICANCE_LABEL[r.significance]}，重新評價）：${r.feeling}`, causes: [r.event] })
+    const data: AppraisalData = { feeling: r.feeling, reappraisal: true }
+    add({ kind: KIND.appraisal, origin: 'self', data: { ...data, reason: r.reason, integration }, text: appraisalText(data), causes: [r.event] })
+  }
+  const procedureProposals: string[] = []
+  for (const p of accepted.procedures) {
+    const data: ProcedureProposalData = {
+      name: p.name,
+      text: p.text,
+      reason: p.reason,
+      evidence: p.evidence,
+      source: 'integrate',
+      baseVersion: currentProcedure(life, p.name).version,
+      integration,
+      stability: p.stability,
+      adaptability: p.adaptability,
+    }
+    const id = life.append({ kind: PROCEDURE_KIND.proposal, origin: 'self', data, text: `我想修改自己的${PROCEDURE_LABEL[p.name]}做法。理由：${p.reason}`, causes: p.evidence }).id
+    applied.push(id)
+    procedureProposals.push(id)
   }
   if (accepted.selfRevision) {
     const version = (currentSelfModel(life)?.version ?? 0) + 1
@@ -464,7 +559,8 @@ export function applyProposal(
     })
   }
   for (const d of deferred) {
-    const summary = 'op' in d.item ? `${d.item.op}「${d.item.text || ('goal' in d.item ? d.item.goal : d.item.opinion)}」` : d.item.text
+    const summary =
+      'op' in d.item ? `${d.item.op}「${d.item.text || ('goal' in d.item ? d.item.goal : d.item.opinion)}」` : 'name' in d.item ? `${PROCEDURE_LABEL[d.item.name]}做法：${d.item.text}` : d.item.text
     add({
       kind: PROPOSAL_KIND,
       origin: 'self',
@@ -505,5 +601,5 @@ export function applyProposal(
     text: accepted.change ? `我整理了一段時間以來的經歷。${accepted.change}` : undefined,
     causes: applied,
   })
-  return { integration, applied }
+  return { integration, applied, procedureProposals }
 }

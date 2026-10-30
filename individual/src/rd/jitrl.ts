@@ -45,14 +45,16 @@ const CONFIDENCE_FLOOR = 0.5
 export interface Candidate {
   /** 一句話描述的做法。 */
   readonly action: string
-  /** 做法的類別（回答、提問、建議、拒絕……）。 */
-  readonly kind: string
+  /** 舊紀錄的做法種類（ADR-0002 D22 之前的 KINDS；2026-10-30 起不再寫，ADR-0008 §2）。 */
+  readonly kind?: string
   /** 預期的後果。 */
   readonly prediction: string
   /** 口述信心 0–100。 */
   readonly confidence: number
   /** 模型判定為同一做法的過去經驗（rd/decision 事件 id）：思考時逐筆判斷的 experiences 中，sameAction 列了這個做法的（ADR-0002 D23）。 */
   readonly sameAs: readonly string[]
+  /** 模型判定這個做法與那次當時扣除的做法相同的過去經驗（rd/decision 事件 id；experiences 的 sameExcluded，ADR-0008 §2）。 */
+  readonly sameExcluded?: readonly string[]
   /**
    * RD 扣除了這個做法（PC＝ST＋E−RD＝A；使用者 2026-10-29：「−」是扣除，ST＋E 減掉 RD 才進入 A）。
    * 由個體自己判斷：想過預期後果、過去類似處境的結果與自己在乎的事之後，不做這個。舊紀錄沒有這個欄位。
@@ -81,7 +83,8 @@ export interface Experience {
   readonly situation: string
   /** 實際採取的做法 a。 */
   readonly action: string
-  readonly kind: string
+  /** 舊紀錄的做法種類（ADR-0008 之前）。 */
+  readonly kind?: string
   /** 折扣回報 G。 */
   readonly ret: number
   /** 實際發生的事與教訓。 */
@@ -98,7 +101,10 @@ export function termSet(text: string): Set<string> {
   return new Set(indexTerms(text))
 }
 
-/** 處境描述中用來比對相似度的欄位（rd/aux.ts 的固定格式）。 */
+/**
+ * 處境描述中用來比對相似度的欄位：思考做法第一版的格式（self/procedure.ts）。格式是個體的習慣，可以修訂；
+ * 處境沒有這些欄位時用全文（stateTerms）。個體逐筆判斷的同類處境（D23 的 sameSituation）不經過這裡。
+ */
 const STATE_FIELDS = ['對方的意圖', '對方的情緒', '話題'] as const
 
 /**
@@ -214,24 +220,38 @@ function baseLogits(candidates: readonly Candidate[]): number[] {
   return floored.map((c) => Math.log(c / total))
 }
 
-/** 經驗修正：V̂、Q̂、優勢、正規化與 logit 更新，選出修正後分數最高的候選。 */
+/**
+ * 候選的做法與一個鄰居的做法是否相同（Q̂ 的相符經驗）。
+ * - 個體在思考時判斷過的經驗（shown：思考時列出的，D23）：只看它的判斷（sameAs），程式不再以詞彙推翻。
+ * - 沒有列出、由 JitRL 依處境找到的鄰居：以做法描述的詞彙相似度作為備援（ADR-0002 D3）。
+ *   舊紀錄兩邊都有做法種類時，另外要求種類相同（ADR-0008 之前的寫法）；新紀錄沒有種類（ADR-0008 §2）。
+ */
+export function sameAction(
+  c: { readonly action: string; readonly kind?: string | undefined; readonly sameAs: readonly string[] },
+  e: Experience,
+  params: Params,
+  shown: ReadonlySet<string> = new Set(),
+): boolean {
+  if (c.sameAs.includes(e.id)) return true
+  if (shown.has(e.id)) return false
+  if (c.kind !== undefined && e.kind !== undefined && c.kind !== e.kind) return false
+  return jaccard(termSet(c.action), termSet(e.action)) >= params.actionThreshold
+}
+
+/** 經驗修正：V̂、Q̂、優勢、正規化與 logit 更新，選出修正後分數最高的候選。shown＝思考時列出、個體逐筆判斷過的經驗。 */
 export function correct(
   candidates: readonly Candidate[],
   near: readonly Neighbor[],
   params: Params,
   random: () => number = Math.random,
+  shown: ReadonlySet<string> = new Set(),
 ): Correction {
   if (candidates.length === 0) return { scored: [], value: null, chosen: 0 }
   if (near.length === 0) return uncorrected(candidates)
   const z = baseLogits(candidates)
   const value = mean(near.map((n) => n.experience.ret))
   const estimates = candidates.map((c) => {
-    const terms = termSet(c.action)
-    const matches = near.filter(
-      (n) =>
-        c.sameAs.includes(n.experience.id) ||
-        (n.experience.kind === c.kind && jaccard(terms, termSet(n.experience.action)) >= params.actionThreshold),
-    )
+    const matches = near.filter((n) => sameAction(c, n.experience, params, shown))
     if (matches.length > 0) return { q: mean(matches.map((n) => n.experience.ret)), support: matches.length, optimistic: null }
     const optimistic = random() < params.lambda
     return { q: optimistic ? value + params.alpha / near.length : 0, support: 0, optimistic }

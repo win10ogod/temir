@@ -5,12 +5,11 @@
  *
  * 勢能＝儲存著、還沒有釋放的推動力（「懸著的事」）。每一件都有穩定的 key，分成兩個方向：
  * - 向外（推動個體對對方做什麼）：
- *   - `left:<事件 id>#<序號>`，type＝promise：個體答應了、或被託付、還沒做到的事；
- *   - `left:<事件 id>#<序號>`，type＝waiting：對方說之後會告訴它、或對方生活中重要的事還沒有結果；
+ *   - `left:<事件 id>#<序號>`，forOther＝true：事後比對留下、個體判斷推動它對對方做什麼的事；
  *   - `intention:<事件 id>`：閒置時的念頭留下的打算。
  * - 向內（推動個體自己的反省與整理）：
- *   - `left:<事件 id>#<序號>`，type＝unresolved：新出現、還沒解開的矛盾或不安；
- *   - `surprise:<事件 id>`：結果和預期完全不一樣（matched＝no），而且個體自己評為值得注意以上的經歷；
+ *   - `left:<事件 id>#<序號>`，forOther＝false：推動它自己的反省的事；
+ *   - `surprise:<事件 id>`：結果和預期完全不一樣（matched＝no），而且個體判斷這個落差會一直掛在心上（gapOnMind）；
  *   - `contradiction:<整合 id>#<序號>`：最近一次整合寫下的未解矛盾（每次整合重新判斷，只算最近一次）；
  *   - `proposal:<事件 id>`：最近一次整合沒有採用、保留下來的修訂提案。
  * 進行中的目標也是勢能，已經列在快照的「目標」一節，這裡不重複。
@@ -31,6 +30,9 @@
  *   - 隨口的問題不算懸念；
  *   - 意外要個體自評值得注意以上；
  *   - 向外的承諾與等待列在前面，不會被向內的事擠掉。
+ * - ADR-0008（2026-10-30）：懸念的三種類型（promise、waiting、unresolved）與「值得注意以上」都是我寫死的類別，拿掉了。
+ *   個體逐件判斷 forOther（方向），落差逐次判斷 gapOnMind；什麼算懸念，寫在比對做法的第一版中，個體可以修訂。
+ *   舊紀錄照原本的規則讀。
  */
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import { INTEGRATION_KIND, carriedOver } from '../integrate/carried.ts'
@@ -47,7 +49,7 @@ export type PotentialKind = 'contradiction' | 'proposal' | 'left' | 'surprise' |
 export interface PotentialItem {
   readonly key: string
   readonly kind: PotentialKind
-  /** 懸念的種類（只有 left 有）；第一、二版的紀錄沒有，記為 legacy。 */
+  /** 舊紀錄的懸念種類（只有 left 有；第一、二版的紀錄記為 legacy）。ADR-0008 之後的紀錄沒有。 */
   readonly type?: LeftType | 'legacy'
   /** 向外＝推動個體對對方做什麼；向內＝推動它自己的反省。 */
   readonly outward: boolean
@@ -67,12 +69,14 @@ export interface ThoughtData {
   readonly trigger: 'idle'
   /** 念頭決定現在就主動開口（M4）；舊紀錄沒有這個欄位。 */
   readonly now?: boolean
+  /** 這個念頭讓個體想現在就重新檢視自己（H4；ADR-0008 §2）；舊紀錄沒有這個欄位。 */
+  readonly reconsider?: boolean
 }
 
 const KIND_LABEL: Record<PotentialKind, string> = {
   contradiction: '未解的矛盾',
   proposal: '沒有採用、保留下來的修訂',
-  left: '行動留下的懸念',
+  left: '掛在心上的事',
   surprise: '和預期不一樣的事',
   intention: '我想對對方做的事',
 }
@@ -110,12 +114,14 @@ const POTENTIAL = new Projection<{ readonly released: Set<string>; readonly item
       const o = e.data as OutcomeData
       for (const k of o.releasedItems ?? []) released.add(k)
       if (o.leftItems) {
-        o.leftItems.forEach((l, i) => items.push({ key: `left:${e.id}#${i}`, kind: 'left', type: l.type, outward: l.type !== 'unresolved', text: l.text, ...from(e) }))
+        o.leftItems.forEach((l, i) =>
+          items.push({ key: `left:${e.id}#${i}`, kind: 'left', ...(l.type ? { type: l.type } : {}), outward: l.forOther ?? l.type !== 'unresolved', text: l.text, ...from(e) }),
+        )
       } else if (o.left) {
         items.push({ key: `left:${e.id}`, kind: 'left', type: 'legacy', outward: false, text: o.left, ...from(e) })
       }
-      // 意外只算個體自己評為值得注意以上的；日常的落差留給事後比對的教訓，不成為懸著的事（第三版）。
-      if (o.matched === 'no' && WEIGHTY.has(o.significance ?? 'daily')) {
+      // 意外只算個體判斷會一直掛在心上的（gapOnMind；舊紀錄是評為值得注意以上的）；其餘的落差留給事後比對的教訓。
+      if (o.matched === 'no' && (o.gapOnMind ?? WEIGHTY.has(o.significance ?? 'daily'))) {
         items.push({ key: `surprise:${e.id}`, kind: 'surprise', outward: false, text: o.error || o.actual, ...from(e) })
       }
     }
@@ -228,7 +234,7 @@ export function describeKeys(life: LifeStore, keys: readonly string[]): string[]
     const [id = '', index] = rest.split('#')
     const event: LifeEvent | undefined = kind === 'goal' ? undefined : life.get(id)
     const left = kind === 'left' && event && index !== undefined ? (event.data as OutcomeData).leftItems?.[Number(index)] : undefined
-    const name = left ? TYPE_LABEL[left.type] : (KIND_LABEL[kind as PotentialKind] ?? (kind === 'goal' ? '目標' : kind))
+    const name = left ? (left.type ? TYPE_LABEL[left.type] : KIND_LABEL.left) : (KIND_LABEL[kind as PotentialKind] ?? (kind === 'goal' ? '目標' : kind))
     return `${name}${event ? `（${formatTime(event.ts)}）` : ''}${left ? `：${clip(left.text, 40)}` : ''}`
   })
 }

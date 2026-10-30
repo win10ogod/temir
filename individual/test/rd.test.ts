@@ -100,7 +100,7 @@ test('the model’s sameAs judgement matches a past action that shares no words'
   assert.equal(r.scored[0]!.q, -1)
 })
 
-test('parseDeliberation maps experience labels, clamps confidence; an unknown kind or fewer than two candidates is a problem, not a default', () => {
+test('parseDeliberation maps experience labels and clamps confidence; candidates carry no kind (ADR-0008 revokes D22); fewer than two candidates is a problem', () => {
   const labels = new Map([['E1', 'l:abc']])
   const raw = (kind: string) =>
     `\`\`\`json\n{"situation":"對方想推薦步道","candidates":[{"action":"推薦坐著的活動","kind":"建議","prediction":"對方會喜歡","confidence":140},{"action":"先問腳傷","kind":"${kind}","prediction":"對方說明","confidence":-5}],"experiences":[{"id":"e1","sameSituation":true,"sameAction":[1]}]}\n\`\`\``
@@ -108,13 +108,13 @@ test('parseDeliberation maps experience labels, clamps confidence; an unknown ki
   assert.equal(d.candidates[0]!.confidence, 100)
   assert.deepEqual(d.candidates.map((c) => c.sameAs), [['l:abc'], []])
   assert.deepEqual(d.similar, ['l:abc'])
-  assert.deepEqual(d.candidates.map((c) => c.kind), ['建議', '提問'])
+  assert.ok(d.candidates.every((c) => !('kind' in c)), 'a kind the model still writes is not kept')
   assert.equal(d.candidates[1]!.confidence, 0)
   const problems = (output: string, at = labels) => {
     const parsed = parseDeliberation(output, at)
     return parsed.ok ? [] : parsed.problems
   }
-  assert.deepEqual(problems(raw('奇怪')), ['做法「先問腳傷」的 kind「奇怪」不是 回答／提問／建議／拒絕／使用工具／表達感受／其他 之一'], 'the program does not fill in 其他 (user 2026-10-30)')
+  assert.deepEqual(problems(raw('奇怪')), [], 'there is no fixed list of kinds any more (ADR-0008)')
   assert.deepEqual(problems('{"situation":"x","candidates":[{"action":"只有一個","kind":"回答"}]}', new Map()), ['可用的做法只有 1 個'])
   assert.deepEqual(problems('{"situation":"x"}'), ['沒有 candidates'])
   assert.deepEqual(problems('不是 JSON'), ['不是 JSON 物件'])
@@ -138,6 +138,15 @@ test('D23: every listed experience is judged one by one; a missing judgment is a
     problems(out([{ id: 'E1', sameSituation: 'yes', sameAction: [] }, { id: 'E1', sameSituation: true, sameAction: [] }, { id: 'E9', sameSituation: true, sameAction: [] }, { id: 'E2', sameSituation: false }, { id: 'E3', sameSituation: false, sameAction: [3, 7] }])),
     ['E1 的 sameSituation 不是 true 或 false', 'E1 判斷了不只一次', 'experiences 的「E9」不是列出的經驗編號', 'E2 的 sameAction 不是陣列', 'E3 的 sameAction 有「3」，不是做法的編號', 'E3 的 sameAction 有「7」，不是做法的編號'],
   )
+  // ADR-0008：列出了當時扣除的做法的經驗，sameExcluded 也必答（取代以做法種類找同類的扣除）。
+  const withExcluded = new Set(['E2'])
+  const all3 = [{ id: 'E1', sameSituation: false, sameAction: [] }, { id: 'E2', sameSituation: true, sameAction: [], sameExcluded: [2] }, { id: 'E3', sameSituation: false, sameAction: [] }]
+  const ex = parseDeliberation(out(all3), labels, withExcluded)
+  assert.ok(ex.ok)
+  assert.deepEqual(ex.ok ? ex.deliberation.candidates.map((c) => c.sameExcluded ?? []) : [], [[], ['l:b'], []])
+  const noExcluded = parseDeliberation(out(all3.map((e) => ({ id: e.id, sameSituation: false, sameAction: [] }))), labels, withExcluded)
+  assert.deepEqual(noExcluded.ok ? [] : noExcluded.problems, ['E2 的 sameExcluded 不是陣列'])
+  assert.ok(parseDeliberation(out(all3.map((e) => ({ id: e.id, sameSituation: false, sameAction: [] }))), labels).ok, 'only required when that experience listed exclusions')
   // 沒有列出經驗時不需要判斷；舊的 similar、sameAs 不再採用。
   const none = deliberated(JSON.stringify({ situation: 'x', similar: ['E1'], candidates: [{ action: 'a', kind: '回答', sameAs: ['E1'] }, { action: 'b', kind: '回答' }] }), new Map())
   assert.deepEqual([none.similar, none.candidates[0]!.sameAs], [[], []])
@@ -156,31 +165,36 @@ function judged(raw: string) {
   assert.ok(parsed.ok, `expected a valid outcome: ${parsed.ok ? '' : parsed.problems.join('；')}`)
   return parsed.judgment
 }
-/** 必填欄位（didAction、didKind、matched、reward、significance）都合格的事後比對，加上要測的欄位。 */
-const required = (fields: Record<string, unknown>) => JSON.stringify({ didAction: '先聽', didKind: '表達感受', matched: 'yes', reward: 0, significance: 'daily', ...fields })
+/** 必填欄位（didAction、declined、matched、reward、reconsider）都合格的事後比對，加上要測的欄位。 */
+const required = (fields: Record<string, unknown>) => JSON.stringify({ didAction: '先聽', declined: false, matched: 'yes', reward: 0, reconsider: false, ...fields })
 
 test('parseOutcome: the judgment is mandatory; every missing or invalid required field is listed, and the reward is clamped to [-1, 1]', () => {
-  const o = judged('{"didAction":"推薦坐竹筏","didKind":"建議","actual":"對方很開心","matched":"partly","reward":3,"reason":"符合我在乎的事","lesson":"","significance":"notable"}')
-  assert.deepEqual([o.reward, o.matched, o.significance], [1, 'partly', 'notable'])
+  const o = judged('{"didAction":"推薦坐竹筏","declined":false,"actual":"對方很開心","matched":"partly","reward":3,"reason":"符合我在乎的事","lesson":"","feeling":"很踏實","keepFeeling":true,"reconsider":false}')
+  assert.deepEqual([o.reward, o.matched, o.keepFeeling, o.reconsider, o.gapOnMind], [1, 'partly', true, false, false])
   const problems = (raw: string) => {
     const parsed = parseOutcome(raw)
     return parsed.ok ? [] : parsed.problems
   }
-  assert.deepEqual(problems('{"didAction":"推薦坐竹筏","didKind":"建議","matched":"maybe","reward":3,"significance":"daily"}'), ['matched 不是 yes、partly 或 no'], 'no default is filled in for the model')
-  assert.deepEqual(problems(required({ didKind: '奇怪' })), ['didKind 不是 回答／提問／建議／拒絕／使用工具／表達感受／其他 之一'], 'didKind is required too (user 2026-10-30)')
+  assert.deepEqual(problems('{"didAction":"推薦坐竹筏","declined":false,"matched":"maybe","reward":3,"reconsider":false}'), ['matched 不是 yes、partly 或 no'], 'no default is filled in for the model')
+  assert.deepEqual(problems(required({ didKind: '奇怪', significance: 'huge' })), [], 'the fixed kinds and significance levels are gone (ADR-0008)')
+  // ADR-0008 的強制判斷：有感受就要決定記不記；預測落空就要決定會不會一直掛心；每件懸念都要有方向。
+  assert.deepEqual(problems(required({ feeling: '有點掛心' })), ['有 feeling，但 keepFeeling 不是 true 或 false'])
+  assert.deepEqual(problems(required({ matched: 'no' })), ['matched 是 no，但 gapOnMind 不是 true 或 false'])
+  assert.ok(parseOutcome(required({ matched: 'no' }), { energy: false }).ok, 'without energy there is no surprise to judge')
+  assert.deepEqual(problems(required({ left: [{ text: '答應明天問她', forOther: 'yes' }] })), ['left 第 1 條的 forOther 不是 true 或 false'])
+  assert.deepEqual(problems(required({ declined: undefined })), ['declined 不是 true 或 false'])
   assert.deepEqual(problems(required({ reward: '好' })), ['reward 不是數'])
   assert.deepEqual(problems(required({ reward: Number.NaN })), ['reward 不是數'])
   assert.deepEqual(problems(required({ didAction: '  ' })), ['didAction 是空的'])
-  assert.deepEqual(problems(required({ significance: 'huge' })), ['significance 不是 daily、notable、major、pivotal 之一'])
-  assert.deepEqual(problems('{}'), ['reward 不是數', 'matched 不是 yes、partly 或 no', 'didAction 是空的', 'didKind 不是 回答／提問／建議／拒絕／使用工具／表達感受／其他 之一', 'significance 不是 daily、notable、major、pivotal 之一'])
+  assert.deepEqual(problems('{}'), ['reward 不是數', 'matched 不是 yes、partly 或 no', 'didAction 是空的', 'reconsider 不是 true 或 false', 'declined 不是 true 或 false'])
   assert.deepEqual(problems('不是 JSON'), ['不是 JSON 物件'])
   // 能量開時（給了編號），released 的編號要認得；沒有給編號（能量關）時不檢查。
   const labels = new Map([['P1', 'left:a#0']])
   const withRefs = required({ released: [{ item: 'p1', how: '做到了' }, { item: 'P7', how: '?' }, { item: 'g:1234abcd', how: '?' }] })
-  const checked = parseOutcome(withRefs, labels)
+  const checked = parseOutcome(withRefs, { labels })
   assert.deepEqual(checked.ok ? [] : checked.problems, ['released 的「P7」不是輸入中列出的懸著的事的編號', 'released 的「g:1234abcd」不是輸入中列出的懸著的事的編號'])
   assert.ok(parseOutcome(withRefs).ok)
-  assert.ok(parseOutcome(required({ released: [{ item: 'P1', how: '做到了' }] }), labels).ok)
+  assert.ok(parseOutcome(required({ released: [{ item: 'P1', how: '做到了' }] }), { labels }).ok)
 })
 
 function decision(store: LifeStore, session: string, situation: string, action: string): ReturnType<LifeStore['append']> {
@@ -238,8 +252,8 @@ test('the preparation lists candidates, the experience correction, the choice an
   assert.match(text, /不是對方說的話/)
   assert.match(text, /推動你的：對方想出門，我在乎對方的腳傷/, 'the kinetic energy the individual named (H-E)')
   // V̂ = 1：與經驗相符的做法 Q̂ = V̂（優勢 0）；未見過的做法依 1−λ 給 Q = 0，優勢 −1，所以被壓下去。
-  assert.match(text, /推薦爬山（建議）.*經驗修正 -1\.00（沒有相符的經驗）/)
-  assert.match(text, /推薦可以坐著的活動（建議）.*經驗修正 \+0\.00（1 個相符的經驗）/)
+  assert.match(text, /推薦爬山——.*經驗修正 -1\.00（沒有相符的經驗）/)
+  assert.match(text, /推薦可以坐著的活動——.*經驗修正 \+0\.00（1 個相符的經驗）/)
   assert.match(text, /你準備：第 2 個做法/)
   assert.match(text, /過去類似處境的經驗：\n- .*回報 1\.00/)
 })
@@ -273,41 +287,43 @@ test('the deliberation and the outcome carry kinetic energy and the release or c
   const d = deliberated('{"situation":"x","drive":"對方又在抒發；我懸著的「先分清楚要建議還是傾聽」被觸發","candidates":[{"action":"先聽","kind":"回答","confidence":60},{"action":"給建議","kind":"回答","confidence":40}]}', new Map())
   assert.equal(d?.drive, '對方又在抒發；我懸著的「先分清楚要建議還是傾聽」被觸發')
   assert.equal(deliberated('{"situation":"x","candidates":[{"action":"a","kind":"回答"},{"action":"b","kind":"回答"}]}', new Map()).drive, '', 'older outputs without a drive still parse')
-  const o = judged('{"didAction":"先聽","didKind":"表達感受","actual":"對方說謝謝","matched":"yes","reward":0.6,"reason":"r","significance":"daily","released":"先分清楚對方要什麼的目標有了進展","left":"答應下次問對方想不想聽建議"}')
-  assert.deepEqual([o.released, o.releasedRefs, o.left], ['先分清楚對方要什麼的目標有了進展', [], [{ text: '答應下次問對方想不想聽建議', type: 'unresolved' }]], 'the first format (one sentence) still parses, as one item')
+  const o = judged(required({ actual: '對方說謝謝', reward: 0.6, released: '先分清楚對方要什麼的目標有了進展', left: [{ text: '答應下次問對方想不想聽建議', forOther: true }] }))
+  assert.deepEqual([o.released, o.releasedRefs, o.left], ['先分清楚對方要什麼的目標有了進展', [], [{ text: '答應下次問對方想不想聽建議', forOther: true }]], 'released as one sentence (the first format) still parses')
+  const oneSentence = parseOutcome(required({ left: '答應下次問對方想不想聽建議' }))
+  assert.deepEqual(oneSentence.ok ? [] : oneSentence.problems, ['left 不是陣列'], 'what is left must be listed item by item, each with its direction (ADR-0008)')
   assert.deepEqual([judged(required({})).released, judged(required({})).left], ['', []])
 })
 
 test('the second energy format names items: activated in the deliberation, released in the outcome', () => {
   const d = deliberated('{"situation":"x","drive":"對方又提到轉職，我答應過要提醒他","activated":["P2","g:3fa1c2d4"],"candidates":[{"action":"a","kind":"回答"},{"action":"b","kind":"回答"}]}', new Map())
   assert.deepEqual(d?.activated, ['P2', 'g:3fa1c2d4'], 'labels are kept as written; the caller resolves them to keys')
-  const o = judged(required({ reward: 0.5, released: [{ item: 'P2', how: '我提醒了他，他說謝謝' }, { item: '', how: '沒有編號的略過' }, { how: '缺 item' }], left: '' }))
+  const o = judged(required({ reward: 0.5, released: [{ item: 'P2', how: '我提醒了他，他說謝謝' }, { item: '', how: '沒有編號的略過' }, { how: '缺 item' }], left: [] }))
   assert.deepEqual([o.releasedRefs, o.released], [['P2'], 'P2：我提醒了他，他說謝謝'])
 })
 
-test('the energy ablation removes exactly the energy fields from both prompts; the default prompts are unchanged', async () => {
+test('the energy ablation removes exactly the energy fields and the procedure lines about what is on my mind; the default prompts are unchanged', async () => {
   const { deliberateSystem, outcomeSystem, DELIBERATE_SYSTEM, OUTCOME_SYSTEM } = await import('../src/rd/aux.ts')
   assert.equal(deliberateSystem(), DELIBERATE_SYSTEM)
   assert.equal(outcomeSystem(), OUTCOME_SYSTEM)
-  const d = deliberateSystem(false)
-  const o = outcomeSystem(false)
-  for (const f of ['"drive"', '"activated"', '- drive：', '- activated：']) assert.ok(!d.includes(f), `deliberation without energy still has ${f}`)
-  for (const f of ['"released"', '"left"', '- released：', '- left：']) assert.ok(!o.includes(f), `outcome without energy still has ${f}`)
-  // 其餘內容逐行相同：只少了能量的那幾行。
+  const d = deliberateSystem({ energy: false })
+  const o = outcomeSystem({ energy: false })
+  for (const f of ['"drive"', '"activated"', '- drive：', '- activated：', '懸著的事']) assert.ok(!d.includes(f), `deliberation without energy still has ${f}`)
+  for (const f of ['"released"', '"left"', '"gapOnMind"', '- released：', '- left：', '- gapOnMind：', 'forOther', '懸著的事']) assert.ok(!o.includes(f), `outcome without energy still has ${f}`)
+  // 其餘內容逐行相同（JSON 範例那一行少了鍵）：只少了能量的那幾行。
   const lines = (s: string) => s.split('\n')
-  assert.equal(lines(DELIBERATE_SYSTEM).length - lines(d).length, 2)
-  assert.equal(lines(OUTCOME_SYSTEM).length - lines(o).length, 2)
-  assert.ok(lines(d).slice(2).every((l) => DELIBERATE_SYSTEM.includes(l)))
+  assert.equal(lines(DELIBERATE_SYSTEM).length - lines(d).length, 3, 'drive, activated and the procedure line about what drives me')
+  assert.equal(lines(OUTCOME_SYSTEM).length - lines(o).length, 6, 'gapOnMind, released, left, forOther and the two procedure lines about what is on my mind')
+  assert.ok(lines(d).filter((l) => !l.startsWith('{')).every((l) => DELIBERATE_SYSTEM.includes(l)))
+  assert.ok(lines(o).filter((l) => !l.startsWith('{')).every((l) => OUTCOME_SYSTEM.includes(l)))
   assert.match(d, /\{"situation": "\.\.\.", "people": \[\], "candidates"/)
-  assert.match(o, /"significance": "daily"\}/)
+  assert.match(o, /"reconsider": false\}/)
 })
 
-test('energy v3: what an action leaves is recorded item by item, each with its kind; unknown kinds become unresolved', () => {
-  const o = judged(required({ reward: 0.5, left: [{ text: '答應婚禮後問他致詞順不順利', type: 'promise' }, { text: '等他胃鏡的結果', type: 'waiting' }, { text: '不確定該不該一直追問', type: 'worry' }, { text: '' }] }))
+test('ADR-0008: what an action leaves is recorded item by item in the individual’s own words, each with its direction (forOther), no fixed types', () => {
+  const o = judged(required({ reward: 0.5, left: [{ text: '答應婚禮後問他致詞順不順利', forOther: true }, { text: '不確定該不該一直追問', forOther: false, type: 'worry' }, { text: '', forOther: true }] }))
   assert.deepEqual(o.left, [
-    { text: '答應婚禮後問他致詞順不順利', type: 'promise' },
-    { text: '等他胃鏡的結果', type: 'waiting' },
-    { text: '不確定該不該一直追問', type: 'unresolved' },
+    { text: '答應婚禮後問他致詞順不順利', forOther: true },
+    { text: '不確定該不該一直追問', forOther: false },
   ])
   assert.deepEqual(judged(required({ left: [] })).left, [])
 })
@@ -357,12 +373,12 @@ test('deliberation text that reaches records carries no per-call potential label
 
 test('ablation without subtraction: no subtraction wording or fields; the action is chosen among all candidates', async () => {
   const { deliberateSystem, DELIBERATE_SYSTEM, withoutExclusions } = await import('../src/rd/aux.ts')
-  const off = deliberateSystem(true, false)
+  const off = deliberateSystem({ subtraction: false })
   assert.doesNotMatch(off, /扣除|excluded|reason/u)
   assert.match(off, /預測各自的後果，再決定傾向哪一個。/u)
-  assert.equal(deliberateSystem(true, true), DELIBERATE_SYSTEM)
-  assert.equal(off.split('\n').length, DELIBERATE_SYSTEM.split('\n').length - 2, 'only the two subtraction fields are removed')
-  assert.doesNotMatch(deliberateSystem(false, false), /drive|activated|扣除/u)
+  assert.equal(deliberateSystem({ subtraction: true }), DELIBERATE_SYSTEM)
+  assert.equal(off.split('\n').length, DELIBERATE_SYSTEM.split('\n').length - 8, 'the subtraction procedure (a blank line, its heading and three lines) and the three subtraction fields')
+  assert.doesNotMatch(deliberateSystem({ energy: false, subtraction: false }), /drive|activated|扣除/u)
   const d = deliberated('{"situation":"x","candidates":[{"action":"給建議","kind":"回答","confidence":70,"excluded":true,"reason":"她說過不要"},{"action":"聽她說","kind":"回答","confidence":30}]}', new Map())!
   const plain = withoutExclusions(d)
   assert.ok(plain.candidates.every((c) => c.excluded === undefined && c.excludeReason === undefined))
@@ -394,7 +410,7 @@ test('a provisional outcome (the other went silent) keeps the decision open for 
 test('per-person check: the situation lists each person the other mentions; the ablation removes exactly that line', async () => {
   const { deliberateSystem, DELIBERATE_SYSTEM } = await import('../src/rd/aux.ts')
   assert.match(DELIBERATE_SYSTEM, /逐一檢查對方自己（對方通常也在場），以及對方這次提到的每一個人/u)
-  const off = deliberateSystem(true, true, false)
+  const off = deliberateSystem({ perPerson: false })
   assert.doesNotMatch(off, /逐一檢查/u)
   assert.equal(off.split('\n').length, DELIBERATE_SYSTEM.split('\n').length - 2, 'the per-person line and the people field')
   assert.doesNotMatch(off, /people/u)
@@ -429,10 +445,11 @@ test('experiencesOfRecalled: decisions made in the turns recall brought in, even
 test('D20: the deliberation prompt has no optional revision field; past exclusions and whether the prediction came true are shown', async () => {
   const { DELIBERATE_SYSTEM, deliberateSystem } = await import('../src/rd/aux.ts')
   const { renderExperiences } = await import('../src/rd/memory.ts')
-  // 第三版：選填的 revised 與「由你判斷」那一句拿掉了，改為另一步強制判斷。
-  assert.doesNotMatch(DELIBERATE_SYSTEM, /revised|扣除本身也會被經驗改變/u)
+  // 第三版：選填的 revised 拿掉了，改為另一步強制判斷。扣除會被經驗改變，寫在個體的扣除做法第一版（ADR-0008）。
+  assert.doesNotMatch(DELIBERATE_SYSTEM, /revised/u)
+  assert.match(DELIBERATE_SYSTEM, /## 我的扣除做法（第 1 版；[^\n]*\n[^]*扣除本身也會被經驗改變/u)
   assert.match(DELIBERATE_SYSTEM, /"excluded": false, "reason": ""\}\], "experiences"/u)
-  assert.doesNotMatch(deliberateSystem(true, false), /excluded/u)
+  assert.doesNotMatch(deliberateSystem({ subtraction: false }), /excluded/u)
   // 舊紀錄的 revised 仍可解析。
   const d = deliberated('{"situation":"x","candidates":[{"action":"直接給她兩個方法","kind":"回答","revised":"舊版寫的"},{"action":"只陪伴","kind":"回答","excluded":true,"reason":"r"}]}', new Map())
   assert.equal(d?.candidates[0]?.revised, '舊版寫的')
@@ -443,7 +460,7 @@ test('D20: the deliberation prompt has no optional revision field; past exclusio
     outcome(store, e.id, -0.5, '只陪伴')
     const [x] = experiences(store, DEFAULT_PARAMS.gamma)
     assert.deepEqual(x?.excludedThen, [{ action: '給兩個方法', kind: '建議', reason: '她是在抒發，不是求助' }])
-    assert.match(renderExperiences([x!]), /我當時：只陪伴（[^）]+）｜結果：[^｜]+｜回報 -0\.50｜當時扣除：給兩個方法（她是在抒發，不是求助）$/u)
+    assert.match(renderExperiences([x!]), /我當時：只陪伴｜結果：[^｜]+｜回報 -0\.50｜當時扣除：給兩個方法（她是在抒發，不是求助）$/u)
     assert.match(renderExperiences([{ ...x!, matched: 'no' }]), /當時扣除：給兩個方法（她是在抒發，不是求助）｜扣除之後，當時的預測沒有成真$/u)
     assert.doesNotMatch(renderExperiences([x!], false), /當時扣除/u)
   })
@@ -453,23 +470,29 @@ test('D20 v3: the judgment is the model\'s, but it is mandatory: the program fin
   const { exclusionReviews, renderExclusionReview, parseJudgments, applyJudgments } = await import('../src/rd/memory.ts')
   const { revisionRetryNote, REVISION_SYSTEM } = await import('../src/rd/aux.ts')
   const day = 86_400_000
-  const exp = (id: string, ts: number, kind: string, matched: 'yes' | 'partly' | 'no', ret: number, excludedThen: { action: string; kind: string; reason: string }[] = []): Experience => ({
-    id, ts, cue: '抒發', situation: '對方在抒發', action: `做了${kind}`, kind, ret, outcome: '她說算了', matched, ...(excludedThen.length > 0 ? { excludedThen } : {}),
+  const exp = (id: string, ts: number, action: string, matched: 'yes' | 'partly' | 'no', ret: number, excludedThen: { action: string; reason: string }[] = []): Experience => ({
+    id, ts, cue: '抒發', situation: '對方在抒發', action, ret, outcome: '她說算了', matched, ...(excludedThen.length > 0 ? { excludedThen } : {}),
   })
-  const advice = { ...candidate('直接給兩個具體的方法', 20, '建議'), excluded: true, excludeReason: '她是在抒發，不是求助' }
-  const question = { ...candidate('問她想不想說', 10, '提問'), excluded: true, excludeReason: '她累了' }
-  const comfort = candidate('先陪她', 70, '表達感受')
-  const failed = exp('E1', 1 * day, '表達感受', 'no', -0.4, [{ action: '給她方法', kind: '建議', reason: '她在抒發' }])
-  const worked = exp('E2', 2 * day, '建議', 'yes', 0.6)
-  // 何時需要判斷：被扣除、而且類似處境中有同一類的紀錄（扣除過或做過）。沒有同類紀錄的扣除不需要判斷。
-  const reviews = exclusionReviews([advice, comfort, question], [failed, worked])
-  assert.deepEqual(reviews.map((r) => [r.index, r.evidence.map((e) => e.id)]), [[0, ['E2', 'E1']]])
-  assert.deepEqual(exclusionReviews([advice], []), [])
-  // 呈現：做法、扣除理由、每一筆同類經驗（X 編號）、預測有沒有成真。
+  // 思考時個體逐筆判斷（ADR-0008 §2）：這個做法與 E2 那次做的相同（sameAs），與 E1 那次扣除的相同（sameExcluded）。
+  const advice = { ...candidate('直接給兩個具體的方法', 20), excluded: true, excludeReason: '她是在抒發，不是求助', sameAs: ['E2'], sameExcluded: ['E1'] }
+  const question = { ...candidate('問她想不想說', 10), excluded: true, excludeReason: '她累了' }
+  const comfort = candidate('先陪她', 70)
+  const failed = exp('E1', 1 * day, '先陪她說話', 'no', -0.4, [{ action: '給她方法', reason: '她在抒發' }])
+  const worked = exp('E2', 2 * day, '給她兩個跟主管談的說法', 'yes', 0.6)
+  const shown = new Set(['E1', 'E2'])
+  // 何時需要判斷：被扣除、而且類似處境中做過或扣除過相同的做法。沒有這樣的紀錄的扣除不需要判斷。
+  const reviews = exclusionReviews([advice, comfort, question], [failed, worked], DEFAULT_PARAMS, shown)
+  assert.deepEqual(reviews.map((r) => [r.index, r.evidence.map((e) => e.experience.id)]), [[0, ['E2', 'E1']]])
+  assert.deepEqual(exclusionReviews([advice], [], DEFAULT_PARAMS), [])
+  // 思考時判斷為不相同的經驗，即使用詞相近，程式也不以詞彙推翻；沒有列出、由 JitRL 找到的鄰居才以詞彙相似度作為備援。
+  const sameWords = { ...candidate('給她兩個跟主管談的說法', 20), excluded: true, excludeReason: 'r' }
+  assert.deepEqual(exclusionReviews([sameWords], [worked], DEFAULT_PARAMS, shown), [])
+  assert.deepEqual(exclusionReviews([sameWords], [worked], DEFAULT_PARAMS).map((r) => r.evidence.map((e) => e.experience.id)), [['E2']])
+  // 呈現：做法、扣除理由、每一筆經驗（X 編號）、預測有沒有成真。
   const { text, labels } = renderExclusionReview('對方在抒發', [advice, comfort, question], reviews)
-  assert.match(text, /1\. 直接給兩個具體的方法（建議）｜你扣除的理由：她是在抒發，不是求助\n   - X1｜[^｜]+｜當時做了同類的「做了建議」｜結果：她說算了｜預測成真｜回報 0\.60\n   - X2｜[^｜]+｜當時扣除了同類的「給她方法」，改做「做了表達感受」｜結果：她說算了｜預測沒有成真｜回報 -0\.40/u)
+  assert.match(text, /1\. 直接給兩個具體的方法｜你扣除的理由：她是在抒發，不是求助\n   - X1｜[^｜]+｜當時做了相同的「給她兩個跟主管談的說法」｜結果：她說算了｜預測成真｜回報 0\.60\n   - X2｜[^｜]+｜當時扣除了相同的「給她方法」，改做「先陪她說話」｜結果：她說算了｜預測沒有成真｜回報 -0\.40/u)
   assert.deepEqual([...labels], [['X1', 'E2'], ['X2', 'E1']])
-  assert.match(REVISION_SYSTEM, /都必須明確判斷：維持扣除（keep），或依經驗解除扣除（lift）/u)
+  assert.match(REVISION_SYSTEM, /都明確判斷：維持扣除（keep），或依經驗解除扣除（lift）/u)
   // 驗證：每一個需要判斷的做法剛好一筆，decision、why、refs 都要合格；否則列出問題，重問時附上。
   const ok = parseJudgments('{"judgments":[{"candidate":1,"decision":"lift","why":"X2 扣除後她很失望，X1 給方法她有精神","refs":["X1","x2"]}]}', reviews, labels)
   assert.deepEqual(ok, { ok: true, judgments: [{ index: 0, decision: 'lift', why: 'X2 扣除後她很失望，X1 給方法她有精神', refs: ['E2', 'E1'] }] })
@@ -489,6 +512,6 @@ test('D20 v3: the judgment is the model\'s, but it is mandatory: the program fin
   assert.equal(kept!.judgment?.decision, 'keep')
   // 準備訊息寫出判斷。
   const prep = renderPreparation({ situation: 'x', drive: '', activated: [], similar: [], people: [], candidates: [lifted!, comfort, kept!] }, uncorrected([lifted!, comfort, kept!]), [])
-  assert.match(prep, /直接給兩個具體的方法（建議）——預期：[^\n]*｜你看過經驗之後解除了扣除：X2 扣除後她很失望，X1 給方法她有精神（原本扣除的理由：她是在抒發，不是求助）/u)
-  assert.match(prep, /問她想不想說（提問）——預期：[^\n]*｜你扣除了這個做法：她累了｜看過經驗之後維持扣除：她累的時候問會讓她退開/u)
+  assert.match(prep, /直接給兩個具體的方法——預期：[^\n]*｜你看過經驗之後解除了扣除：X2 扣除後她很失望，X1 給方法她有精神（原本扣除的理由：她是在抒發，不是求助）/u)
+  assert.match(prep, /問她想不想說——預期：[^\n]*｜你扣除了這個做法：她累了｜看過經驗之後維持扣除：她累的時候問會讓她退開/u)
 })

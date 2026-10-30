@@ -15,7 +15,7 @@
  *   長期記憶是生命日誌，以檢索帶回。被 DSH 壓縮擠出上下文的部分照常可以檢索（shadowedIds）。
  */
 import { indexTerms, type LifeEvent, type LifeStore } from '../life/store.ts'
-import { SIGNIFICANCE_LABEL, formatDay, formatTime, type AppraisalData } from '../self/state.ts'
+import { appraisalLabel, formatDay, formatTime, type AppraisalData } from '../self/state.ts'
 
 /**
  * 這些是記帳用的事件，不作為回憶內容。`memory/facts`、`memory/lesson` 不在此列：它們是可檢索的記憶。
@@ -394,6 +394,14 @@ export function clip(text: string, max: number): string {
   return flat.length <= max ? flat : `${flat.slice(0, max)}…`
 }
 
+/** 過長時保留開頭與結尾（約 6:4），中間以「……」代替；保留換行（輔助呼叫的輸入要能原樣重跑，ADR-0008 §3）。 */
+export function clipKeepLines(text: string, max: number): string {
+  const chars = [...text]
+  if (chars.length <= max) return text
+  const head = Math.ceil(max * 0.6)
+  return `${chars.slice(0, head).join('')}……${chars.slice(chars.length - (max - head)).join('')}`
+}
+
 /** 過長時保留開頭與結尾（約 6:4），中間以「……」代替。 */
 export function clipEnds(text: string, max: number): string {
   const chars = [...text.replace(/\s+/g, ' ').trim()]
@@ -506,7 +514,7 @@ function fragment(life: LifeStore, r: Recalled, concise = false): string {
     for (const appraisal of life.referencing(id, 'appraisal').slice(-2)) {
       const a = appraisal.data as AppraisalData
       lines.push(
-        `    ↳ ${formatTime(appraisal.ts)} 我記下的感受（${SIGNIFICANCE_LABEL[a.significance]}${a.reappraisal ? '，重新評價' : ''}）：${clip(a.feeling, 200)}`,
+        `    ↳ ${formatTime(appraisal.ts)} 我記下的感受${appraisalLabel(a) ? `（${appraisalLabel(a)}）` : ''}：${clip(a.feeling, 200)}`,
       )
     }
   }

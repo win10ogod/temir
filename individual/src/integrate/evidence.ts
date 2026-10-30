@@ -7,11 +7,13 @@
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import { clip, clipEnds, isHeard, personFacts, replyOf, type PersonFact } from '../recall/retrieve.ts'
 import { OUTCOME_KIND, type OutcomeData } from '../rd/memory.ts'
-import { labelPotential, potentialItems, type PotentialItem, type PotentialKind } from '../self/energy.ts'
+import { renderCurrentProcedures, renderProcedureLedger } from '../self/procedure.ts'
+import { THOUGHT_KIND, labelPotential, potentialItems, type PotentialItem, type PotentialKind } from '../self/energy.ts'
 import {
   GOAL_STATUS_LABEL,
   KIND,
-  SIGNIFICANCE_LABEL,
+  appraisalLabel,
+  asksToReconsider,
   currentNarrative,
   currentSelfModel,
   formatTime,
@@ -104,6 +106,8 @@ export interface Evidence {
   readonly potential: readonly PotentialItem[]
   readonly potentialLabels: ReadonlyMap<string, string>
   readonly pivotal: boolean
+  /** 能量（H-E）開著嗎；關閉（消融）時做法中提到懸著的事的那幾行也不列（ADR-0008）。 */
+  readonly energy: boolean
   /** 提示中列出、proposal 可以引用的事件 id。 */
   readonly ids: ReadonlySet<string>
 }
@@ -139,6 +143,16 @@ function roundFrom(life: LifeStore, heard: LifeEvent): Round {
  * 收集 seq 大於 from 的經歷（較舊的超出上限時省略，並記下省略了幾個回合）。
  * energy＝false（消融）時不列出懸著的事，整合期也就無從釋放。
  */
+/**
+ * from 之後，個體是否有經歷讓它想現在就重新檢視自己（H4；ADR-0008 §2）：感受紀錄、事後比對或念頭的 reconsider，
+ * 以及舊紀錄的「轉折」。
+ */
+export function reconsiderSince(life: LifeStore, from: number): boolean {
+  return life
+    .after(from, [KIND.appraisal, OUTCOME_KIND, THOUGHT_KIND], 100_000)
+    .some((e) => (e.kind === KIND.appraisal ? asksToReconsider(e.data as AppraisalData) : (e.data as { reconsider?: boolean }).reconsider === true))
+}
+
 export function collect(life: LifeStore, from: number, limits: Limits = DEFAULT_LIMITS, energy = true): Evidence {
   const to = life.lastSeq()
   const heard = life.after(from, [HEARD], 100_000).filter(isHeard)
@@ -149,7 +163,7 @@ export function collect(life: LifeStore, from: number, limits: Limits = DEFAULT_
   const goalChanges = life.after(from, [KIND.goalChange], 100_000)
   const person = personFacts(life, 3000)
   const lessons = life.recent(limits.lessons, [LESSON_KIND]).reverse()
-  const pivotal = appraisals.some((e) => (e.data as AppraisalData).significance === 'pivotal')
+  const pivotal = reconsiderSince(life, from)
   const carried = carriedOver(life)
   const potential = energy ? potentialItems(life) : []
   const ids = new Set<string>([
@@ -175,6 +189,7 @@ export function collect(life: LifeStore, from: number, limits: Limits = DEFAULT_
     potential,
     potentialLabels: labelPotential(potential),
     pivotal,
+    energy,
     ids,
   }
 }
@@ -194,6 +209,10 @@ export function renderEvidence(life: LifeStore, ev: Evidence): string {
   const held = opinions(life).filter((o) => o.status === 'held')
   if (held.length === 0) lines.push('（還沒有寫下任何看法）')
   for (const o of held) lines.push(`- [${o.id}] ${o.text}（依據：${o.evidence.join('、') || '—'}）`)
+  // 個體自己的做法與帳本（ADR-0008 §3）：做法也可以在整合時修訂。
+  lines.push('', ...renderCurrentProcedures(life, ev.energy ? [] : ['懸著的事']))
+  const ledger = renderProcedureLedger(life)
+  if (ledger.length > 0) lines.push('', ...ledger)
   if (ev.potential.length > 0) {
     // 全部懸著的事都列出（H-E）：上次留下的矛盾與提案，以及之後的懸念、和預期不一樣的事、念頭留下的打算。
     lines.push('', '## 懸著的事（勢能；P 編號用於 release，方括號中的 id 可以引用）')
@@ -211,7 +230,8 @@ export function renderEvidence(life: LifeStore, ev: Evidence): string {
   if (ev.appraisals.length === 0) lines.push('（沒有）')
   for (const e of ev.appraisals) {
     const a = e.data as AppraisalData
-    lines.push(`- [${e.id}｜${formatTime(e.ts)}｜${SIGNIFICANCE_LABEL[a.significance]}${a.reappraisal ? '，重新評價' : ''}] ${clip(a.feeling, 200)}（關於：${e.causes.join('、') || '—'}）`)
+    const label = appraisalLabel(a)
+    lines.push(`- [${e.id}｜${formatTime(e.ts)}${label ? `｜${label}` : ''}] ${clip(a.feeling, 200)}（關於：${e.causes.join('、') || '—'}）`)
   }
   lines.push('', '## 預測與實際（行動前的預測與事後比對）')
   if (ev.outcomes.length === 0) lines.push('（沒有）')

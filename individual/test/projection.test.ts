@@ -18,6 +18,7 @@ import { DECISION_KIND, OUTCOME_KIND, REVALUATION_KIND, experiences, type Decisi
 import { REPLAY_KIND, adoptedParams, adoptedParamsOf } from '../src/rd/replay.ts'
 import { THOUGHT_KIND, potentialItems, releasedKeys, type PotentialItem, type ThoughtData } from '../src/self/energy.ts'
 import { KIND, goals, opinions, type GoalChangeData, type OpinionChangeData } from '../src/self/state.ts'
+import { seedProcedures } from '../src/self/procedure.ts'
 
 // ── 原本的實作（2026-10-30 之前，逐字保留，作為參照） ──
 
@@ -48,7 +49,7 @@ function referenceExperiences(life: LifeStore, gamma: number): Experience[] {
       if (ret === undefined || !outcome) return
       const data = event.data as DecisionData
       const planned = data.candidates[data.chosen]
-      const excludedThen = data.candidates.filter((c) => c.excluded).map((c) => ({ action: c.action, kind: c.kind, reason: c.excludeReason ?? '' }))
+      const excludedThen = data.candidates.filter((c) => c.excluded).map((c) => ({ action: c.action, ...(c.kind ? { kind: c.kind } : {}), reason: c.excludeReason ?? '' }))
       const action = outcome.didAction || planned?.action || ''
       if (!action) return
       out.push({
@@ -57,7 +58,7 @@ function referenceExperiences(life: LifeStore, gamma: number): Experience[] {
         cue: data.cue,
         situation: data.situation,
         action,
-        kind: outcome.didAction ? outcome.didKind : (planned?.kind ?? '其他'),
+        ...((outcome.didAction ? outcome.didKind : planned?.kind) ? { kind: (outcome.didAction ? outcome.didKind : planned?.kind)! } : {}),
         ret,
         outcome: [outcome.actual, outcome.lesson && `教訓：${outcome.lesson}`].filter(Boolean).join('；'),
         session: event.session,
@@ -91,11 +92,11 @@ function referencePotentialItems(life: LifeStore): PotentialItem[] {
   for (const e of life.all(OUTCOME_KIND)) {
     const o = e.data as OutcomeData
     if (o.leftItems) {
-      o.leftItems.forEach((l, i) => items.push({ key: `left:${e.id}#${i}`, kind: 'left', type: l.type, outward: l.type !== 'unresolved', text: l.text, ...from(e) }))
+      o.leftItems.forEach((l, i) => items.push({ key: `left:${e.id}#${i}`, kind: 'left', ...(l.type ? { type: l.type } : {}), outward: l.forOther ?? l.type !== 'unresolved', text: l.text, ...from(e) }))
     } else if (o.left) {
       items.push({ key: `left:${e.id}`, kind: 'left', type: 'legacy', outward: false, text: o.left, ...from(e) })
     }
-    if (o.matched === 'no' && WEIGHTY.has(o.significance ?? 'daily')) {
+    if (o.matched === 'no' && (o.gapOnMind ?? WEIGHTY.has(o.significance ?? 'daily'))) {
       items.push({ key: `surprise:${e.id}`, kind: 'surprise', outward: false, text: o.error || o.actual, ...from(e) })
     }
   }
@@ -170,24 +171,26 @@ function randomAppend(store: LifeStore, r: () => number, ids: { decisions: strin
   const session = pick(['s1', 's2', 's3', undefined])
   const matched = pick(['yes', 'partly', 'no'] as const)!
   if (roll < 0.22) {
-    const kind = pick(['建議', '提問', '表達感受'])!
-    const c = { action: `做法${Math.floor(r() * 5)}`, kind, prediction: 'p', confidence: 50, sameAs: [], z: 0, q: null, support: 0, optimistic: null, advantage: 0, normalized: 0, zPrime: 0, ...(r() < 0.3 ? { excluded: true, excludeReason: '不適合' } : {}) }
+    // 舊紀錄有做法種類，ADR-0008 之後的沒有。
+    const kind = r() < 0.5 ? { kind: pick(['建議', '提問', '表達感受'])! } : {}
+    const c = { action: `做法${Math.floor(r() * 5)}`, ...kind, prediction: 'p', confidence: 50, sameAs: [], z: 0, q: null, support: 0, optimistic: null, advantage: 0, normalized: 0, zPrime: 0, ...(r() < 0.3 ? { excluded: true, excludeReason: '不適合' } : {}) }
     const data: DecisionData = { cue: `話${Math.floor(r() * 9)}`, situation: `處境${Math.floor(r() * 4)}`, candidates: [c], chosen: r() < 0.1 ? -1 : 0, value: null, neighbors: [], shown: {}, jitrl: true, params: DEFAULT_PARAMS, selfVersion: 0 }
     ids.decisions.push(store.append({ kind: DECISION_KIND, origin: 'self', session, data }).id)
   } else if (roll < 0.42) {
     const decision = r() < 0.9 ? (pick(ids.decisions) ?? 'l:none') : 'l:unknown'
-    const left = r() < 0.5 ? [{ text: `答應${Math.floor(r() * 3)}`, type: pick(['promise', 'waiting', 'unresolved'] as const)! }] : []
+    // 舊紀錄（懸念的種類、重要程度、做法種類）與 ADR-0008 之後的紀錄（forOther、gapOnMind）混在一起。
+    const legacy = r() < 0.5
+    const left = r() < 0.5 ? [legacy ? { text: `答應${Math.floor(r() * 3)}`, type: pick(['promise', 'waiting', 'unresolved'] as const)! } : { text: `答應${Math.floor(r() * 3)}`, forOther: r() < 0.5 }] : []
     const data: OutcomeData = {
       decision,
       didAction: r() < 0.8 ? '做了' : '',
-      didKind: '建議',
+      ...(legacy ? { didKind: '建議', significance: pick(['daily', 'notable', 'major'] as const)! } : { reconsider: false, ...(matched === 'no' ? { gapOnMind: r() < 0.5 } : {}) }),
       actual: '他說好',
       matched,
       error: r() < 0.5 ? '有落差' : '',
       reward: Math.round((r() * 2 - 1) * 100) / 100,
       reason: '',
       lesson: r() < 0.3 ? '下次先問' : '',
-      significance: pick(['daily', 'notable', 'major'] as const)!,
       ...(left.length > 0 ? { leftItems: left, left: left[0]!.text } : r() < 0.2 ? { left: '舊版的懸念' } : {}),
       ...(r() < 0.3 && ids.keys.length > 0 ? { releasedItems: [pick(ids.keys)!] } : {}),
       selfVersion: 0,
@@ -293,10 +296,10 @@ function counting(store: LifeStore): { life: LifeStore; calls: { method: string;
 /** 測試替身（單元測試專用）：思考與事後比對的固定輸出。 */
 const call: CallModel = async (_route, system, input) => {
   // 列出的經驗逐筆作答（D23）：都判斷為不是同一類。
-  const experiences = [...input.matchAll(/^(E\d+)｜/gmu)].map((m) => ({ id: m[1], sameSituation: false, sameAction: [] }))
+  const experiences = [...input.matchAll(/^(E\d+)｜/gmu)].map((m) => ({ id: m[1], sameSituation: false, sameAction: [], sameExcluded: [] }))
   const output = system.includes('回頭比對自己上一個決定')
-    ? JSON.stringify({ didAction: '先聽', didKind: '表達感受', actual: '她說謝謝', matched: 'yes', error: '', reward: 0.5, reason: 'r', lesson: '', feeling: '', significance: 'daily', released: [], left: [{ text: '答應明天問她面試的結果', type: 'promise' }] })
-    : JSON.stringify({ situation: '對方：她｜對方的意圖：抒發｜對方的情緒：累｜話題：工作', candidates: [{ action: '先聽', kind: '表達感受', prediction: '她會說下去', confidence: 70 }, { action: '給建議', kind: '建議', prediction: '她會考慮', confidence: 30 }], experiences })
+    ? JSON.stringify({ didAction: '先聽', declined: false, actual: '她說謝謝', matched: 'yes', error: '', reward: 0.5, reason: 'r', lesson: '', feeling: '', reconsider: false, released: [], left: [{ text: '答應明天問她面試的結果', forOther: true }] })
+    : JSON.stringify({ situation: '對方：她｜對方的意圖：抒發｜對方的情緒：累｜話題：工作', candidates: [{ action: '先聽', prediction: '她會說下去', confidence: 70 }, { action: '給建議', prediction: '她會考慮', confidence: 30 }], experiences })
   return { output, ms: 1, effort: 'low', reasoningChars: 0, usage: null, finish: 'stop' }
 }
 
@@ -304,6 +307,8 @@ test('steady state: a step with deliberation and outcome makes no full-table all
   withStore(async (store) => {
     const r = random(11)
     const ids = { decisions: [] as string[], keys: [] as string[], proposals: [] as string[] }
+    // 個體啟動時寫入做法的第一版（temir-self；ADR-0008），之後的投影從那裡接著讀。
+    seedProcedures(store)
     for (let i = 0; i < 200; i++) randomAppend(store, r, ids)
     const { life, calls } = counting(store)
     const rd = createRd({ life, call, logger: { warn() {}, error() {} } }, { silenceMinutes: 0 })

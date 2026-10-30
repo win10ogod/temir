@@ -89,11 +89,11 @@ test('all excluded twice: recorded as it is, no prepared action and no silent re
 
 test('outcome: an unknown potential label in released is asked again instead of being dropped silently', () =>
   withStore(async (store) => {
-    const earlier = store.append({ kind: OUTCOME_KIND, origin: 'self', session: 's0', data: { decision: 'l:x', didAction: 'a', didKind: '回答', actual: 'b', matched: 'yes', error: '', reward: 0, reason: '', lesson: '', leftItems: [{ text: '答應提醒他關火', type: 'promise' }], selfVersion: 0, heard: '' } })
-    const c = { action: '提醒他關火', kind: '回答', prediction: '他會關', confidence: 100, sameAs: [], z: 0, q: null, support: 0, optimistic: null, advantage: 0, normalized: 0, zPrime: 0 }
+    const earlier = store.append({ kind: OUTCOME_KIND, origin: 'self', session: 's0', data: { decision: 'l:x', didAction: 'a', actual: 'b', matched: 'yes', error: '', reward: 0, reason: '', lesson: '', leftItems: [{ text: '答應提醒他關火', forOther: true }], selfVersion: 0, heard: '' } })
+    const c = { action: '提醒他關火', prediction: '他會關', confidence: 100, sameAs: [], z: 0, q: null, support: 0, optimistic: null, advantage: 0, normalized: 0, zPrime: 0 }
     const data: DecisionData = { cue: '一分鐘後提醒我關火', situation: 'x', candidates: [c], chosen: 0, value: null, neighbors: [], shown: {}, jitrl: true, params: DEFAULT_PARAMS, selfVersion: 0 }
     const decision = store.append({ kind: DECISION_KIND, origin: 'self', session: 's1', data, text: '處境' })
-    const outcome = (item: string) => JSON.stringify({ didAction: '提醒了他', didKind: '回答', actual: '他說關了', matched: 'yes', error: '', reward: 0.5, reason: 'r', lesson: '', feeling: '', significance: 'daily', released: [{ item, how: '提醒了' }], left: [] })
+    const outcome = (item: string) => JSON.stringify({ didAction: '提醒了他', declined: false, actual: '他說關了', matched: 'yes', error: '', reward: 0.5, reason: 'r', lesson: '', feeling: '', reconsider: false, released: [{ item, how: '提醒了' }], left: [] })
     const { call, calls } = scripted([outcome('P3'), outcome('P1')])
     const rd = createRd({ life: store, call, logger: quiet }, { silenceMinutes: 0 })
     rd.evaluate(decision, '關了，謝謝', ROUTE)

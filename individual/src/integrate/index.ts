@@ -4,9 +4,9 @@
  * 觸發：
  * - 閒置：每隔 checkMinutes 檢查一次；生命紀錄已有 idleMinutes 沒有新事件，且到期時就在背景整合。
  *   到期的條件：距離上次整合超過 intervalHours 且新回合達到 minRounds。計時器不讓程序多留（unref）。
- * - 轉折（性質 4：重大事件可能讓 PC 在短時間內劇烈轉變；H4）：上次整合以後有被評為「轉折」的經歷時，
- *   不等閒置，在那一回合結束時就以深度模式整合；程序在那之前結束的話，下次啟動時補做。
- *   轉折與否只由個體自己的評價決定，沒有數值門檻。
+ * - 轉折（性質 4：重大事件可能讓 PC 在短時間內劇烈轉變；H4）：上次整合以後，個體在事後比對、念頭或感受紀錄中
+ *   決定要現在就重新檢視自己（reconsider；舊紀錄是被評為「轉折」）時，不等閒置，在那一回合結束時就以深度模式整合；
+ *   程序在那之前結束的話，下次啟動時補做。要不要只由個體自己判斷，沒有數值門檻。
  * - 主動：個體自己呼叫 `integrate` 工具。
  * 流程：
  * 1. 收集證據（evidence.ts）。
@@ -22,10 +22,11 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { auxRecord, modelCaller, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
-import { clip, isHeard } from '../recall/retrieve.ts'
-import { KIND, type AppraisalData } from '../self/state.ts'
-import { INTEGRATION_KIND, collect, integrationStart, renderEvidence, type IntegrationTrigger } from './evidence.ts'
-import { DEEP_SYSTEM, INTEGRATE_SYSTEM, applyProposal, integrateRetryNote, parseProposal, proposalProblems, validate } from './proposal.ts'
+import { clipKeepLines, isHeard } from '../recall/retrieve.ts'
+import { currentProcedure, procedureVersions } from '../self/procedure.ts'
+import { INTEGRATION_KIND, collect, integrationStart, reconsiderSince, renderEvidence, type IntegrationTrigger } from './evidence.ts'
+import { applyProposal, integrateRetryNote, integrateSystem, parseProposal, proposalProblems, validate } from './proposal.ts'
+import { describeGate, runProcedureGate, type GateCall } from './procedure-gate.ts'
 import { DEFAULT_PARAMS } from '../rd/jitrl.ts'
 import { replayCases } from '../rd/memory.ts'
 import { REPLAY_KIND, adoptedParamsOf, replay } from '../rd/replay.ts'
@@ -59,9 +60,9 @@ export function latestRoute(life: LifeStore): AuxRoute | undefined {
   return model && slash > 0 ? { provider: model.slice(0, slash), model: model.slice(slash + 1) } : undefined
 }
 
-/** 上次整合以後，是否有被個體評為「轉折」的經歷還沒有整合（H4）。 */
+/** 上次整合以後，是否有讓個體想現在就重新檢視自己的經歷還沒有整合（H4；ADR-0008 §2 的 reconsider，舊紀錄的「轉折」）。 */
 export function pendingPivotal(life: LifeStore): boolean {
-  return life.after(integrationStart(life), [KIND.appraisal], 100_000).some((e) => (e.data as AppraisalData).significance === 'pivotal')
+  return reconsiderSince(life, integrationStart(life))
 }
 
 /** 是否到了整合的時候（H5 的排程；H4：轉折經歷讓整合提前並以深度模式進行）。 */
@@ -69,7 +70,7 @@ export function due(life: LifeStore, intervalHours: number, minRounds: number, n
   const last = life.latest(INTEGRATION_KIND)
   const from = integrationStart(life)
   const rounds = life.after(from, ['dsh/user/message'], 100_000).filter(isHeard).length
-  const deep = life.after(from, [KIND.appraisal], 100_000).some((e) => (e.data as AppraisalData).significance === 'pivotal')
+  const deep = reconsiderSince(life, from)
   const elapsed = !last || now - last.ts >= intervalHours * 3_600_000
   return { due: rounds > 0 && (deep || (rounds >= minRounds && elapsed)), deep }
 }
@@ -99,15 +100,18 @@ export async function runIntegration(deps: IntegrateDeps, config: Config | undef
   if (!route) return '找不到可用的模型路由，這次沒有整合。'
   const model = `${route.provider}/${route.model}`
   const input = renderEvidence(life, ev)
-  const system = deep ? DEEP_SYSTEM : INTEGRATE_SYSTEM
+  const procedure = currentProcedure(life, 'integrate')
+  const system = integrateSystem({ procedure, deep })
+  // 輸入保留換行：做法的閘門以真實的輸入重跑（ADR-0008 §3）。
+  const used = { procedures: procedureVersions([procedure]), input: clipKeepLines(input, 60_000) }
   async function ask(prompt: string): Promise<{ readonly output: string } | { readonly error: unknown }> {
     try {
       // 會推理的模型可能把大部分 token 用在推理（e2e-13 中 Nemotron 在 8192 上限下只輸出 287 字的殘缺 JSON），所以上限放寬。
       const call = await deps.call(route!, prompt, input, AbortSignal.timeout(timeoutMs), 32_000)
-      life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'integrate', ...auxRecord(call), input: clip(input, 12_000), output: call.output } })
+      life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'integrate', ...auxRecord(call), ...used, output: call.output } })
       return { output: call.output }
     } catch (error) {
-      if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'integrate', error: String(error), input: clip(input, 12_000) } })
+      if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'integrate', error: String(error), ...used } })
       return { error }
     }
   }
@@ -123,6 +127,26 @@ export async function runIntegration(deps: IntegrateDeps, config: Config | undef
   if (!proposal) return '整合的輸出無法解析（重問一次之後仍無法解析），這次沒有修改任何紀錄。'
   const { accepted, rejected, deferred } = validate(life, ev, proposal)
   const result = life.transaction(() => applyProposal(life, ev, accepted, rejected, deferred, { trigger, deep, model, output }))
+  // 做法的修訂（ADR-0008 §3）：通過兩項判準的提案進入閘門（探測、合成）；revise 時修改後的版本再對照一輪。失敗時提案留著，沒有決定。
+  const gated: string[] = []
+  const gateCall: GateCall = async (prompt, probeInput, purpose) => {
+    const call = await deps.call(route, prompt, probeInput, AbortSignal.timeout(timeoutMs), purpose === 'procedure-probe' ? 32_000 : undefined)
+    if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose, ...auxRecord(call), input: clipKeepLines(probeInput, 20_000), output: call.output } })
+    return call.output
+  }
+  for (const id of result.procedureProposals) {
+    try {
+      let proposalEvent = life.get(id)
+      for (let round = 0; proposalEvent && round < 2 && life.isOpen; round++) {
+        const { decision, next } = await runProcedureGate(life, proposalEvent, gateCall)
+        gated.push(describeGate(life, decision))
+        proposalEvent = next
+      }
+    } catch (error) {
+      logger.warn('procedure gate failed: %s', error)
+      gated.push(`做法的對照中斷（${String(error)}），提案保留，之後可以再對照。`)
+    }
+  }
   if (config?.replay ?? true) {
     // 日誌重播（M2，ADR-0002 D16）：整合之後，在已記錄的決定上評估 JitRL 經驗估計的參數；純計算，不呼叫模型。
     try {
@@ -139,6 +163,7 @@ export async function runIntegration(deps: IntegrateDeps, config: Config | undef
     `保留為提案 ${deferred.length} 項${deferred.length > 0 ? `（${deferred.map((d) => `${d.kind}：${d.reason}`).join('；')}）` : ''}；`,
     `丟棄 ${rejected.length} 項${rejected.length > 0 ? `（${rejected.map((r) => `${r.item}：${r.reason}`).join('；')}）` : ''}。`,
   ]
+  if (gated.length > 0) parts.push(`\n${gated.join('\n')}`)
   if (accepted.change) parts.push(`\n${accepted.change}`)
   return parts.join('')
 }

@@ -79,14 +79,16 @@ export function listedLabels(input: string): Map<string, string> {
   return asLabels([...input.matchAll(/(?:^|\s)(E\d+)｜/gu)].map((m) => m[1]!))
 }
 
-/** 思考不合格的理由，歸成幾類。 */
+/**
+ * 思考不合格的理由，歸成幾類。用的是個體現在的解析：ADR-0008 撤回了做法種類（D22），所以舊紀錄中因為種類而重問的，
+ * 現在重新解析會是合格的，歸為「其他」（dev14 之前的紀錄）。
+ */
 export function deliberateReason(output: string, labels: ReadonlyMap<string, string>): string {
   const parsed = parseDeliberation(output, labels)
   if (parsed.ok) return parsed.deliberation.candidates.every((c) => c.excluded) ? '全部扣除' : '其他'
   const p = parsed.problems.join('；')
   if (/不是 JSON|沒有 candidates/u.test(p)) return 'JSON 不完整'
-  if (/kind/u.test(p)) return /experiences|沒有判斷|sameSituation|sameAction/u.test(p) ? '種類＋經驗判斷' : '種類'
-  if (/experiences|沒有判斷|sameSituation|sameAction/u.test(p)) return '經驗判斷'
+  if (/experiences|沒有判斷|sameSituation|sameAction|sameExcluded/u.test(p)) return '經驗判斷'
   if (/可用的做法/u.test(p)) return '做法不足'
   return '其他'
 }

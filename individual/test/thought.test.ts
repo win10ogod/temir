@@ -27,11 +27,29 @@ function heldPromise(store: LifeStore) {
   return store.append({ kind: OUTCOME_KIND, origin: 'self', session: 's1', data: { decision: 'l:d', didAction: 'a', didKind: '回答', actual: 'b', matched: 'partly', error: '', reward: 0, reason: '', lesson: '', left: '答應下次提醒對方問履歷', selfVersion: 0, heard: '' } })
 }
 
-test('parseThought: nothing surfaces is a valid answer; fields are cleaned and bounded', () => {
-  assert.deepEqual(parseThought('{"item":"","thought":"","release":false}'), { item: '', thought: '', feeling: '', significance: 'daily', release: false, intention: '', now: false })
-  const t = parseThought('好的 {"item":"P1","thought":"我其實  在意他會不會怕","feeling":"有點擔心","significance":"notable","release":"true","intention":"下次先問他還怕不怕"}')
-  assert.deepEqual([t?.item, t?.thought, t?.release, t?.significance], ['P1', '我其實 在意他會不會怕', false, 'notable'], 'release must be the boolean true')
-  assert.equal(parseThought('沒有 JSON'), undefined)
+/** 合格的念頭（不合格時測試失敗）。 */
+function thought(raw: string) {
+  const parsed = parseThought(raw)
+  assert.ok(parsed.ok, `expected a valid thought: ${parsed.ok ? '' : parsed.problems.join('；')}`)
+  return parsed.judgment
+}
+
+test('parseThought: nothing surfaces is a valid answer; fields are cleaned and bounded; the judgments are mandatory when something surfaced', () => {
+  assert.deepEqual(thought('{"item":"","thought":"","release":false}'), { item: '', thought: '', feeling: '', keepFeeling: false, reconsider: false, release: false, intention: '', now: false })
+  const t = thought('好的 {"item":"P1","thought":"我其實  在意他會不會怕","feeling":"有點擔心","keepFeeling":true,"reconsider":false,"release":false,"intention":"下次先問他還怕不怕","now":false}')
+  assert.deepEqual([t.item, t.thought, t.keepFeeling, t.release], ['P1', '我其實 在意他會不會怕', true, false])
+  // ADR-0008：重要程度拿掉了，改成逐項的強制判斷；字串 "true" 不算布林。
+  const problems = (raw: string) => {
+    const parsed = parseThought(raw)
+    return parsed.ok ? [] : parsed.problems
+  }
+  assert.deepEqual(problems('{"item":"P1","thought":"x","feeling":"擔心","significance":"notable","release":"true","intention":"問他"}'), [
+    'reconsider 不是 true 或 false',
+    'release 不是 true 或 false',
+    '有 feeling，但 keepFeeling 不是 true 或 false',
+    '有 intention，但 now 不是 true 或 false',
+  ])
+  assert.deepEqual(problems('沒有 JSON'), ['不是 JSON 物件'])
 })
 
 test('a thought is a cycle that starts from an internal stimulus: it can release what surfaced, leave an intention, and record a feeling', () => {
@@ -42,10 +60,11 @@ test('a thought is a cycle that starts from an internal stimulus: it can release
     const { input, labels } = thoughtInput(store)
     assert.match(input, /\[P1\] 行動留下的懸念（[^）]+）：答應下次提醒對方問履歷/)
     assert.match(input, /## 最近一次對話\n對方說：我在考慮轉職\n我說：下次我提醒你問履歷/)
-    assert.equal(recordThought(store, { item: '', thought: '', feeling: '', significance: 'daily', release: false, intention: '', now: false }, labels, 'm'), undefined, 'nothing surfaced: nothing written')
-    assert.equal(recordThought(store, { item: 'P7', thought: 'x', feeling: '', significance: 'daily', release: true, intention: '', now: false }, labels, 'm'), undefined, 'an unknown label is not guessed')
+    assert.match(input, /## 主動開口\n- 你還沒有主動開口過。/)
+    assert.equal(recordThought(store, { item: '', thought: '', feeling: '', keepFeeling: false, reconsider: false, release: false, intention: '', now: false }, labels, 'm'), undefined, 'nothing surfaced: nothing written')
+    assert.equal(recordThought(store, { item: 'P7', thought: 'x', feeling: '', keepFeeling: false, reconsider: false, release: true, intention: '', now: false }, labels, 'm'), undefined, 'an unknown label is not guessed')
     const id = store.transaction(() =>
-      recordThought(store, { item: 'P1', thought: '他其實還沒決定要不要轉，我不該只惦記履歷', feeling: '有點擔心他', significance: 'notable', release: true, intention: '下次先問他還想不想轉職', now: false }, labels, 'm'),
+      recordThought(store, { item: 'P1', thought: '他其實還沒決定要不要轉，我不該只惦記履歷', feeling: '有點擔心他', keepFeeling: true, reconsider: false, release: true, intention: '下次先問他還想不想轉職', now: false }, labels, 'm'),
     )
     assert.ok(id)
     const thought = store.get(id!)!
@@ -65,7 +84,7 @@ test('a goal can surface but is not released by a thought (goals change through 
   withStore((store) => {
     store.append({ kind: KIND.goalChange, origin: 'self', data: { goalId: 'g:1234abcd', text: '親自聞聞薄荷', status: 'active', reason: 'r' } })
     const { labels } = thoughtInput(store)
-    const id = store.transaction(() => recordThought(store, { item: 'g:1234abcd', thought: '我還沒有機會聞薄荷', feeling: '', significance: 'daily', release: true, intention: '', now: false }, labels, 'm'))
+    const id = store.transaction(() => recordThought(store, { item: 'g:1234abcd', thought: '我還沒有機會聞薄荷', feeling: '', keepFeeling: false, reconsider: false, release: true, intention: '', now: false }, labels, 'm'))
     const data = store.get(id!)!.data as ThoughtData
     assert.deepEqual([data.item, data.releasedItems], ['goal:g:1234abcd', []])
     assert.equal(store.all(THOUGHT_KIND).length, 1)
@@ -86,29 +105,30 @@ test('the cycle view interleaves conversation turns and thoughts in time order',
   })
 })
 
-test('initiative: a thought can decide to speak now; pacing allows no double-texting and at most a few per day', async () => {
-  const { INITIATIVE_KIND, INITIATIVE_PER_DAY, initiativeNote, mayInitiate } = await import('../src/thought/thought.ts')
-  assert.equal(parseThought('{"item":"P1","thought":"x","intention":"提醒他關火","now":"true"}')?.now, false, 'only the boolean true counts')
+test('initiative: a thought can decide to speak now; the program only prevents double-texting, how often is the individual’s own procedure (ADR-0008 §4)', async () => {
+  const { INITIATIVE_KIND, initiativeNote, mayInitiate } = await import('../src/thought/thought.ts')
+  assert.equal(parseThought('{"item":"P1","thought":"x","reconsider":false,"release":false,"intention":"提醒他關火","now":"true"}').ok, false, 'only a boolean counts')
   withStore((store) => {
     heldPromise(store)
     const { labels } = thoughtInput(store)
-    const id = store.transaction(() => recordThought(store, { item: 'P1', thought: '他說一分鐘後提醒他關火，已經過了', feeling: '', significance: 'daily', release: false, intention: '提醒他關火', now: true }, labels, 'm'))
+    const id = store.transaction(() => recordThought(store, { item: 'P1', thought: '他說一分鐘後提醒他關火，已經過了', feeling: '', keepFeeling: false, reconsider: false, release: false, intention: '提醒他關火', now: true }, labels, 'm'))
     assert.equal((store.get(id!)!.data as ThoughtData).now, true)
-    const quiet = store.transaction(() => recordThought(store, { item: 'P1', thought: '再等等', feeling: '', significance: 'daily', release: false, intention: '', now: true }, labels, 'm'))
+    const quiet = store.transaction(() => recordThought(store, { item: 'P1', thought: '再等等', feeling: '', keepFeeling: false, reconsider: false, release: false, intention: '', now: true }, labels, 'm'))
     assert.equal((store.get(quiet!)!.data as ThoughtData).now, undefined, 'nothing to say: now is dropped')
     assert.match(initiativeNote('他說一分鐘後提醒他關火', '提醒他關火'), /^（這不是對方說的話：.*你決定現在主動對對方說：提醒他關火/su)
-    const t0 = Date.now()
-    assert.deepEqual(mayInitiate(store, t0), { ok: true })
+    assert.deepEqual(mayInitiate(store), { ok: true })
     store.append({ kind: INITIATIVE_KIND, origin: 'self', data: { thought: id, session: 's1', intention: '提醒他關火', delivered: true } })
-    assert.equal(mayInitiate(store, t0).ok, false, 'no second initiative before the other replies')
+    assert.equal(mayInitiate(store).ok, false, 'no second initiative before the other replies')
+    assert.match(thoughtInput(store).input, /## 主動開口\n- 最近一次主動開口：[^；]+；之後對方還沒有回話。\n- 過去 24 小時內主動開口 1 次。/)
     store.append({ kind: 'dsh/user/message', origin: 'session', session: 's1', data: {}, text: '對方說：關了，謝謝' })
-    assert.equal(mayInitiate(store, t0).ok, true)
-    for (let i = 1; i < INITIATIVE_PER_DAY; i++) {
+    assert.equal(mayInitiate(store).ok, true)
+    // 以前的每 24 小時最多 3 次拿掉了：對方回話之後就可以再開口，次數列在念頭的輸入中，由個體自己判斷。
+    for (let i = 0; i < 3; i++) {
       store.append({ kind: INITIATIVE_KIND, origin: 'self', data: { thought: id, session: 's1', intention: 'x', delivered: true } })
       store.append({ kind: 'dsh/user/message', origin: 'session', session: 's1', data: {}, text: '對方說：嗯' })
     }
-    assert.match(mayInitiate(store, t0).reason ?? '', /24 小時內已經主動開口/)
-    assert.equal(mayInitiate(store, t0 + 25 * 3_600_000).ok, true, 'the limit is per 24 hours')
+    assert.equal(mayInitiate(store).ok, true)
+    assert.match(thoughtInput(store).input, /之後對方回過話。\n- 過去 24 小時內主動開口 4 次。/)
   })
 })
 

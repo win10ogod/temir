@@ -9,6 +9,7 @@ import { REVISION_SYSTEM, deliberationRetryNote, outcomeRetryNote, revisionRetry
 import { createRd, type Config, type StepInput } from '../src/rd/index.ts'
 import { DEFAULT_PARAMS } from '../src/rd/jitrl.ts'
 import { DECISION_KIND, DELIBERATION_FAILED_KIND, OUTCOME_FAILED_KIND, OUTCOME_KIND, type DecisionData, type DeliberationFailedData, type OutcomeData, type OutcomeFailedData } from '../src/rd/memory.ts'
+import { potentialItems } from '../src/self/energy.ts'
 
 type Purpose = 'deliberate' | 'revise' | 'outcome'
 type Reply = string | Error | ((input: string) => string | Promise<string>)
@@ -66,9 +67,9 @@ const DELIBERATION_BODY = {
   activated: [],
   people: [],
   candidates: [
-    { action: '直接給兩個具體的方法', kind: '建議', prediction: '她會有方向', confidence: 60, excluded: true, reason: '她在抒發，不是求助' },
-    { action: '先陪她', kind: '表達感受', prediction: '她會放鬆', confidence: 30, excluded: false, reason: '' },
-    { action: '問她想不想說', kind: '提問', prediction: '她會說下去', confidence: 10, excluded: false, reason: '' },
+    { action: '直接給兩個具體的方法', prediction: '她會有方向', confidence: 60, excluded: true, reason: '她在抒發，不是求助' },
+    { action: '先陪她', prediction: '她會放鬆', confidence: 30, excluded: false, reason: '' },
+    { action: '問她想不想說', prediction: '她會說下去', confidence: 10, excluded: false, reason: '' },
   ],
 }
 
@@ -76,17 +77,17 @@ const DELIBERATION_BODY = {
 const listedExperiences = (input: string) => [...input.matchAll(/^(E\d+)｜/gmu)].map((m) => m[1]!)
 
 /**
- * 測試替身的思考輸出：對輸入中列出的每一個經驗逐筆作答（D23），都判斷為不是同一類、沒有相同的做法
- * （與以前 similar、sameAs 都是空陣列的意思相同）。kind 可以換掉第一個做法的種類。
+ * 測試替身的思考輸出：對輸入中列出的每一個經驗逐筆作答（D23；ADR-0008 的 sameExcluded），都判斷為不是同一類、
+ * 沒有相同的做法（與以前 similar、sameAs 都是空陣列的意思相同）。
  */
-const DELIBERATION = (input: string, kind = '建議') =>
-  JSON.stringify({
-    ...DELIBERATION_BODY,
-    candidates: DELIBERATION_BODY.candidates.map((c, i) => (i === 0 ? { ...c, kind } : c)),
-    experiences: listedExperiences(input).map((id) => ({ id, sameSituation: false, sameAction: [] })),
-  })
+const DELIBERATION = (input: string) =>
+  JSON.stringify({ ...DELIBERATION_BODY, experiences: listedExperiences(input).map((id) => ({ id, sameSituation: false, sameAction: [], sameExcluded: [] })) })
 
-/** 過去類似處境的一個經驗：做了「建議」這一類，結果好、預測成真。之後扣除「建議」時需要強制判斷。 */
+/** 同上，但判斷第 1 個做法（被扣除的「直接給兩個具體的方法」）與每個列出的經驗那次做的相同：扣除需要強制判斷（ADR-0008 §2）。 */
+const SAME_AS_PAST = (input: string) =>
+  JSON.stringify({ ...DELIBERATION_BODY, experiences: listedExperiences(input).map((id) => ({ id, sameSituation: true, sameAction: [1], sameExcluded: [] })) })
+
+/** 過去類似處境的一個經驗（舊紀錄，有做法種類）：給了說法，結果好、預測成真。思考判斷這次扣除的做法與它相同時，需要強制判斷。 */
 function pastAdvice(store: LifeStore): string {
   const c = { action: '給她兩個跟主管談的說法', kind: '建議', prediction: '她會有方向', confidence: 60, sameAs: [], z: 0, q: null, support: 0, optimistic: null, advantage: 0, normalized: 0, zPrime: 0 }
   const data: DecisionData = { cue: '今天又被主管念了一頓', situation: '對方：她｜對方的意圖：抒發主管的責備｜對方的情緒：煩躁｜話題：主管', candidates: [c], chosen: 0, value: null, neighbors: [], shown: {}, jitrl: true, params: DEFAULT_PARAMS, selfVersion: 0 }
@@ -133,42 +134,47 @@ test('deliberation: two broken answers write no decision and prepare nothing; a 
     assert.match(String((store.all('memory/aux').at(-1)!.data as { error?: string }).error), /逾時/)
   }))
 
-/** DELIBERATION 中第一個做法的 kind 換成認不得的值。 */
-const withKind = (kind: string) => (input: string) => DELIBERATION(input, kind)
-
-test('deliberation: an unknown kind is not filled in as 其他; it is asked again with the problem (user 2026-10-30)', () =>
+test('deliberation (ADR-0008 revokes D22): there is no fixed list of kinds; a kind the model still writes is ignored, not asked again', () =>
   withStore(async (store) => {
-    const { call, calls } = scripted({ deliberate: [withKind('勸告'), DELIBERATION] })
+    const withKind = (input: string) => JSON.stringify({ ...JSON.parse(DELIBERATION(input)), candidates: DELIBERATION_BODY.candidates.map((c) => ({ ...c, kind: '勸告' })) })
+    const { call, calls } = scripted({ deliberate: [withKind] })
     const rd = createRd({ life: store, call, logger: recorder().logger }, { ...CONFIG, revision: false })
     assert.ok(await rd.step(input('主管又念我了')))
-    assert.equal(calls.length, 2)
-    assert.equal(calls[1]!.system, `${calls[0]!.system}\n${deliberationRetryNote(['做法「直接給兩個具體的方法」的 kind「勸告」不是 回答／提問／建議／拒絕／使用工具／表達感受／其他 之一'])}`)
-    assert.deepEqual((decisions(store)[0]!.data as DecisionData).candidates.map((c) => c.kind), ['建議', '表達感受', '提問'])
+    assert.equal(calls.length, 1)
+    assert.doesNotMatch(calls[0]!.system, /kind/u)
+    assert.ok((decisions(store)[0]!.data as DecisionData).candidates.every((c) => c.kind === undefined))
     assert.deepEqual(store.all(DELIBERATION_FAILED_KIND), [])
   }))
 
-test('deliberation: an unknown kind twice prepares nothing and is recorded as a failure', () =>
+test('ADR-0008: an experience that lists what was excluded then needs sameExcluded; a missing answer is asked again, and the answer finds the exclusion to review', () =>
   withStore(async (store) => {
-    const { call, calls } = scripted({ deliberate: [withKind('勸告'), withKind('')] })
-    const rd = createRd({ life: store, call, logger: recorder().logger }, { ...CONFIG, revision: false })
-    assert.equal(await rd.step(input('主管又念我了')), undefined)
-    assert.equal(calls.length, 2)
-    assert.deepEqual(decisions(store), [])
-    const [failed] = store.all(DELIBERATION_FAILED_KIND)
-    assert.equal(failed?.session, 's1')
-    assert.deepEqual((failed!.data as DeliberationFailedData).problems, [
-      '第 1 次：做法「直接給兩個具體的方法」的 kind「勸告」不是 回答／提問／建議／拒絕／使用工具／表達感受／其他 之一',
-      '第 2 次：做法「直接給兩個具體的方法」的 kind「」不是 回答／提問／建議／拒絕／使用工具／表達感受／其他 之一',
-    ])
+    // 過去：扣除了「直接給她方法」，改成陪伴，結果不好、預測沒有成真。
+    const c = (action: string, excluded: boolean) => ({ action, prediction: 'p', confidence: 50, sameAs: [], z: 0, q: null, support: 0, optimistic: null, advantage: 0, normalized: 0, zPrime: 0, ...(excluded ? { excluded, excludeReason: '她在抒發' } : {}) })
+    const data: DecisionData = { cue: '今天又被主管念了一頓', situation: '對方：她｜對方的意圖：抒發主管的責備', candidates: [c('只陪她', false), c('直接給她方法', true)], chosen: 0, value: null, neighbors: [], shown: {}, jitrl: true, params: DEFAULT_PARAMS, selfVersion: 0 }
+    const past = store.append({ kind: DECISION_KIND, origin: 'self', session: 'old', data, text: '處境：抒發' })
+    const o: OutcomeData = { decision: past.id, didAction: '只陪她', actual: '她說算了', matched: 'no', error: '', reward: -0.4, reason: '', lesson: '', selfVersion: 0, heard: '' }
+    store.append({ kind: OUTCOME_KIND, origin: 'self', session: 'old', data: o, causes: [past.id] })
+    const unanswered = (input: string) => JSON.stringify({ ...DELIBERATION_BODY, experiences: listedExperiences(input).map((id) => ({ id, sameSituation: true, sameAction: [] })) })
+    const answered = (input: string) => JSON.stringify({ ...DELIBERATION_BODY, experiences: listedExperiences(input).map((id) => ({ id, sameSituation: true, sameAction: [], sameExcluded: [1] })) })
+    const keep = '{"judgments":[{"candidate":1,"decision":"lift","why":"X1 那次扣除之後她很失望","refs":["X1"]}]}'
+    const { call, calls } = scripted({ deliberate: [unanswered, answered], revise: [keep] })
+    const rd = createRd({ life: store, call, logger: recorder().logger }, CONFIG)
+    assert.ok(await rd.step(input('主管又念我了')))
+    assert.match(calls[0]!.input, /^E1｜[^\n]*｜當時扣除：直接給她方法（她在抒發）｜扣除之後，當時的預測沒有成真$/mu)
+    assert.equal(calls[1]!.system, `${calls[0]!.system}\n${deliberationRetryNote(['E1 的 sameExcluded 不是陣列'])}`)
+    assert.deepEqual(calls.map((x) => x.purpose), ['deliberate', 'deliberate', 'revise'])
+    assert.match(calls[2]!.input, /當時扣除了相同的「直接給她方法」，改做「只陪她」｜結果：她說算了｜預測沒有成真/u)
+    const d = decisions(store)[0]!.data as DecisionData
+    assert.deepEqual(d.candidates[0]!.sameExcluded, [past.id])
+    assert.equal(d.candidates[0]!.judgment?.decision, 'lift')
+    assert.deepEqual(d.procedures, { deliberate: 1, subtract: 1 }, 'the procedure versions used are recorded')
   }))
 
 test('D23: a listed experience left unjudged is asked again; the judgment is what JitRL matches on', () =>
   withStore(async (store) => {
     const old = pastAdvice(store)
     const unjudged = JSON.stringify(DELIBERATION_BODY)
-    const judged = (input: string) =>
-      JSON.stringify({ ...DELIBERATION_BODY, experiences: listedExperiences(input).map((id) => ({ id, sameSituation: true, sameAction: [1] })) })
-    const { call, calls } = scripted({ deliberate: [unjudged, judged] })
+    const { call, calls } = scripted({ deliberate: [unjudged, SAME_AS_PAST] })
     const rd = createRd({ life: store, call, logger: recorder().logger }, { ...CONFIG, revision: false })
     assert.ok(await rd.step(input('主管又念我了')))
     assert.deepEqual(listedExperiences(calls[0]!.input), ['E1'], 'the past decision is listed')
@@ -182,13 +188,13 @@ test('mandatory judgment: a missing answer is asked again with the problems; the
   withStore(async (store) => {
     const past = pastAdvice(store)
     const lift = '{"judgments":[{"candidate":1,"decision":"lift","why":"X1 給說法她覺得有幫助","refs":["X1"]}]}'
-    const { call, calls } = scripted({ deliberate: [DELIBERATION], revise: ['{"judgments":[]}', lift] })
+    const { call, calls } = scripted({ deliberate: [SAME_AS_PAST], revise: ['{"judgments":[]}', lift] })
     const rd = createRd({ life: store, call, logger: recorder().logger }, CONFIG)
     const prepared = await rd.step(input('主管又念我了'))
     assert.deepEqual(calls.map((c) => c.purpose), ['deliberate', 'revise', 'revise'])
     assert.equal(calls[1]!.system, REVISION_SYSTEM)
     assert.equal(calls[2]!.system, `${REVISION_SYSTEM}\n${revisionRetryNote(['做法 1 沒有判斷'])}`)
-    assert.match(calls[1]!.input, /1\. 直接給兩個具體的方法（建議）｜你扣除的理由：她在抒發，不是求助\n {3}- X1｜/u)
+    assert.match(calls[1]!.input, /1\. 直接給兩個具體的方法｜你扣除的理由：她在抒發，不是求助\n {3}- X1｜[^\n]*當時做了相同的「給了兩個說法」/u)
     const data = decisions(store)[0]!.data as DecisionData
     assert.deepEqual(data.review, { required: 1 })
     assert.equal(data.candidates[0]!.excluded, undefined, 'lifted')
@@ -199,7 +205,7 @@ test('mandatory judgment: a missing answer is asked again with the problems; the
 test('mandatory judgment: two invalid answers are recorded as review.failed and the exclusion stays', () =>
   withStore(async (store) => {
     pastAdvice(store)
-    const { call, calls } = scripted({ deliberate: [DELIBERATION], revise: ['{"judgments":[]}', '{"judgments":[{"candidate":1,"decision":"maybe","why":"","refs":[]}]}'] })
+    const { call, calls } = scripted({ deliberate: [SAME_AS_PAST], revise: ['{"judgments":[]}', '{"judgments":[{"candidate":1,"decision":"maybe","why":"","refs":[]}]}'] })
     const rd = createRd({ life: store, call, logger: recorder().logger }, CONFIG)
     await rd.step(input('主管又念我了'))
     assert.equal(calls.filter((c) => c.purpose === 'revise').length, 2, 'asked again only once')
@@ -213,7 +219,7 @@ test('mandatory judgment: two invalid answers are recorded as review.failed and 
 test('mandatory judgment: a failed call is recorded as review.failed and the exclusion stays', () =>
   withStore(async (store) => {
     pastAdvice(store)
-    const { call, calls } = scripted({ deliberate: [DELIBERATION], revise: [new Error('連線中斷')] })
+    const { call, calls } = scripted({ deliberate: [SAME_AS_PAST], revise: [new Error('連線中斷')] })
     const rd = createRd({ life: store, call, logger: recorder().logger }, CONFIG)
     await rd.step(input('主管又念我了'))
     assert.equal(calls.filter((c) => c.purpose === 'revise').length, 1, 'a failed call is not asked again')
@@ -225,7 +231,7 @@ test('mandatory judgment: a failed call is recorded as review.failed and the exc
 test('mandatory judgment (item 4): when the second call fails, the problems of the first answer are kept', () =>
   withStore(async (store) => {
     pastAdvice(store)
-    const { call, calls } = scripted({ deliberate: [DELIBERATION], revise: ['{"judgments":[]}', new Error('連線中斷')] })
+    const { call, calls } = scripted({ deliberate: [SAME_AS_PAST], revise: ['{"judgments":[]}', new Error('連線中斷')] })
     const rd = createRd({ life: store, call, logger: recorder().logger }, CONFIG)
     await rd.step(input('主管又念我了'))
     assert.equal(calls.filter((c) => c.purpose === 'revise').length, 2)
@@ -234,8 +240,9 @@ test('mandatory judgment (item 4): when the second call fails, the problems of t
     assert.equal(data.candidates[0]!.excluded, true)
   }))
 
-test('mandatory judgment: no exclusion with same-kind experience means no judgment call', () =>
+test('mandatory judgment: when no excluded candidate is judged the same as a past action, there is no judgment call', () =>
   withStore(async (store) => {
+    pastAdvice(store)
     const { call, calls } = scripted({ deliberate: [DELIBERATION] })
     const rd = createRd({ life: store, call, logger: recorder().logger }, CONFIG)
     await rd.step(input('主管又念我了'))
@@ -244,7 +251,7 @@ test('mandatory judgment: no exclusion with same-kind experience means no judgme
   }))
 
 const OUTCOME = (actual: string, reward = 0) =>
-  JSON.stringify({ didAction: '答應想好名字再告訴他', didKind: '回答', actual, matched: 'partly', error: '', reward, reason: 'r', lesson: '', feeling: '', significance: 'daily', released: [], left: [] })
+  JSON.stringify({ didAction: '答應想好名字再告訴他', declined: false, actual, matched: 'partly', error: '', reward, reason: 'r', lesson: '', feeling: '', reconsider: false, released: [], left: [] })
 
 /** 測試替身（單元測試專用）：由測試決定何時完成的 promise。 */
 function gate(): { promise: Promise<string>; open: (output: string) => void } {
@@ -334,7 +341,7 @@ const failuresOf = (store: LifeStore, id: string) => store.referencing(id, OUTCO
 test('outcome (item 2): an incomplete comparison is asked again with its problems; the valid answer is the one outcome', () =>
   withStore(async (store) => {
     const old = lastTurn(store)
-    const incomplete = JSON.stringify({ didAction: '', didKind: '回答', actual: '他說謝謝', matched: 'maybe', reward: 0.5, significance: 'daily' })
+    const incomplete = JSON.stringify({ didAction: '', declined: false, actual: '他說謝謝', matched: 'maybe', reward: 0.5, reconsider: false })
     const { call, calls } = scripted({ outcome: [incomplete, OUTCOME('他說謝謝', 0.5)] })
     const rd = createRd({ life: store, call, logger: recorder().logger }, CONFIG)
     rd.evaluate(store.get(old)!, '謝謝', ROUTE)
@@ -346,22 +353,27 @@ test('outcome (item 2): an incomplete comparison is asked again with its problem
     assert.deepEqual(failuresOf(store, old), [])
   }))
 
-test('outcome: an unknown didKind is not filled in as 其他; it is asked again (user 2026-10-30)', () =>
+test('outcome (ADR-0008): a prediction that did not come true needs gapOnMind, a feeling needs keepFeeling; missing answers are asked again', () =>
   withStore(async (store) => {
     const old = lastTurn(store)
-    const unknown = OUTCOME('他說謝謝', 0.5).replace('"didKind":"回答"', '"didKind":"承諾"')
-    const { call, calls } = scripted({ outcome: [unknown, OUTCOME('他說謝謝', 0.5)] })
+    const missed = OUTCOME('他說名字太長了', -0.2).replace('"matched":"partly"', '"matched":"no"').replace('"feeling":""', '"feeling":"有點失落"')
+    const answered = missed.replace('"reconsider":false', '"reconsider":false,"gapOnMind":true,"keepFeeling":true')
+    const { call, calls } = scripted({ outcome: [missed, answered] })
     const rd = createRd({ life: store, call, logger: recorder().logger }, CONFIG)
-    rd.evaluate(store.get(old)!, '謝謝', ROUTE)
+    rd.evaluate(store.get(old)!, '名字太長了', ROUTE)
     await rd.settle()
-    assert.equal(calls[1]!.system, `${calls[0]!.system}\n${outcomeRetryNote(['didKind 不是 回答／提問／建議／拒絕／使用工具／表達感受／其他 之一'])}`)
-    assert.deepEqual(outcomesOf(store, old).map((o) => o.didKind), ['回答'])
+    assert.equal(calls[1]!.system, `${calls[0]!.system}\n${outcomeRetryNote(['有 feeling，但 keepFeeling 不是 true 或 false', 'matched 是 no，但 gapOnMind 不是 true 或 false'])}`)
+    const [o] = outcomesOf(store, old)
+    assert.deepEqual([o!.gapOnMind, o!.keepFeeling, o!.reconsider], [true, true, false])
+    assert.ok(potentialItems(store).some((p) => p.key.startsWith('surprise:')), 'the gap stays on my mind as a surprise (H-E)')
+    const [feeling] = store.all('appraisal')
+    assert.match(feeling!.text ?? '', /^我的感受：有點失落$/u, 'the kept feeling is an appraisal, without a fixed significance label')
   }))
 
 test('outcome (item 2): two invalid answers write a failure record with both problems and no outcome', () =>
   withStore(async (store) => {
     const old = lastTurn(store)
-    const { call, calls } = scripted({ outcome: ['我覺得還不錯', JSON.stringify({ didAction: 'a', didKind: '回答', matched: 'yes', reward: 'good', significance: 'daily' })] })
+    const { call, calls } = scripted({ outcome: ['我覺得還不錯', JSON.stringify({ didAction: 'a', declined: false, matched: 'yes', reward: 'good', reconsider: false })] })
     const rd = createRd({ life: store, call, logger: recorder().logger }, CONFIG)
     rd.evaluate(store.get(old)!, '謝謝', ROUTE)
     await rd.settle()

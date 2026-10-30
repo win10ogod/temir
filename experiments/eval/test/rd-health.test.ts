@@ -15,10 +15,10 @@ test('listed labels and retry reasons come from the individual’s own parsers',
   assert.deepEqual([...listedLabels(INPUT.replace(/\s+/g, ' ')).keys()], ['E1'])
   const none = new Map<string, string>()
   assert.equal(deliberateReason(JSON.stringify({ situation: 'x', candidates }), listedLabels(INPUT)), '經驗判斷')
-  assert.equal(deliberateReason(JSON.stringify({ situation: 'x', candidates: [{ action: 'a', kind: '勸' }, { action: 'b', kind: '回答' }] }), none), '種類')
+  assert.equal(deliberateReason(JSON.stringify({ situation: 'x', candidates: [{ action: 'a', kind: '勸' }, { action: 'b', kind: '回答' }] }), none), '其他', 'no fixed kinds since ADR-0008: an old kind problem parses now')
   assert.equal(deliberateReason('想一想', none), 'JSON 不完整')
   assert.equal(deliberateReason(JSON.stringify({ situation: 'x', candidates: candidates.map((c) => ({ ...c, excluded: true })) }), none), '全部扣除')
-  assert.equal(outcomeReason(JSON.stringify({ didAction: '先聽', matched: 'maybe', reward: 0.5, significance: 'daily' })), 'matched、didKind')
+  assert.equal(outcomeReason(JSON.stringify({ didAction: '先聽', matched: 'maybe', reward: 0.5, significance: 'daily' })), 'matched、reconsider、declined')
   assert.equal(outcomeReason('不是 JSON'), 'JSON 不完整')
 })
 
@@ -44,7 +44,7 @@ test('health: retries, failures, D23 coverage and aux records are counted per li
   assert.deepEqual([h.decisions, h.deliberationFailed, h.withShown, h.shown, h.judgedNeighbors, h.uncovered], [1, 1, 1, 1, 1, 0])
   assert.deepEqual([h.candidates, h.sameAs, h.supported], [2, 1, 1])
   assert.deepEqual([h.outcomeCalls, h.outcomeErrors, h.outcomeRetries, h.outcomes, h.outcomeFailed], [3, 1, 1, 1, 1])
-  assert.equal(h.outcomeRetryReasons['reward、matched、didAction、didKind、significance'], 1)
+  assert.equal(h.outcomeRetryReasons['reward、matched、didAction、reconsider、declined'], 1)
   assert.deepEqual([h.auxCalls, h.auxWithUsage, h.withReasoningTokens, h.reasoningTokens, h.reasoningChars], [8, 6, 6, 30, 0])
   assert.deepEqual(h.finish, { stop: 6, 'max-tokens': 1, '（呼叫失敗）': 1 })
   // 一個決定之前的思考輸出都沒有判斷列出的經驗時，算沒有逐筆判斷。

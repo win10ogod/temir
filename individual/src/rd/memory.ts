@@ -12,7 +12,7 @@ import { extractJson } from '../recall/aux.ts'
 import { clip, clipEnds, heardText, isHeard, replyOf } from '../recall/retrieve.ts'
 import { formatDay, type Significance } from '../self/state.ts'
 import type { Deliberation } from './aux.ts'
-import { discountedReturns, jaccard, termSet, type Candidate, type Correction, type Experience, type Neighbor, type Params, type Scored } from './jitrl.ts'
+import { discountedReturns, jaccard, sameAction, termSet, type Candidate, type Correction, type Experience, type Neighbor, type Params, type Scored } from './jitrl.ts'
 
 export const DECISION_KIND = 'rd/decision'
 export const OUTCOME_KIND = 'rd/outcome'
@@ -46,15 +46,27 @@ export interface DecisionData {
    * 重問過的，兩次的問題都留著（「第 1 次：…；第 2 次：…」）；2026-10-30 之前的紀錄只有第二次的問題。
    */
   readonly review?: { readonly required: number; readonly failed?: string }
+  /** 這次思考用了哪幾個做法的哪一版（self/procedure.ts；ADR-0008）。2026-10-30 之前的紀錄沒有這個欄位。 */
+  readonly procedures?: Readonly<Record<string, number>>
 }
 
-/** 行動留下的懸念的種類（H-E 第三版）：答應的事、在等的事、還沒解開的不安。 */
+/** 舊紀錄的懸念種類（H-E 第三版，ADR-0008 之前）：答應的事、在等的事、還沒解開的不安。新紀錄改寫 forOther。 */
 export type LeftType = 'promise' | 'waiting' | 'unresolved'
+
+/** 一件懸念：個體自己的話；forOther＝推動我對對方做什麼（ADR-0008 §2）。舊紀錄只有 type。 */
+export interface LeftRecord {
+  readonly text: string
+  readonly forOther?: boolean
+  readonly type?: LeftType
+}
 
 export interface OutcomeData {
   readonly decision: string
   readonly didAction: string
-  readonly didKind: string
+  /** 舊紀錄的做法種類（ADR-0002 D22；ADR-0008 撤回）。 */
+  readonly didKind?: string
+  /** 這次有沒有拒絕對方的要求或表達不同意（ADR-0008 之後；舊紀錄看 didKind 是不是「拒絕」）。 */
+  readonly declined?: boolean
   readonly actual: string
   readonly matched: 'yes' | 'partly' | 'no'
   readonly error: string
@@ -62,13 +74,18 @@ export interface OutcomeData {
   readonly reason: string
   readonly lesson: string
   readonly feeling?: string
+  /** 舊紀錄的重要程度（ADR-0008 之前）。 */
   readonly significance?: Significance
+  /** ADR-0008 §2 的強制判斷：要不要記下感受、要不要現在就重新檢視自己、落差會不會一直掛在心上。舊紀錄沒有。 */
+  readonly keepFeeling?: boolean
+  readonly reconsider?: boolean
+  readonly gapOnMind?: boolean
   /** H-E：這次行動釋放了哪件懸著的事（說明與 key）、留下了什麼新的懸念（個體自己寫的）；舊紀錄沒有這些欄位。 */
   readonly released?: string
   readonly releasedItems?: readonly string[]
   /** 第一、二版：一句話（可能綁了幾件事）。第三版起另有 leftItems，逐件記錄，left 是它們的合併文字（顯示用）。 */
   readonly left?: string
-  readonly leftItems?: readonly { readonly text: string; readonly type: LeftType }[]
+  readonly leftItems?: readonly LeftRecord[]
   readonly selfVersion: number
   readonly heard: string
   /**
@@ -166,7 +183,7 @@ function sessionExperiences(state: ExperienceState, decisions: readonly LifeEven
     if (ret === undefined || !outcome) return
     const data = event.data as DecisionData
     const planned = data.candidates[data.chosen]
-    const excludedThen = data.candidates.filter((c) => c.excluded).map((c) => ({ action: c.action, kind: c.kind, reason: c.excludeReason ?? '' }))
+    const excludedThen = data.candidates.filter((c) => c.excluded).map((c) => ({ action: c.action, ...(c.kind ? { kind: c.kind } : {}), reason: c.excludeReason ?? '' }))
     // 經驗中的行動是實際採取的做法；主模型可能沒有照準備去做。
     const action = outcome.didAction || planned?.action || ''
     if (!action) return
@@ -176,7 +193,8 @@ function sessionExperiences(state: ExperienceState, decisions: readonly LifeEven
       cue: data.cue,
       situation: data.situation,
       action,
-      kind: outcome.didAction ? outcome.didKind : (planned?.kind ?? '其他'),
+      // 舊紀錄的做法種類；新紀錄沒有（ADR-0008 §2）。
+      ...((outcome.didAction ? outcome.didKind : planned?.kind) ? { kind: (outcome.didAction ? outcome.didKind : planned?.kind)! } : {}),
       ret,
       outcome: [outcome.actual, outcome.lesson && `教訓：${outcome.lesson}`].filter(Boolean).join('；'),
       session: event.session,
@@ -291,21 +309,42 @@ export function shownExperiences(fromRecall: readonly Experience[], lexical: rea
  * D20 第三版：扣除本身會被經驗改變，由模型判斷，但**強制判斷**（使用者 2026-10-30「應該交給模型判斷設計沒問題,
  * 有問題的是沒有作強制要求判斷」）。第一、二版的 revised 是選填的：本機模型從不寫，過去的扣除反而成了先例（rd-v3、dev11）。
  *
- * 程式只決定「何時」需要判斷：被扣除的候選，在類似處境的經驗中有同一類（kind）的紀錄（當時扣除了同類做法，或做了同類做法）。
+ * 程式只決定「何時」需要判斷：被扣除的候選，在類似處境的經驗中做過相同的做法，或當時也扣除了相同的做法。
+ * 「相同」由個體在思考時逐筆判斷（sameAction、sameExcluded；ADR-0008 §2 取代舊的做法種類）；
+ * 沒有列出、由 JitRL 依處境找到的鄰居，以做法描述的詞彙相似度作為備援（jitrl.ts 的 sameAction）。
  * 判斷的內容由模型決定（REVISION_SYSTEM），答案由 parseJudgments 驗證。
  */
+export interface ExclusionEvidence {
+  readonly experience: Experience
+  /** 那次扣除的、與這個做法相同的做法；沒有就是那次做了相同的做法。 */
+  readonly excludedAction?: string
+}
+
 export interface ExclusionReview {
   /** 候選在思考結果中的位置（0 起算）。 */
   readonly index: number
-  /** 類似處境中同一類的經驗，由新到舊。 */
-  readonly evidence: readonly Experience[]
+  /** 類似處境中做過或扣除過相同做法的經驗，由新到舊。 */
+  readonly evidence: readonly ExclusionEvidence[]
 }
 
-export function exclusionReviews(candidates: readonly Candidate[], related: readonly Experience[], max = 4): ExclusionReview[] {
+/** shown＝思考時列出、個體逐筆判斷過的經驗。 */
+export function exclusionReviews(candidates: readonly Candidate[], related: readonly Experience[], params: Params, shown: ReadonlySet<string> = new Set(), max = 4): ExclusionReview[] {
   const recent = [...new Map(related.map((e) => [e.id, e])).values()].sort((a, b) => b.ts - a.ts)
   return candidates.flatMap((c, index) => {
     if (!c.excluded) return []
-    const evidence = recent.filter((e) => e.kind === c.kind || (e.excludedThen ?? []).some((x) => x.kind === c.kind)).slice(0, max)
+    const evidence = recent
+      .flatMap((e): ExclusionEvidence[] => {
+        const then = e.excludedThen ?? []
+        if (shown.has(e.id)) {
+          // 思考時列出的是當時扣除的前兩個（renderExperiences）；個體判斷的是其中有相同的。
+          if ((c.sameExcluded ?? []).includes(e.id) && then.length > 0) return [{ experience: e, excludedAction: then.slice(0, 2).map((x) => x.action).join('；') }]
+          return c.sameAs.includes(e.id) ? [{ experience: e }] : []
+        }
+        const excluded = then.find((x) => sameAction(c, { ...e, action: x.action, ...(x.kind ? { kind: x.kind } : {}) }, params))
+        if (excluded) return [{ experience: e, excludedAction: excluded.action }]
+        return sameAction(c, e, params) ? [{ experience: e }] : []
+      })
+      .slice(0, max)
     return evidence.length > 0 ? [{ index, evidence }] : []
   })
 }
@@ -320,13 +359,12 @@ export function renderExclusionReview(situation: string, candidates: readonly Ca
     return k
   }
   const predicted = (m: Experience['matched']) => (m === 'no' ? '預測沒有成真' : m === 'partly' ? '預測只部分成真' : m === 'yes' ? '預測成真' : '預測成真與否沒有記錄')
-  const lines = [`## 眼前的處境`, clip(situation, 400), '', '## 你扣除的做法，以及類似處境中同一類的經驗']
+  const lines = [`## 眼前的處境`, clip(situation, 400), '', '## 你扣除的做法，以及類似處境中做過或扣除過相同做法的經驗']
   for (const r of reviews) {
     const c = candidates[r.index]!
-    lines.push('', `${r.index + 1}. ${c.action}（${c.kind}）｜你扣除的理由：${c.excludeReason ?? '（沒有寫）'}`)
-    for (const e of r.evidence) {
-      const excluded = (e.excludedThen ?? []).filter((x) => x.kind === c.kind).map((x) => x.action)
-      const what = excluded.length > 0 ? `當時扣除了同類的「${clip(excluded[0]!, 60)}」，改做「${clip(e.action, 60)}」` : `當時做了同類的「${clip(e.action, 60)}」`
+    lines.push('', `${r.index + 1}. ${c.action}｜你扣除的理由：${c.excludeReason ?? '（沒有寫）'}`)
+    for (const { experience: e, excludedAction } of r.evidence) {
+      const what = excludedAction ? `當時扣除了相同的「${clip(excludedAction, 60)}」，改做「${clip(e.action, 60)}」` : `當時做了相同的「${clip(e.action, 60)}」`
       lines.push(`   - ${label(e.id)}｜${formatDay(e.ts)}｜${what}｜結果：${clip(e.outcome, 120)}｜${predicted(e.matched)}｜回報 ${e.ret.toFixed(2)}`)
     }
   }
@@ -350,7 +388,7 @@ export function parseJudgments(raw: string, reviews: readonly ExclusionReview[],
   const judgments: Judgment[] = []
   for (const r of reviews) {
     const n = r.index + 1
-    const own = new Set(r.evidence.map((e) => e.id))
+    const own = new Set(r.evidence.map((e) => e.experience.id))
     const found = list.filter((j): j is Record<string, unknown> => typeof j === 'object' && j !== null && Number((j as Record<string, unknown>)['candidate']) === n)
     if (found.length !== 1) {
       problems.push(found.length === 0 ? `做法 ${n} 沒有判斷` : `做法 ${n} 有 ${found.length} 筆判斷`)
@@ -384,7 +422,7 @@ export function renderExperiences(shown: readonly Experience[], revision = true)
   if (shown.length === 0) return '沒有找到類似的經驗。'
   return shown
     .map((e, i) => {
-      const line = `E${i + 1}｜${formatDay(e.ts)}｜處境：${clip(e.situation, 160)}｜我當時：${clip(e.action, 100)}（${e.kind}）｜結果：${clip(e.outcome, 160)}｜回報 ${e.ret.toFixed(2)}`
+      const line = `E${i + 1}｜${formatDay(e.ts)}｜處境：${clip(e.situation, 160)}｜我當時：${clip(e.action, 100)}｜結果：${clip(e.outcome, 160)}｜回報 ${e.ret.toFixed(2)}`
       const excluded = revision ? (e.excludedThen ?? []).slice(0, 2) : []
       if (excluded.length === 0) return line
       // D20 第二版：附上當時的預測有沒有成真（個體自己在事後比對時判斷的）。rd-v3 的本機模型把對方的失望評為 0～+0.78，
@@ -436,7 +474,7 @@ export function renderPreparation(delib: Deliberation, correction: Correction, n
           : c.revised
             ? `｜你依經驗改變了扣除：${c.revised}`
             : ''
-    lines.push(`${i + 1}. ${c.action}（${c.kind}）——預期：${c.prediction}｜你的傾向 ${Math.round(c.confidence)}%${adjust}${subtracted}${revised}`)
+    lines.push(`${i + 1}. ${c.action}——預期：${c.prediction}｜你的傾向 ${Math.round(c.confidence)}%${adjust}${subtracted}${revised}`)
   })
   const chosen = correction.scored[correction.chosen]
   if (chosen) lines.push(`你準備：第 ${correction.chosen + 1} 個做法${subtraction ? '（扣除不做的之後剩下的）' : ''}。你預期：${chosen.prediction}`)
@@ -457,6 +495,8 @@ export function renderPreparation(delib: Deliberation, correction: Correction, n
 export function replayCases(life: LifeStore, gamma: number): ReplayCase[] {
   return experiences(life, gamma).map((experience) => {
     const d = life.get(experience.id)?.data as DecisionData | undefined
-    return { experience, judged: (d?.neighbors ?? []).filter((n) => n.judged).map((n) => n.id), sameAs: d?.candidates[d.chosen]?.sameAs ?? [] }
+    // 列出的經驗只有在逐筆判斷之後（有 procedures 的紀錄，ADR-0008）才當作判斷過；之前的 sameAs 是選填的。
+    const shown = d?.procedures ? Object.values(d.shown ?? {}) : []
+    return { experience, judged: (d?.neighbors ?? []).filter((n) => n.judged).map((n) => n.id), sameAs: d?.candidates[d.chosen]?.sameAs ?? [], ...(shown.length > 0 ? { shown } : {}) }
   })
 }

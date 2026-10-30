@@ -7,7 +7,10 @@
 import { Projection } from '../life/projection.ts'
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 
-/** 個體自評的重要程度（H4）。類別而非數值；「轉折」可觸發深度自我審視（尚未實作）。 */
+/**
+ * 舊紀錄的重要程度（H4 的第一版；2026-10-30 之前）。這個 4 級的劃分是我加的，沒有出處；ADR-0008 §2 拿掉了，
+ * 改成逐項的強制判斷（keepFeeling、reconsider、gapOnMind）。這裡只為了讀得懂舊紀錄。
+ */
 export const SIGNIFICANCE = ['daily', 'notable', 'major', 'pivotal'] as const
 export type Significance = (typeof SIGNIFICANCE)[number]
 export const SIGNIFICANCE_LABEL: Record<Significance, string> = {
@@ -134,9 +137,28 @@ export interface Opinion {
 
 export interface AppraisalData {
   readonly feeling: string
-  readonly significance: Significance
+  /** 舊紀錄的重要程度（ADR-0008 之前）。 */
+  readonly significance?: Significance
+  /** 這段經歷讓個體想現在就重新檢視自己（H4；整合以深度模式提前進行）。舊紀錄以 significance＝pivotal 表示。 */
+  readonly reconsider?: boolean
   /** 是否在重新評價過去的經歷。 */
   readonly reappraisal: boolean
+}
+
+/** 感受紀錄的標註：舊紀錄的重要程度、讓我想重新檢視自己、重新評價。 */
+export function appraisalLabel(a: AppraisalData): string {
+  return [a.significance ? SIGNIFICANCE_LABEL[a.significance] : '', a.reconsider ? '讓我想重新檢視自己' : '', a.reappraisal ? '重新評價' : ''].filter(Boolean).join('，')
+}
+
+/** 感受紀錄的文字（回憶索引用）。 */
+export function appraisalText(a: AppraisalData): string {
+  const label = appraisalLabel(a)
+  return `我的感受${label ? `（${label}）` : ''}：${a.feeling}`
+}
+
+/** 這段感受是否讓個體想重新檢視自己（新紀錄的 reconsider；舊紀錄的「轉折」）。 */
+export function asksToReconsider(a: AppraisalData): boolean {
+  return a.reconsider === true || a.significance === 'pivotal'
 }
 
 export interface Goal {
@@ -205,13 +227,16 @@ export function opinions(life: LifeStore): Opinion[] {
   return [...OPINIONS.of(life).values()]
 }
 
-/** 最近的重大／轉折感受（情感殘留，H1-4、H-M1）。 */
+/**
+ * 最近記下的感受（情感殘留，H1-4、H-M1）。新紀錄都是個體決定要記下的（keepFeeling，ADR-0008 §2）；
+ * 舊紀錄照原本的規則，只列重大與轉折。
+ */
 export function weightyAppraisals(life: LifeStore, limit = 5): LifeEvent[] {
   return life
     .recent(200, [KIND.appraisal])
     .filter((e) => {
       const s = (e.data as AppraisalData).significance
-      return s === 'major' || s === 'pivotal'
+      return s === undefined || s === 'major' || s === 'pivotal'
     })
     .slice(0, limit)
 }
@@ -284,10 +309,11 @@ export function renderSelfSnapshot(life: LifeStore, extra: readonly string[] = [
   }
   const weighty = weightyAppraisals(life)
   if (weighty.length > 0) {
-    lines.push('', '## 你記下的重要感受（最近）')
+    lines.push('', '## 你記下的感受（最近）')
     for (const event of weighty) {
       const a = event.data as AppraisalData
-      lines.push(`- [${event.id}] ${formatTime(event.ts)}｜${SIGNIFICANCE_LABEL[a.significance]}${a.reappraisal ? '｜重新評價' : ''}：${a.feeling}`)
+      const label = appraisalLabel(a)
+      lines.push(`- [${event.id}] ${formatTime(event.ts)}${label ? `｜${label}` : ''}：${a.feeling}`)
     }
   }
   lines.push(...extra)

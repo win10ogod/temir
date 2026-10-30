@@ -17,7 +17,7 @@
  */
 import { Projection } from '../life/projection.ts'
 import type { LifeStore } from '../life/store.ts'
-import { jaccard, neighbors, termSet, type Experience, type Params } from './jitrl.ts'
+import { neighbors, sameAction, type Experience, type Params } from './jitrl.ts'
 
 export const REPLAY_KIND = 'rd/replay'
 
@@ -39,6 +39,8 @@ export interface ReplayCase {
   readonly judged: readonly string[]
   /** 思考時模型判定做法相同的經驗（選中候選的 sameAs）。 */
   readonly sameAs: readonly string[]
+  /** 思考時列出、逐筆判斷過的經驗（rd/decision 的 shown）；舊紀錄沒有時是空的。 */
+  readonly shown?: readonly string[]
 }
 
 /** 以 i 之前的經驗預測 G_i：有相符的經驗用 Q̂，有相似的處境用 V̂，都沒有就用過去全部回報的平均。 */
@@ -46,10 +48,8 @@ export function predict(cases: readonly ReplayCase[], i: number, params: Params)
   const c = cases[i]!
   const before = cases.slice(0, i).map((x) => x.experience)
   const near = neighbors(c.experience.situation, before, params, c.judged)
-  const terms = termSet(c.experience.action)
-  const matches = near.filter(
-    (n) => c.sameAs.includes(n.experience.id) || (n.experience.kind === c.experience.kind && jaccard(terms, termSet(n.experience.action)) >= params.actionThreshold),
-  )
+  const shown = new Set(c.shown ?? [])
+  const matches = near.filter((n) => sameAction({ action: c.experience.action, kind: c.experience.kind, sameAs: c.sameAs }, n.experience, params, shown))
   const mean = (xs: readonly number[]) => xs.reduce((a, b) => a + b, 0) / xs.length
   if (matches.length > 0) return mean(matches.map((n) => n.experience.ret))
   if (near.length > 0) return mean(near.map((n) => n.experience.ret))

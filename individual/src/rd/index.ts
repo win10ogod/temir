@@ -25,10 +25,11 @@ import type { LifeEvent, LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { latestRoute } from '../integrate/index.ts'
 import { auxRecord, modelCaller, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
-import { clip, clipEnds, sessionSoFar } from '../recall/retrieve.ts'
+import { clip, clipEnds, clipKeepLines, sessionSoFar } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
-import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
-import { ALL_EXCLUDED_NOTE, REVISION_SYSTEM, deliberateSystem, deliberationRetryNote, outcomeRetryNote, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, revisionRetryNote, withoutExclusions } from './aux.ts'
+import { KIND, appraisalText, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
+import { currentProcedure, procedureVersions, type Procedure } from '../self/procedure.ts'
+import { ALL_EXCLUDED_NOTE, deliberateSystem, deliberationRetryNote, outcomeRetryNote, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, revisionRetryNote, revisionSystem, withoutExclusions } from './aux.ts'
 import { DEFAULT_PARAMS, allExcluded, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
 import { adoptedParamsOf } from './replay.ts'
 import {
@@ -91,7 +92,7 @@ export interface Config {
   readonly perPerson?: boolean
   /**
    * 扣除本身會被經驗改變（使用者 2026-10-30；ADR-0002 D20，預設開）：思考時列出過去類似處境中當時扣除的做法；
-   * 被扣除的做法在類似處境中有同類的經驗時，強制個體逐一判斷維持或解除（REVISION_SYSTEM）。消融（patches/no-revision.yml）時回到 D19。
+   * 被扣除的做法在類似處境中做過或扣除過相同的做法時，強制個體逐一判斷維持或解除（revisionSystem）。消融（patches/no-revision.yml）時回到 D19。
    */
   readonly revision?: boolean
 }
@@ -171,17 +172,20 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
     input: string,
     session: string | undefined,
     causes: readonly string[],
+    procedures: readonly Procedure[],
     signal?: AbortSignal,
   ): Promise<string | undefined> {
     const deadline = signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs)
     const model = `${route.provider}/${route.model}`
+    // 輸入保留換行、最多 20000 字：做法的閘門以這些真實的輸入重跑（integrate/procedure-gate.ts；ADR-0008 §3）。
+    const used = { procedures: procedureVersions(procedures), input: clipKeepLines(input, 20_000) }
     try {
       const result = await deps.call(route, system, input, deadline)
-      life.append({ kind: 'memory/aux', origin: 'self', session, model, data: { purpose, ...auxRecord(result), input: clip(input, 8000), output: result.output }, causes })
+      life.append({ kind: 'memory/aux', origin: 'self', session, model, data: { purpose, ...auxRecord(result), ...used, output: result.output }, causes })
       return result.output
     } catch (error) {
       if (!life.isOpen) return undefined
-      life.append({ kind: 'memory/aux', origin: 'self', session, model, data: { purpose, error: String(error), input: clip(input, 8000) }, causes })
+      life.append({ kind: 'memory/aux', origin: 'self', session, model, data: { purpose, error: String(error), ...used }, causes })
       logger.warn('%s call failed: %s', purpose, error)
       return undefined
     }
@@ -219,7 +223,7 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         ...(data.drive ? ['', '## 當時推動你的', data.drive] : []),
         '',
         '## 你當時準備的做法與預測',
-        planned ? `做法：${planned.action}（${planned.kind}）\n預測：${planned.prediction}` : '（沒有）',
+        planned ? `做法：${planned.action}\n預測：${planned.prediction}` : '（沒有）',
         '',
         '## 你實際說了什麼',
         clipEnds(turn.replyText, 1500) || '（沒有說出口的回覆）',
@@ -227,18 +231,19 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         '## 對方接著說了什麼',
         clip(heard, 1500),
       ].join('\n')
-      const system = outcomeSystem(energy)
+      const procedure = currentProcedure(life, 'outcome')
+      const system = outcomeSystem({ procedure, energy })
       const session = decision.session ?? undefined
-      const output = await call('outcome', route, system, input, session, [decision.id])
+      const output = await call('outcome', route, system, input, session, [decision.id], [procedure])
       // 能量開時，released 只能指名輸入中列出的懸著的事（認不得的編號也要重問）。
-      const known = energy ? labels : undefined
-      let parsed = output === undefined ? undefined : parseOutcome(output, known)
+      const options = energy ? { labels, energy } : { energy }
+      let parsed = output === undefined ? undefined : parseOutcome(output, options)
       const problems: string[] = output === undefined ? ['比對的呼叫失敗'] : []
       // 強制判斷：不合格時附上問題重問一次（呼叫失敗時不重問，與思考相同）；仍不合格就記下失敗，不寫 rd/outcome。
       if (parsed && !parsed.ok && life.isOpen) {
         problems.push(...parsed.problems.map((p) => `第 1 次：${p}`))
-        const again = await call('outcome', route, `${system}\n${outcomeRetryNote(parsed.problems)}`, input, session, [decision.id])
-        parsed = again === undefined ? undefined : parseOutcome(again, known)
+        const again = await call('outcome', route, `${system}\n${outcomeRetryNote(parsed.problems)}`, input, session, [decision.id], [procedure])
+        parsed = again === undefined ? undefined : parseOutcome(again, options)
         if (!parsed) problems.push('第 2 次：比對的呼叫失敗')
         else if (!parsed.ok) problems.push(...parsed.problems.map((p) => `第 2 次：${p}`))
       }
@@ -249,16 +254,17 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         return
       }
       const judged = parsed.judgment
-      const { releasedRefs, ...rest } = judged
+      const { releasedRefs, left, gapOnMind, ...rest } = judged
       const releasedItems = resolvePotential(releasedRefs, labels).filter((k) => !k.startsWith('goal:'))
       const outcome: OutcomeData = {
         decision: decision.id,
         ...rest,
+        ...(judged.matched === 'no' && energy ? { gapOnMind } : {}),
         released: unlabel(rest.released, labels, held),
-        left: rest.left.map((l) => unlabel(l.text, labels, held)).join('；'),
+        left: left.map((l) => unlabel(l.text, labels, held)).join('；'),
         ...(() => {
           // 只留新的懸念：與目前懸著的事文字相同的略過（v2：同一件事每次比對都再寫一次，累積到 15 件）。
-          const items = newLeftItems(rest.left.map((l) => ({ text: unlabel(l.text, labels, held), type: l.type })), potentialItems(life))
+          const items = newLeftItems(left.map((l) => ({ text: unlabel(l.text, labels, held), forOther: l.forOther })), potentialItems(life))
           return items.length > 0 ? { leftItems: items } : {}
         })(),
         ...(releasedItems.length > 0 ? { releasedItems } : {}),
@@ -274,16 +280,17 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         text: [provisional && '（暫時的比對：對方還沒有回話）', `預測：${planned?.prediction ?? ''}`, `實際：${judged.actual}`, judged.lesson && `教訓：${judged.lesson}`].filter(Boolean).join('\n'),
         causes: [decision.id],
       })
-      // 行動後果留下的感受（性質 2：經驗評價受 PC 影響；H-M1：情感是被記住的感受）。日常的感受只留在比對紀錄裡；
-      // 值得注意以上的寫成感受紀錄，指向那一回合（對方的話與我的回覆），回憶時會一起帶出；轉折會讓整合以深度模式進行（H4）。
-      if (judged.feeling && judged.significance !== 'daily') {
-        const appraisal: AppraisalData = { feeling: judged.feeling, significance: judged.significance, reappraisal: false }
+      // 行動後果留下的感受（性質 2：經驗評價受 PC 影響；H-M1：情感是被記住的感受）。個體決定要記下的（keepFeeling）
+      // 寫成感受紀錄，指向那一回合（對方的話與我的回覆），回憶時會一起帶出；其餘只留在比對紀錄裡（ADR-0008 §2）。
+      // 要不要重新檢視自己（reconsider，H4）記在比對紀錄上，整合依它決定是否以深度模式提前進行。
+      if (judged.feeling && judged.keepFeeling) {
+        const appraisal: AppraisalData = { feeling: judged.feeling, reappraisal: false, ...(judged.reconsider ? { reconsider: true } : {}) }
         life.append({
           kind: KIND.appraisal,
           origin: 'self',
           session,
           data: { ...appraisal, source: OUTCOME_KIND },
-          text: `我的感受（${SIGNIFICANCE_LABEL[judged.significance]}）：${judged.feeling}`,
+          text: appraisalText(appraisal),
           causes: [...(turn.heard ? [turn.heard.id] : []), ...(turn.reply ? [turn.reply.id] : []), recorded.id],
         })
       }
@@ -327,6 +334,9 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
       const recalledIds = recall && recallData?.mode === 'automatic' && recallData.cue === clip(cue, 500) ? recall.causes : []
       const shown = shownExperiences(experiencesOfRecalled(life, memory, recalledIds), relevantExperiences(cue, memory, 5), 5)
       const labels = new Map(shown.map((e, i) => [`E${i + 1}`, e.id]))
+      // 列出了當時扣除的做法的經驗（renderExperiences 在 revision 開時才列）：思考要逐筆判斷哪個做法與那次扣除的相同（ADR-0008 §2）。
+      const withExcluded = new Set(revision ? shown.flatMap((e, i) => ((e.excludedThen ?? []).length > 0 ? [`E${i + 1}`] : [])) : [])
+      const shownIds = new Set(shown.map((e) => e.id))
       // 懸著的事加上編號，思考才能指名被觸發的是哪一件（self/energy.ts）。
       const potentialView = energy ? presentPotential(life, { labels: true }) : undefined
       const heldNow = potentialView?.shown ?? []
@@ -353,16 +363,18 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         '## 對方剛說的話',
         clip(cue, 3000),
       ].join('\n')
-      const system = deliberateSystem(energy, subtraction, perPerson)
-      const output = await call('deliberate', route, system, input, session, [], signal)
-      const first = output === undefined ? undefined : parseDeliberation(output, labels)
+      const procedures = { deliberate: currentProcedure(life, 'deliberate'), subtract: currentProcedure(life, 'subtract') }
+      const used = subtraction ? [procedures.deliberate, procedures.subtract] : [procedures.deliberate]
+      const system = deliberateSystem({ procedures, energy, subtraction, perPerson })
+      const output = await call('deliberate', route, system, input, session, [], used, signal)
+      const first = output === undefined ? undefined : parseDeliberation(output, labels, withExcluded)
       let parsed = first?.ok ? first.deliberation : undefined
       // 輸出不合格時附上問題重試一次（e2e-37：本機模型有一次只寫了處境與 people，沒有 candidates；
-      // 做法的 kind 認不得也是不合格，程式不替它填「其他」）。呼叫失敗時不重試。
+      // 列出的經驗沒有逐筆判斷也是不合格，D23）。呼叫失敗時不重試。
       if (first && !first.ok && !signal.aborted) {
         const problems = first.problems.map((p) => `第 1 次：${p}`)
-        const again = await call('deliberate', route, `${system}\n${deliberationRetryNote(first.problems)}`, input, session, [], signal)
-        const second = again === undefined ? undefined : parseDeliberation(again, labels)
+        const again = await call('deliberate', route, `${system}\n${deliberationRetryNote(first.problems)}`, input, session, [], used, signal)
+        const second = again === undefined ? undefined : parseDeliberation(again, labels, withExcluded)
         if (second?.ok) parsed = second.deliberation
         else {
           // 仍不合格就照實記下，不做準備，由主模型直接回應。
@@ -378,8 +390,8 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
       // 全部的做法都被扣除時，附上說明重問一次（程式不替個體改選）；重問的輸出不合格時保留第一次的。
       // 仍全部扣除，就照實記下：沒有準備好的做法（chosen＝-1），由主模型在回應時決定。
       if (subtraction && allExcluded(parsed.candidates) && !signal.aborted) {
-        const again = await call('deliberate', route, `${system}\n${ALL_EXCLUDED_NOTE}`, input, session, [], signal)
-        const retried = again === undefined ? undefined : parseDeliberation(again, labels)
+        const again = await call('deliberate', route, `${system}\n${ALL_EXCLUDED_NOTE}`, input, session, [], used, signal)
+        const retried = again === undefined ? undefined : parseDeliberation(again, labels, withExcluded)
         if (retried?.ok) parsed = retried.deliberation
       }
       // 處境、drive、候選與扣除理由都會進入準備訊息與紀錄：把編號換成那件事的描述（編號只在這次思考的輸入中有意義）。
@@ -389,12 +401,13 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
       const near = jitrl ? neighbors(deliberation.situation, memory, params, deliberation.similar) : []
       // D20 第三版：扣除本身會被經驗改變，由個體判斷，但強制判斷（memory.ts 的 exclusionReviews）。
       // 類似處境的經驗：思考時列出的（回憶帶進來的＋詞彙相近的），加上 JitRL 依處境找到的鄰居。
-      const reviews = revision ? exclusionReviews(deliberation.candidates, [...shown, ...near.map((n) => n.experience)]) : []
+      const reviews = revision ? exclusionReviews(deliberation.candidates, [...shown, ...near.map((n) => n.experience)], params, shownIds) : []
       let candidates = deliberation.candidates
       let review: DecisionData['review']
       if (reviews.length > 0) {
         const { text, labels: refLabels } = renderExclusionReview(deliberation.situation, deliberation.candidates, reviews)
-        const answer = await call('revise', route, REVISION_SYSTEM, text, session, [], signal)
+        const revising = revisionSystem(procedures.subtract)
+        const answer = await call('revise', route, revising, text, session, [], [procedures.subtract], signal)
         let judged = answer === undefined ? undefined : parseJudgments(answer, reviews, refLabels)
         // 判斷不合格時，附上缺少的部分重問一次；仍不合格就照實記下（兩次的問題都留著），維持原本的扣除。
         const problems: string[] = []
@@ -402,7 +415,7 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         else if (!judged.ok) {
           problems.push(...judged.problems.map((p) => `第 1 次：${p}`))
           if (!signal.aborted) {
-            const again = await call('revise', route, `${REVISION_SYSTEM}\n${revisionRetryNote(judged.problems)}`, text, session, [], signal)
+            const again = await call('revise', route, `${revising}\n${revisionRetryNote(judged.problems)}`, text, session, [], [procedures.subtract], signal)
             judged = again === undefined ? undefined : parseJudgments(again, reviews, refLabels)
             if (!judged) problems.push('第 2 次：判斷的呼叫失敗')
             else if (!judged.ok) problems.push(...judged.problems.map((p) => `第 2 次：${p}`))
@@ -411,7 +424,7 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         if (judged?.ok) candidates = applyJudgments(candidates, judged.judgments)
         review = { required: reviews.length, ...(judged?.ok ? {} : { failed: problems.join('；') }) }
       }
-      const correction = jitrl ? correct(candidates, near, params) : uncorrected(candidates)
+      const correction = jitrl ? correct(candidates, near, params, Math.random, shownIds) : uncorrected(candidates)
       const chosen = correction.scored[correction.chosen]
       const data: DecisionData = {
         cue: clip(cue, 500),
@@ -432,6 +445,7 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         params,
         selfVersion: currentSelfModel(life)?.version ?? 0,
         narrativeVersion: currentNarrative(life)?.version ?? 0,
+        procedures: procedureVersions(used),
       }
       life.append({
         kind: DECISION_KIND,

@@ -31,10 +31,28 @@ export interface Health {
   shown: number
   judgedNeighbors: number
   uncovered: number
-  /** 候選：總數、sameAs 非空、JitRL 有相符的鄰居（support > 0）。 */
+  /** 候選：總數、sameAs 非空、sameExcluded 非空（ADR-0008）、JitRL 有相符的鄰居（support > 0）。 */
   candidates: number
   sameAs: number
+  sameExcluded: number
   supported: number
+  /** 需要強制判斷的扣除（D20 第三版）：有需要判斷的決定數、需要判斷的扣除數。 */
+  reviewedDecisions: number
+  reviewsRequired: number
+  /**
+   * ADR-0008 的強制判斷（dev15 規格，描述性）：有感受的比對與其中要記下的、要重新檢視自己的、預測落空與其中會掛心的、
+   * 拒絕或不同意的、留下的懸念與其中推動我對對方做什麼的。
+   */
+  feelings: number
+  keptFeelings: number
+  reconsider: number
+  missed: number
+  gapOnMind: number
+  declined: number
+  leftItems: number
+  forOther: number
+  /** 紀錄中沿用寫死類別的欄位（候選的 kind、比對的 didKind 與 significance、懸念的 type、感受的 significance）；dev15 起應為 0。 */
+  legacyFields: number
   /** 輔助呼叫（全部目的）：次數、有 usage 的、finish 的分布、usage 有思考 token 的次數與合計、思考的字數（reasoningChars）合計。 */
   auxCalls: number
   auxWithUsage: number
@@ -48,7 +66,8 @@ export function emptyHealth(): Health {
   return {
     deliberateCalls: 0, deliberateErrors: 0, deliberateRetries: 0, deliberateRetryReasons: {}, decisions: 0, deliberationFailed: 0,
     outcomeCalls: 0, outcomeErrors: 0, outcomeRetries: 0, outcomeRetryReasons: {}, outcomes: 0, outcomeFailed: 0,
-    withShown: 0, shown: 0, judgedNeighbors: 0, uncovered: 0, candidates: 0, sameAs: 0, supported: 0,
+    withShown: 0, shown: 0, judgedNeighbors: 0, uncovered: 0, candidates: 0, sameAs: 0, sameExcluded: 0, supported: 0, reviewedDecisions: 0, reviewsRequired: 0,
+    feelings: 0, keptFeelings: 0, reconsider: 0, missed: 0, gapOnMind: 0, declined: 0, leftItems: 0, forOther: 0, legacyFields: 0,
     auxCalls: 0, auxWithUsage: 0, finish: {}, withReasoningTokens: 0, reasoningTokens: 0, reasoningChars: 0,
   }
 }
@@ -66,7 +85,20 @@ interface AuxData {
 interface DecisionLike {
   readonly shown?: Readonly<Record<string, string>>
   readonly neighbors?: readonly { readonly judged?: boolean }[]
-  readonly candidates: readonly { readonly sameAs?: readonly string[]; readonly support?: number }[]
+  readonly candidates: readonly { readonly sameAs?: readonly string[]; readonly sameExcluded?: readonly string[]; readonly support?: number; readonly kind?: string }[]
+  readonly review?: { readonly required: number }
+}
+
+interface OutcomeLike {
+  readonly feeling?: string
+  readonly keepFeeling?: boolean
+  readonly reconsider?: boolean
+  readonly matched?: string
+  readonly gapOnMind?: boolean
+  readonly declined?: boolean
+  readonly didKind?: string
+  readonly significance?: string
+  readonly leftItems?: readonly { readonly forOther?: boolean; readonly type?: string }[]
 }
 
 /** 經驗編號對應到假的 id（只為了重新解析）。 */
@@ -166,17 +198,43 @@ export function addHealth(h: Health, rows: readonly LifeRow[]): Health {
         if (!sinceDecision.some((o) => { const answered = experiencesIn(o); return labels.every((l) => answered.has(l)) })) h.uncovered++
       }
       sinceDecision = []
+      if ((d.review?.required ?? 0) > 0) {
+        h.reviewedDecisions++
+        h.reviewsRequired += d.review!.required
+      }
       for (const c of d.candidates) {
         h.candidates++
         if ((c.sameAs ?? []).length > 0) h.sameAs++
+        if ((c.sameExcluded ?? []).length > 0) h.sameExcluded++
         if ((c.support ?? 0) > 0) h.supported++
+        if (c.kind !== undefined) h.legacyFields++
       }
     } else if (row.kind === 'rd/deliberation-failed') {
       h.deliberationFailed++
       classify((a) => listedLabels(a.input ?? ''))
       sinceDecision = []
     }
-    else if (row.kind === 'rd/outcome') h.outcomes++
+    else if (row.kind === 'rd/outcome') {
+      const o = row.data as OutcomeLike
+      h.outcomes++
+      if (o.feeling) {
+        h.feelings++
+        if (o.keepFeeling) h.keptFeelings++
+      }
+      if (o.reconsider) h.reconsider++
+      if (o.matched === 'no') {
+        h.missed++
+        if (o.gapOnMind) h.gapOnMind++
+      }
+      if (o.declined) h.declined++
+      for (const l of o.leftItems ?? []) {
+        h.leftItems++
+        if (l.forOther) h.forOther++
+        if (l.type !== undefined) h.legacyFields++
+      }
+      if (o.didKind !== undefined) h.legacyFields++
+      if (o.significance !== undefined) h.legacyFields++
+    } else if (row.kind === 'appraisal' && (row.data as { significance?: string }).significance !== undefined) h.legacyFields++
     else if (row.kind === 'rd/outcome-failed') h.outcomeFailed++
   }
   classify((a) => listedLabels(a.input ?? ''))
@@ -195,7 +253,7 @@ function experiencesIn(output: string): Set<string> {
   }
 }
 
-export const HEALTH_KINDS = ['memory/aux', 'rd/decision', 'rd/deliberation-failed', 'rd/outcome', 'rd/outcome-failed'] as const
+export const HEALTH_KINDS = ['memory/aux', 'rd/decision', 'rd/deliberation-failed', 'rd/outcome', 'rd/outcome-failed', 'appraisal'] as const
 
 /** 預先登記的機制門檻（dev14 規格）：沒有結果的思考與事後比對，各不超過 5%。 */
 export function healthVerdict(h: Health): { readonly deliberation: boolean; readonly outcome: boolean; readonly coverage: boolean } {

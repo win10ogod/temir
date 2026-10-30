@@ -60,3 +60,19 @@ test('health: retries, failures, D23 coverage and aux records are counted per li
   assert.deepEqual(healthVerdict(h), { deliberation: false, outcome: false, coverage: true }, '1 of 2 is above 5%')
   assert.deepEqual(healthVerdict(emptyHealth()), { deliberation: true, outcome: true, coverage: true })
 })
+
+test('health (dev15): the ADR-0008 judgments are counted, and any field of the old fixed categories is flagged', () => {
+  const rows: LifeRow[] = [
+    { kind: 'rd/decision', data: { review: { required: 2 }, candidates: [{ sameAs: [], sameExcluded: ['l:a'] }, { sameAs: ['l:b'] }] } },
+    { kind: 'rd/outcome', data: { feeling: '有點失落', keepFeeling: true, reconsider: false, matched: 'no', gapOnMind: true, declined: true, leftItems: [{ text: 'a', forOther: true }, { text: 'b', forOther: false }] } },
+    { kind: 'rd/outcome', data: { feeling: '', reconsider: true, matched: 'yes', declined: false } },
+    // 舊的類別：候選的 kind、比對的 didKind 與 significance、懸念的 type、感受的 significance。
+    { kind: 'rd/decision', data: { candidates: [{ kind: '建議' }] } },
+    { kind: 'rd/outcome', data: { didKind: '建議', significance: 'daily', leftItems: [{ text: 'c', type: 'promise' }] } },
+    { kind: 'appraisal', data: { feeling: 'x', significance: 'notable' } },
+  ]
+  const h = addHealth(emptyHealth(), rows)
+  assert.deepEqual([h.feelings, h.keptFeelings, h.reconsider, h.missed, h.gapOnMind, h.declined, h.leftItems, h.forOther], [1, 1, 1, 1, 1, 1, 3, 1])
+  assert.deepEqual([h.sameExcluded, h.reviewedDecisions, h.reviewsRequired], [1, 1, 2])
+  assert.equal(h.legacyFields, 5)
+})

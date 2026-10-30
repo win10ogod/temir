@@ -125,3 +125,22 @@ test('initiative relay: collects what the individual said in the turn its though
   assert.deepEqual(r.observe('s1', { type: 'turn/end', data: { turn: 4 } }), { thought: 'l:thought', text: '我想到一個名字：柳丁。\n\n你覺得呢？' })
   assert.equal(r.observe('s1', { type: 'turn/end', data: { turn: 4 } }), undefined, 'delivered once')
 })
+
+test('temir-thought: automatic false only stops idle thoughts; the IM relay for initiatives is still registered (e2e-38)', async () => {
+  const { apply } = await import('../src/thought/index.ts')
+  const home = mkdtempSync(join(tmpdir(), 'temir-thought-'))
+  const life = LifeStore.open(home)
+  try {
+    // 測試替身（單元測試專用）：只記下註冊了哪些事件的最小 ctx。
+    const events: string[] = []
+    const ctx = { life, on: (name: string) => void events.push(name), get: () => undefined, logger: () => ({ info() {}, warn() {}, error() {} }), effect() {} }
+    apply(ctx as never, { automatic: false, imTargets: [{ botId: 'b', targetId: 't' }] })
+    assert.deepEqual(events, ['session/event'])
+    events.length = 0
+    apply(ctx as never, { automatic: false })
+    assert.deepEqual(events, [], 'no targets, no relay')
+  } finally {
+    life.close()
+    rmSync(home, { recursive: true, force: true })
+  }
+})

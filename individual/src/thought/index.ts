@@ -56,10 +56,32 @@ interface DshIm {
 const relay = new InitiativeRelay()
 
 /**
+ * 對話的 agent：還在記憶體中就直接用；不在時（例如 DSH 重啟之後），透過 Web host 的 sessionController.resolveAgent 重新載入。
+ * - 這是 DSH 給其他 Host API 領域用的方法（dsh-api-session-controller：「Resolve or resume one ordinary Session for another
+ *   Host API domain」）。
+ * - 擁有權仍屬於 session controller，dsh-im 之後送進來的訊息用的是同一個 agent。
+ * - headless 與 SDK 沒有這個服務，照舊回報不在。
+ * e2e-38：DSH 重啟之後，原本是「最近的對話已經不在，沒有地方可以開口」。
+ */
+async function liveAgent(ctx: Context, session: string): Promise<Agent | undefined> {
+  const live = (ctx.get('agents') as { get(id: string): Agent | undefined } | undefined)?.get(session)
+  if (live) return live
+  const controller = ctx.get('sessionController') as { resolveAgent(id: string): Promise<{ readonly agent?: Agent; readonly error?: unknown }> } | undefined
+  if (!controller) return undefined
+  try {
+    const result = await controller.resolveAgent(session)
+    return result.agent
+  } catch (error) {
+    ctx.logger('temir-thought').warn('could not resume session %s: %s', session, error)
+    return undefined
+  }
+}
+
+/**
  * 主動開口：在最近一段對話中，以念頭發起一個回合；照實記下送出與否（self/initiative）。
  * agent 以 session id 取得、閒置時才 followup（與 dsh-tool-jobs 叫醒 agent 的方式相同）。
  */
-export function deliverInitiative(ctx: Context, thoughtId: string): InitiativeData | undefined {
+export async function deliverInitiative(ctx: Context, thoughtId: string): Promise<InitiativeData | undefined> {
   const life = ctx.life
   const t = life.get(thoughtId)?.data as ThoughtData | undefined
   if (!t?.now || !t.intention) return undefined
@@ -71,7 +93,8 @@ export function deliverInitiative(ctx: Context, thoughtId: string): InitiativeDa
   }
   const pace = mayInitiate(life)
   if (!pace.ok) return record(false, pace.reason)
-  const agent = session ? (ctx.get('agents') as { get(id: string): Agent | undefined } | undefined)?.get(session) : undefined
+  const agent = session ? await liveAgent(ctx, session) : undefined
+  if (!life.isOpen) return undefined
   if (!agent) return record(false, '最近的對話已經不在，沒有地方可以開口')
   if (agent.status !== 'idle') return record(false, '對話正在進行中')
   const data = record(true)
@@ -82,9 +105,9 @@ export function deliverInitiative(ctx: Context, thoughtId: string): InitiativeDa
 }
 
 export function apply(ctx: Context, config: Config | undefined): void {
-  if (config?.automatic === false) return
   const life = ctx.life
   // 主動開口那一回合結束後，送到設定的 IM 目標（dsh-im 沒有載入時照實記下）。
+  // automatic: false 只關閉閒置時的念頭，不關閉投遞：e2e-38 中關了 automatic，relay 也沒有註冊，主動開口沒有送到 IM。
   const targets = config?.imTargets ?? []
   if (targets.length > 0) {
     ctx.on('session/event', (session: Session, event: SessionEvent) => {
@@ -106,6 +129,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
       }
     })
   }
+  if (config?.automatic === false) return
   const logger = ctx.logger('temir-thought')
   const checkMs = (config?.checkMinutes ?? 5) * 60_000
   const idleMs = (config?.idleMinutes ?? 15) * 60_000
@@ -125,7 +149,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
       life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'thought', ms: call.ms, retried: call.retried, effort: call.effort, reasoningChars: call.reasoningChars, input: clip(input, 8000), output: call.output } })
       const judged = parseThought(call.output)
       const id = judged ? life.transaction(() => recordThought(life, judged, labels, model)) : undefined
-      if (id && judged?.now && (config?.spontaneous ?? true)) deliverInitiative(ctx, id)
+      if (id && judged?.now && (config?.spontaneous ?? true)) await deliverInitiative(ctx, id)
     } catch (error) {
       if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'thought', error: String(error), input: clip(input, 8000) } })
       logger.warn('thought failed: %s', error)

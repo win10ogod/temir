@@ -58,3 +58,14 @@
 - DSH 的程序要還在、那段對話的 agent 還在記憶中。DSH 重啟後，要等那段對話再被打開，個體才能在裡面開口；
   在背景自己 resume 一段對話需要完整的 agent 組裝（session controller 的 composeAgent），容易得到缺工具的 agent，所以不做。
   一次性的 headless 執行沒有閒置時間。
+
+## 2026-10-30：DSH 重啟之後也能開口；關閉自動念頭時仍轉送到 IM（e2e-38）
+
+- **DSH 重啟之後**：
+  - 最近的那段對話不在記憶體中，主動開口原本記為「最近的對話已經不在」。
+  - 改為先透過 Web host 的 `sessionController.resolveAgent` 重新載入。這是 DSH 給其他 Host API 領域用的方法，擁有權仍屬於 session controller。
+  - headless 與 SDK 沒有這個服務，照舊照實記下。
+- **`automatic: false`**：原本整個插件直接返回，連 IM 的 relay 都沒有註冊。改為只關閉閒置時的念頭，投遞照常（單元測試）。
+- e2e-38（Telegram，測試生命；念頭由標明的測試替身寫下）：重新載入之後，主動開口 `delivered: true`，個體說了「這是一則測試，確認我主動開口時，IM 也收得到。」。
+  - 那一次因為 relay 沒有註冊，沒有送到 Telegram；修正之後的轉送見 session log。
+

@@ -233,6 +233,13 @@
   - 重算：以既有的 items（rdv4h1–h3）重算的 R4A、R4C 數字與 `experiments/results/rd-v4/pooled.json` 相同；以 pooled.json 的機制數字產生的 pooled.md 與既有的逐字相同。R4M 要讀生命日誌，雲端沒有，**機制部分待使用者在本機重跑確認**（`node experiments/eval/pool-rd.ts rd-v4 rdv4h1,rdv4h2,rdv4h3 --out <暫存目錄>`，再與既有檔案比較）。
   - 測試：三個判定的表驅動測試（含 INCOMPLETE 的邊界）、機制統計、契約檢查、重算。
 - [x] 第 9 項：清理 D20 的殘留。`Candidate.revised` 改註明為舊紀錄的相容欄位（現行的是 `judgment`）；`parseDeliberation`、`mapDeliberationText`、`renderPreparation` 的 revised 分支註明用途、行為不變；`rd1-describe.ts` 改用第 8 項的共用模組，統計強制判斷（required、lift、keep、不合格），revised 只在舊紀錄有時列出。`rd.test.ts` 中舊紀錄可解析的那一則保留。
+- [x] 第 10 項：程序管理。
+  - `cli/host.ts`：PID 檔記下 PID 與 /proc 的開始時間，結束前確認是同一個程序（PID 被重用時不結束），連同程序群組結束；不再用 `pgrep -f`。
+  - `scripts/host.sh start|stop|status|telegram-bind`：PID、log、cookie 與網址放在 `$TEMIR_CACHE/run/`（700）；以 setsid 背景啟動 `dsh web --no-open`，從輸出的啟動網址取 token，以 `/connect?token=` 換 cookie（600），token 不印出（DSH 自己的 log 中仍有，log 是 600）。
+  - `experiments/runner/batch.sh`：每個 cell 的 run.ts 寫 PID 檔（`$TEMIR_CACHE/run/batch-<名稱>/`），結束後移除。
+  - Telegram 綁定：照 dsh-im 5.8.0 的管理 API 與驗證規則（讀 npm 發布的套件原始碼；`bot.bind-credentials`、`bot.access-policy.set`）建構 payload，綁定後立刻設為安全模式（私聊只允許使用者、群組全部拒絕）；token 與 User ID 只從環境變數讀，輸出只有遮罩。產生的 policy 另以 dsh-im 自己的 `validateAccessPolicy` 確認可接受（一次性檢查，沒有放進 repo）。
+  - 測試：`individual/test/host.test.ts`（真的程序：PID 讀寫、不存在與被重用的 PID、程序群組；`host.sh stop/status` 對不存在的 PID 安全結束；fetch 的測試替身：/connect、綁定流程）。
+  - **未驗證**：真正的啟動、換 cookie 與綁定要由使用者在本機確認；`dsh web` 印出啟動網址的格式只依 DSH 的原始碼推定（網址帶 `token` 參數），沒有實際跑過。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID

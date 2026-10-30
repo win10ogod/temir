@@ -11,7 +11,10 @@
 - [x] `temir-life`：只增生命日誌、收錄全部 session 事件、CJK 二字組＋porter 檢索（驗證：11 個單元測試；e2e 日誌檢查）
 - [x] `temir-self`：處境描述（取消 DSH 預設角色）、自我狀態快照、self_revise／goal／appraise（驗證：e2e 中個體自發使用 appraise；系統提示內容檢查）
 - [x] `temir-recall`：每步自動回憶＋recall 工具；記憶工具結果不再被索引（驗證：跨 session 回答正確且日誌顯示來源為自動回憶；跨模型 DeepSeek→EVE-27B 延續）
-- [~] Web：DSH Web UI 帶個體插件可啟動（驗證：`dsh web` 啟動、temir-life 寫入啟動事件）；**透過 Web 實際對話尚未驗證**
+- [x] Web：DSH Web UI 帶個體插件可啟動，也可以實際對話。
+  - 2026-10-30 e2e-34：透過 DSH Web 介面本身用的 API（`/connect` 換 cookie，`session/create`、`session/prompt`）；
+  - 第一段對話自我介紹，新的一段對話中個體記得「你叫阿哲，在桃園的物流倉庫上班」；
+  - 兩段都有 RD 的思考；profile 同時載入了 dsh-im。
 - [x] 互動式 CLI：`scripts/temir.sh chat`（DSH SDK 協定；續談、換模型、工具審核、個體提問；驗證見 session log 02）
 - [x] `kill -9` 中斷恢復測試（驗證：10 步 bash 任務做到第 6 步時終止整個程序群組；生命日誌 integrity_check ok；以 `--session-id` 續談後個體檢查實際狀態、不重做已完成的 b6，完成 b7–b10，10 個檔案內容正確；session log 01）
 

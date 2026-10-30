@@ -21,9 +21,9 @@ export const KINDS = ['回答', '提問', '建議', '拒絕', '使用工具', '�
  * subtraction＝RD 的扣除（H0「−」，ADR-0002 D15）；消融（patches/no-subtraction.yml）關閉時見 withoutSubtraction。
  * perPerson＝相關的記憶逐一檢查每一個人（ADR-0002 D17；dev6 q11、q51：記得對方的過敏，思考時卻只寫了她在戒糖）。
  */
-export function deliberateSystem(energy = true, subtraction = true, perPerson = true, revision = true): string {
+export function deliberateSystem(energy = true, subtraction = true, perPerson = true): string {
   const prompt = `你是一個人工個體，在回應之前先思考與準備：理解眼前的處境，想出幾個可能的做法，預測各自的後果；再依預測、過去類似處境的結果與你在乎的事，扣除不該做的做法，剩下的才會成為行動。依你自己的價值、目標與經驗判斷；你可以照對方的要求做，也可以提問、表達不同意或拒絕。只輸出一個 JSON 物件，不要任何其他文字：
-{"situation": "...", "drive": "...", "activated": [], "similar": [], "people": [], "candidates": [{"action": "...", "kind": "...", "prediction": "...", "confidence": 50, "sameAs": [], "excluded": false, "reason": "", "revised": ""}]}
+{"situation": "...", "drive": "...", "activated": [], "similar": [], "people": [], "candidates": [{"action": "...", "kind": "...", "prediction": "...", "confidence": 50, "sameAs": [], "excluded": false, "reason": ""}]}
 - situation：用固定的格式描述眼前的處境，讓日後相似的處境寫出來也相似：「對方：…｜對方的意圖：…｜對方的情緒：…｜話題：…｜相關的記憶：…」。只寫事實，不寫建議；不要寫你自己的紀錄有多少、有沒有自我模型這類與處境無關的事。
   - 相關的記憶：逐一檢查對方自己（對方通常也在場），以及對方這次提到的每一個人：每個人與這次有關的事實（例如各自的健康、限制、偏好）都要寫，不要只寫最先想到的那一個人或那一件事。
 - drive：此刻推動你行動的是什麼：對方的話裡的什麼，以及你的目標或「懸著的事」中被這個處境觸發的那幾件。一句話，用文字說明是哪一件，不要寫編號（編號寫在 activated）；寫的是動機，不是做法。
@@ -38,12 +38,9 @@ export function deliberateSystem(energy = true, subtraction = true, perPerson = 
   - sameAs：「過去類似處境的經驗」中，當時採取的做法與這個做法實質上相同的經驗編號（例如 "E2"）。只是處境相似、或做法相反，都不算；沒有就給空陣列。
   - excluded：想過這個做法的預期後果、過去類似處境的結果，以及你在乎的事之後，是否要把它扣除、不做：true 或 false。至少保留一個不扣除的做法。
   - reason：扣除的理由，一句話；沒有扣除就給空字串。
-  - 扣除本身也會被經驗改變：「過去類似處境的經驗」列出了當時扣除的做法（「當時扣除」），以及扣除之後實際做了什麼、結果如何、當時的預測有沒有成真。扣除之後預測沒有成真，或結果不好時，重新檢視當時扣除的理由還成不成立，不要只因為當時扣除過就照舊扣除；預測成真、結果也好時，可以照舊。要不要改變，由你判斷。
-  - revised：這個做法的扣除與否，是不是因為過去類似處境的經驗而和當時不同（例如 E2 當時扣除了它，扣除之後的結果不好，這次不扣除）：一句話說明是哪一次經驗、為什麼改變；沒有就給空字串。
 - 一律使用原文的語言與字體：原文是繁體中文就寫繁體中文，不要轉成簡體。`
   const withEnergy = energy ? prompt : withoutEnergy(prompt, ['drive', 'activated'])
-  const withRevision = revision && subtraction ? withEnergy : withoutRevision(withEnergy)
-  const withSubtraction = subtraction ? withRevision : withoutSubtraction(withRevision)
+  const withSubtraction = subtraction ? withEnergy : withoutSubtraction(withEnergy)
   return perPerson ? withSubtraction : withoutPerPerson(withSubtraction)
 }
 
@@ -94,15 +91,6 @@ export function withoutPerPerson(prompt: string): string {
     .join('\n')
 }
 
-/** 拿掉「扣除本身會被經驗改變」（D20）：那一句與 revised 欄位，回到 D19 的寫法；其餘完全相同。 */
-function withoutRevision(prompt: string): string {
-  return prompt
-    .replace(', "revised": ""', '')
-    .split('\n')
-    .filter((line) => !line.startsWith('  - 扣除本身也會被經驗改變：') && !line.startsWith('  - revised：'))
-    .join('\n')
-}
-
 /** 拿掉 RD 的扣除：「扣除不該做的做法」那一句與 excluded、reason 兩個欄位，回到 D15 之前的寫法；其餘完全相同。 */
 function withoutSubtraction(prompt: string): string {
   return prompt
@@ -114,16 +102,31 @@ function withoutSubtraction(prompt: string): string {
 }
 
 /** 消融：關閉扣除時丟掉模型仍可能寫出的扣除，選擇回到全部候選中分數最高的。 */
-/** 消融：關閉 D20 時丟掉模型仍可能寫出的 revised。 */
-export function withoutRevised(d: Deliberation): Deliberation {
-  return { ...d, candidates: d.candidates.map(({ revised: _revised, ...c }) => c) }
-}
-
 export function withoutExclusions(d: Deliberation): Deliberation {
   return { ...d, candidates: d.candidates.map((c) => ({ action: c.action, kind: c.kind, prediction: c.prediction, confidence: c.confidence, sameAs: c.sameAs })) }
 }
 
 export const DELIBERATE_SYSTEM = deliberateSystem(true)
+
+/**
+ * D20 第三版：扣除本身會被經驗改變，由模型判斷，但**強制判斷**（使用者 2026-10-30「應該交給模型判斷設計沒問題,
+ * 有問題的是沒有作強制要求判斷」）。程式找出需要判斷的扣除（memory.ts 的 exclusionReviews），這個提示要求逐一作答，
+ * 答案由 parseJudgments 驗證；缺了就附上缺少的部分再問一次。
+ */
+export const REVISION_SYSTEM = `你是一個人工個體。你剛才在行動前的思考中扣除了一些做法。扣除本身會被經驗改變：下面列出每一個被扣除的做法，以及類似處境中與它同一類的經驗（當時扣除了同類做法、或做了同類做法，之後發生了什麼、當時的預測有沒有成真）。
+對每一個列出的做法，你都必須明確判斷：維持扣除（keep），或依經驗解除扣除（lift）。依你自己的價值與經驗判斷；兩種答案都可以，但不能不判斷。
+只輸出一個 JSON 物件，不要任何其他文字：
+{"judgments": [{"candidate": 1, "decision": "keep", "why": "一句話", "refs": ["X1"]}]}
+- candidate：做法的編號（列表中的數字）。每一個列出的做法剛好一筆。
+- decision：keep 或 lift。
+- why：一句話的理由，說明你依據哪一次經驗、為什麼這樣判斷。
+- refs：你依據的經驗編號（列表中的 X 編號），至少一個。
+- 一律使用原文的語言與字體：原文是繁體中文就寫繁體中文。`
+
+/** 判斷不合格時重問一次所附的說明，列出缺少或不合格的部分。 */
+export function revisionRetryNote(problems: readonly string[]): string {
+  return `（重寫一次：上一次的判斷不完整。每一個列出的做法都要剛好一筆判斷，decision 只能是 keep 或 lift，why 不能是空的，refs 要引用列出的 X 編號。不合格的地方：${problems.join('；')}）`
+}
 
 /** 思考的輸出無法解析時，重試一次所附的說明（不同模型照格式的能力不同；插件不能只對某些模型有效）。 */
 export const DELIBERATION_RETRY_NOTE = '（重寫一次：上一次的輸出不是完整的 JSON 物件，或缺少 candidates。只輸出一個完整的 JSON 物件，candidates 剛好 3 個做法。）'

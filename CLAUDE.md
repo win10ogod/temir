@@ -15,7 +15,11 @@
 1. **證據優先**。每個演算法都要能追到論文 TeX 節號／方程式，或 `file:line@commit`；不從 README 或摘要推測。論文的演算法與本專案的延伸要分開標示。
 2. **不用 mock 充當完成**。測試替身只能出現在單元測試並明確標示；端到端驗收一律用真實 API（DeepSeek）。沒跑過就寫「未驗證」。
    - Nemotron 不再使用：使用者 2026-10-29「沒必要再用 Nemotron 了，因為證明這樣的差異不大」。
-   - 本機模型（`http://localhost:8000/v1`）是可選的第二個模型：使用者 2026-10-30「有本地模型可以測試(但這不是必要的環節只是有會更好, 避免插件只對某些模型效果特別好)」。2026-10-29 曾說不再使用，以這句為準。
+   - 本機模型不再測試：使用者 2026-10-30「不用測本機用ds就行了, 你純粹是設計錯誤導致依賴模型性能和習慣」。同日稍早曾說可選測試，以這句為準；之前的本機結果見 rd-v3、dev10、dev11。
+   - **判斷交給模型，但要強制判斷**：使用者 2026-10-30「應該交給模型判斷設計沒問題, 有問題的是沒有作強制要求判斷」。
+     - 機制需要的判斷，不能寫成模型「可以」做的提示或選填欄位。
+     - 由程式決定何時需要判斷，模型必須逐一明確作答；程式驗證答案，缺了就要求重答。
+     - 判斷的內容由模型決定，程式不替它決定。
    - **不關思考**：使用者 2026-10-30「不關思考, 沒法處理思考就是你亂搞」。
      - 個體的模型呼叫一律不關閉思考，輔助呼叫用不關閉思考的最低等級（`recall/aux.ts` 的 `auxEffort`）。
      - 思考內容由 DSH 解析成 reasoning 區塊，不得混進回覆或輔助呼叫的輸出。
@@ -48,8 +52,7 @@ TEMIR_MODEL=local scripts/dsh.sh web --no-open   # 改用本機模型、開 Web 
 - 個體的程式碼是 TypeScript，由 Node 24 直接剝除型別執行（只能用可擦除語法；相對 import 要寫 `.ts`）。
 - F: 只剩約 15GB：DSH 執行期、TypeScript、生命資料、DSH home 都在 `~/.cache/temir` 或 `~/.local/share/temir`。
 - 模型端點：DeepSeek（預設；`deepseek-flash`、`deepseek-v4-pro`）。
-  - 本機 `http://localhost:8000/v1`（sglang；2026-10-30 起是 `Qwen3.8-Flash-Next`，`dsh/local-model.patch.yml`；harness 的模型名 `local`）：可選的第二個模型（規則 2）。
-    - 思考內容在串流的 `delta.reasoning`，pi-ai 會解析成 reasoning 區塊。
+  - 本機 `http://localhost:8000/v1`（sglang `Qwen3.8-Flash-Next`，`dsh/local-model.patch.yml`；harness 的模型名 `local`）：保留設定檔，依規則 2 不再測試。
   - OpenRouter NVIDIA Nemotron（`dsh/openrouter-model.patch.yml`；付費 bf16 經代理 `experiments/runner/openrouter-pin.ts` 與 `dsh/openrouter-bf16.patch.yml`）：保留設定檔，依規則 2 不再使用。
 
 ## 目錄

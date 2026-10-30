@@ -24,7 +24,7 @@ import { callModel, type AuxRoute } from '../recall/aux.ts'
 import { clip, clipEnds, sessionSoFar } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
-import { DELIBERATION_RETRY_NOTE, deliberateSystem, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, withoutExclusions, withoutRevised } from './aux.ts'
+import { DELIBERATION_RETRY_NOTE, REVISION_SYSTEM, deliberateSystem, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, revisionRetryNote, withoutExclusions } from './aux.ts'
 import { DEFAULT_PARAMS, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
 import { REPLAY_KIND, adoptedParams } from './replay.ts'
 import {
@@ -34,7 +34,11 @@ import {
   experiencesOfRecalled,
   decisionTurn,
   openDecision,
+  applyJudgments,
+  exclusionReviews,
+  parseJudgments,
   relevantExperiences,
+  renderExclusionReview,
   shownExperiences,
   renderExperiences,
   renderPreparation,
@@ -78,8 +82,8 @@ export interface Config {
   /** 相關的記憶逐一檢查每一個人（ADR-0002 D17，預設開；消融時關閉）。 */
   readonly perPerson?: boolean
   /**
-   * 扣除本身會被經驗改變（使用者 2026-10-30；ADR-0002 D20，預設開）：思考時列出過去類似處境中當時扣除的做法，
-   * 個體可依扣除之後的結果改變扣除，並寫下 revised。消融（patches/no-revision.yml）時回到 D19。
+   * 扣除本身會被經驗改變（使用者 2026-10-30；ADR-0002 D20，預設開）：思考時列出過去類似處境中當時扣除的做法；
+   * 被扣除的做法在類似處境中有同類的經驗時，強制個體逐一判斷維持或解除（REVISION_SYSTEM）。消融（patches/no-revision.yml）時回到 D19。
    */
   readonly revision?: boolean
 }
@@ -117,7 +121,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
   )
 
   async function call(
-    purpose: 'deliberate' | 'outcome',
+    purpose: 'deliberate' | 'outcome' | 'revise',
     route: AuxRoute,
     system: string,
     input: string,
@@ -299,7 +303,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
           '## 對方剛說的話',
           clip(cue, 3000),
         ].join('\n')
-        const system = deliberateSystem(energy, subtraction, perPerson, revision)
+        const system = deliberateSystem(energy, subtraction, perPerson)
         const output = await call('deliberate', route, system, input, session, [], payload.signal)
         let parsed = output === undefined ? undefined : parseDeliberation(output, labels)
         // 輸出不完整時重試一次（e2e-37：本機模型有一次只寫了處境與 people，沒有 candidates）。呼叫失敗時不重試。
@@ -310,16 +314,34 @@ export function apply(ctx: Context, config: Config | undefined): void {
         if (!parsed) return decision
         // 處境、drive、候選與扣除理由都會進入準備訊息與紀錄：把編號換成那件事的描述（編號只在這次思考的輸入中有意義）。
         // dev5：處境寫著「她欠我回覆的：…（P1」，主模型的推理跟著寫「不該再讓 P1、P2 無限懸著」。
-        const deliberation = mapDeliberationText(subtraction ? (revision ? parsed : withoutRevised(parsed)) : withoutExclusions(parsed), (s) => unlabel(s, potentialLabels, heldNow))
+        const deliberation = mapDeliberationText(subtraction ? parsed : withoutExclusions(parsed), (s) => unlabel(s, potentialLabels, heldNow))
 
         const near = jitrl ? neighbors(deliberation.situation, memory, params, deliberation.similar) : []
-        const correction = jitrl ? correct(deliberation.candidates, near, params) : uncorrected(deliberation.candidates)
+        // D20 第三版：扣除本身會被經驗改變，由個體判斷，但強制判斷（memory.ts 的 exclusionReviews）。
+        // 類似處境的經驗：思考時列出的（回憶帶進來的＋詞彙相近的），加上 JitRL 依處境找到的鄰居。
+        const reviews = revision ? exclusionReviews(deliberation.candidates, [...shown, ...near.map((n) => n.experience)]) : []
+        let candidates = deliberation.candidates
+        let review: DecisionData['review']
+        if (reviews.length > 0) {
+          const { text, labels: refLabels } = renderExclusionReview(deliberation.situation, deliberation.candidates, reviews)
+          let answer = await call('revise', route, REVISION_SYSTEM, text, session, [], payload.signal)
+          let judged = answer === undefined ? undefined : parseJudgments(answer, reviews, refLabels)
+          // 判斷不合格時，附上缺少的部分重問一次；仍不合格就照實記下，維持原本的扣除。
+          if (judged && !judged.ok && !payload.signal.aborted) {
+            answer = await call('revise', route, `${REVISION_SYSTEM}\n${revisionRetryNote(judged.problems)}`, text, session, [], payload.signal)
+            judged = answer === undefined ? undefined : parseJudgments(answer, reviews, refLabels)
+          }
+          if (judged?.ok) candidates = applyJudgments(candidates, judged.judgments)
+          review = { required: reviews.length, ...(judged?.ok ? {} : { failed: judged ? judged.problems.join('；') : '判斷的呼叫失敗' }) }
+        }
+        const correction = jitrl ? correct(candidates, near, params) : uncorrected(candidates)
         const chosen = correction.scored[correction.chosen]
         const data: DecisionData = {
           cue: clip(cue, 500),
           situation: deliberation.situation,
           ...(deliberation.drive ? { drive: deliberation.drive } : {}),
           ...(deliberation.people.length > 0 ? { people: deliberation.people } : {}),
+          ...(review ? { review } : {}),
           ...(() => {
             const activated = resolvePotential(deliberation.activated, potentialLabels, goalIds)
             return activated.length > 0 ? { activated } : {}

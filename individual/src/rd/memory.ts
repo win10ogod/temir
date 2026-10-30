@@ -7,10 +7,11 @@
  */
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import type { ReplayCase } from './replay.ts'
+import { extractJson } from '../recall/aux.ts'
 import { clip, clipEnds, heardText, isHeard, replyOf } from '../recall/retrieve.ts'
 import { formatDay, type Significance } from '../self/state.ts'
 import type { Deliberation } from './aux.ts'
-import { discountedReturns, jaccard, termSet, type Correction, type Experience, type Neighbor, type Params, type Scored } from './jitrl.ts'
+import { discountedReturns, jaccard, termSet, type Candidate, type Correction, type Experience, type Neighbor, type Params, type Scored } from './jitrl.ts'
 
 export const DECISION_KIND = 'rd/decision'
 export const OUTCOME_KIND = 'rd/outcome'
@@ -38,6 +39,8 @@ export interface DecisionData {
   readonly activated?: readonly string[]
   /** 這次涉及的人與各自與這次有關的事（ADR-0002 D17）；舊紀錄沒有這個欄位。 */
   readonly people?: readonly { readonly who: string; readonly relevant: readonly string[] }[]
+  /** D20 第三版：需要強制判斷的扣除有幾個；判斷不合格或呼叫失敗時的原因（這時維持原本的扣除）。舊紀錄沒有這個欄位。 */
+  readonly review?: { readonly required: number; readonly failed?: string }
 }
 
 /** 行動留下的懸念的種類（H-E 第三版）：答應的事、在等的事、還沒解開的不安。 */
@@ -114,7 +117,7 @@ export function experiences(life: LifeStore, gamma: number): Experience[] {
       if (ret === undefined || !outcome) return
       const data = event.data as DecisionData
       const planned = data.candidates[data.chosen]
-      const excludedThen = data.candidates.filter((c) => c.excluded).map((c) => ({ action: c.action, reason: c.excludeReason ?? '' }))
+      const excludedThen = data.candidates.filter((c) => c.excluded).map((c) => ({ action: c.action, kind: c.kind, reason: c.excludeReason ?? '' }))
       // 經驗中的行動是實際採取的做法；主模型可能沒有照準備去做。
       const action = outcome.didAction || planned?.action || ''
       if (!action) return
@@ -215,6 +218,98 @@ export function shownExperiences(fromRecall: readonly Experience[], lexical: rea
   return out
 }
 
+/**
+ * D20 第三版：扣除本身會被經驗改變，由模型判斷，但**強制判斷**（使用者 2026-10-30「應該交給模型判斷設計沒問題,
+ * 有問題的是沒有作強制要求判斷」）。第一、二版的 revised 是選填的：本機模型從不寫，過去的扣除反而成了先例（rd-v3、dev11）。
+ *
+ * 程式只決定「何時」需要判斷：被扣除的候選，在類似處境的經驗中有同一類（kind）的紀錄（當時扣除了同類做法，或做了同類做法）。
+ * 判斷的內容由模型決定（REVISION_SYSTEM），答案由 parseJudgments 驗證。
+ */
+export interface ExclusionReview {
+  /** 候選在思考結果中的位置（0 起算）。 */
+  readonly index: number
+  /** 類似處境中同一類的經驗，由新到舊。 */
+  readonly evidence: readonly Experience[]
+}
+
+export function exclusionReviews(candidates: readonly Candidate[], related: readonly Experience[], max = 4): ExclusionReview[] {
+  const recent = [...new Map(related.map((e) => [e.id, e])).values()].sort((a, b) => b.ts - a.ts)
+  return candidates.flatMap((c, index) => {
+    if (!c.excluded) return []
+    const evidence = recent.filter((e) => e.kind === c.kind || (e.excludedThen ?? []).some((x) => x.kind === c.kind)).slice(0, max)
+    return evidence.length > 0 ? [{ index, evidence }] : []
+  })
+}
+
+/** 判斷的輸入：處境、每一個需要判斷的扣除與它的同類經驗（X 編號對應 rd/decision id）。 */
+export function renderExclusionReview(situation: string, candidates: readonly Candidate[], reviews: readonly ExclusionReview[]): { readonly text: string; readonly labels: Map<string, string> } {
+  const labels = new Map<string, string>()
+  const label = (id: string): string => {
+    for (const [k, v] of labels) if (v === id) return k
+    const k = `X${labels.size + 1}`
+    labels.set(k, id)
+    return k
+  }
+  const predicted = (m: Experience['matched']) => (m === 'no' ? '預測沒有成真' : m === 'partly' ? '預測只部分成真' : m === 'yes' ? '預測成真' : '預測成真與否沒有記錄')
+  const lines = [`## 眼前的處境`, clip(situation, 400), '', '## 你扣除的做法，以及類似處境中同一類的經驗']
+  for (const r of reviews) {
+    const c = candidates[r.index]!
+    lines.push('', `${r.index + 1}. ${c.action}（${c.kind}）｜你扣除的理由：${c.excludeReason ?? '（沒有寫）'}`)
+    for (const e of r.evidence) {
+      const excluded = (e.excludedThen ?? []).filter((x) => x.kind === c.kind).map((x) => x.action)
+      const what = excluded.length > 0 ? `當時扣除了同類的「${clip(excluded[0]!, 60)}」，改做「${clip(e.action, 60)}」` : `當時做了同類的「${clip(e.action, 60)}」`
+      lines.push(`   - ${label(e.id)}｜${formatDay(e.ts)}｜${what}｜結果：${clip(e.outcome, 120)}｜${predicted(e.matched)}｜回報 ${e.ret.toFixed(2)}`)
+    }
+  }
+  return { text: lines.join('\n'), labels }
+}
+
+export interface Judgment {
+  readonly index: number
+  readonly decision: 'keep' | 'lift'
+  readonly why: string
+  /** 依據的經驗（rd/decision id）。 */
+  readonly refs: readonly string[]
+}
+
+/** 驗證判斷：每一個需要判斷的做法剛好一筆，decision 是 keep 或 lift，why 不是空的，refs 至少引用一個列出的經驗。 */
+export function parseJudgments(raw: string, reviews: readonly ExclusionReview[], labels: ReadonlyMap<string, string>): { readonly ok: true; readonly judgments: readonly Judgment[] } | { readonly ok: false; readonly problems: readonly string[] } {
+  const obj = extractJson(raw) as { judgments?: unknown } | undefined
+  const list = Array.isArray(obj?.judgments) ? (obj!.judgments as unknown[]) : undefined
+  if (!list) return { ok: false, problems: ['不是含有 judgments 的 JSON 物件'] }
+  const problems: string[] = []
+  const judgments: Judgment[] = []
+  for (const r of reviews) {
+    const n = r.index + 1
+    const own = new Set(r.evidence.map((e) => e.id))
+    const found = list.filter((j): j is Record<string, unknown> => typeof j === 'object' && j !== null && Number((j as Record<string, unknown>)['candidate']) === n)
+    if (found.length !== 1) {
+      problems.push(found.length === 0 ? `做法 ${n} 沒有判斷` : `做法 ${n} 有 ${found.length} 筆判斷`)
+      continue
+    }
+    const j = found[0]!
+    const decision = j['decision']
+    const why = typeof j['why'] === 'string' ? j['why'].replace(/\s+/g, ' ').trim().slice(0, 300) : ''
+    const refs = (Array.isArray(j['refs']) ? j['refs'] : []).map((x) => labels.get(String(x).trim().toUpperCase())).filter((id): id is string => id !== undefined && own.has(id))
+    if (decision !== 'keep' && decision !== 'lift') problems.push(`做法 ${n} 的 decision 不是 keep 或 lift`)
+    if (!why) problems.push(`做法 ${n} 沒有寫理由`)
+    if (refs.length === 0) problems.push(`做法 ${n} 沒有引用列出的經驗`)
+    if ((decision === 'keep' || decision === 'lift') && why && refs.length > 0) judgments.push({ index: r.index, decision, why, refs: [...new Set(refs)] })
+  }
+  return problems.length > 0 ? { ok: false, problems } : { ok: true, judgments }
+}
+
+/** 套用判斷：lift 解除扣除（原本的理由保留在 judgment.reason），keep 維持；兩者都記下判斷。 */
+export function applyJudgments<C extends Candidate>(candidates: readonly C[], judgments: readonly Judgment[]): C[] {
+  return candidates.map((c, i): C => {
+    const j = judgments.find((x) => x.index === i)
+    if (!j) return c
+    if (j.decision === 'keep') return { ...c, judgment: { decision: 'keep', why: j.why, refs: j.refs } }
+    const { excluded: _excluded, excludeReason, ...rest } = c
+    return { ...rest, judgment: { decision: 'lift', why: j.why, refs: j.refs, ...(excludeReason ? { reason: excludeReason } : {}) } } as unknown as C
+  })
+}
+
 /** revision＝D20：每筆經驗附上當時扣除、沒有做的做法與理由；消融（patches/no-revision.yml）時不附。 */
 export function renderExperiences(shown: readonly Experience[], revision = true): string {
   if (shown.length === 0) return '沒有找到類似的經驗。'
@@ -263,7 +358,14 @@ export function renderPreparation(delib: Deliberation, correction: Correction, n
     const basis = c.support > 0 ? `${c.support} 個相符的經驗` : c.optimistic ? '沒有相符的經驗，傾向嘗試' : '沒有相符的經驗'
     const adjust = c.q === null ? '' : `｜經驗修正 ${c.normalized >= 0 ? '+' : ''}${c.normalized.toFixed(2)}（${basis}）`
     const subtracted = c.excluded ? `｜你扣除了這個做法${c.excludeReason ? `：${c.excludeReason}` : ''}` : ''
-    const revised = c.revised ? `｜你依經驗改變了扣除：${c.revised}` : ''
+    const revised =
+      c.judgment?.decision === 'lift'
+        ? `｜你看過經驗之後解除了扣除：${c.judgment.why}${c.judgment.reason ? `（原本扣除的理由：${c.judgment.reason}）` : ''}`
+        : c.judgment?.decision === 'keep'
+          ? `｜看過經驗之後維持扣除：${c.judgment.why}`
+          : c.revised
+            ? `｜你依經驗改變了扣除：${c.revised}`
+            : ''
     lines.push(`${i + 1}. ${c.action}（${c.kind}）——預期：${c.prediction}｜你的傾向 ${Math.round(c.confidence)}%${adjust}${subtracted}${revised}`)
   })
   const chosen = correction.scored[correction.chosen]

@@ -64,6 +64,11 @@ export interface Candidate {
    * 個體寫下是哪一次的經驗、為什麼改變。由個體自己判斷，沒有數值門檻。舊紀錄沒有這個欄位。
    */
   readonly revised?: string
+  /**
+   * D20 第三版：看過類似處境中同類的經驗之後，個體強制作出的判斷（keep＝維持扣除、lift＝解除扣除）、理由與依據的經驗（rd/decision id）。
+   * 解除時，原本的扣除理由保留在 reason。
+   */
+  readonly judgment?: { readonly decision: 'keep' | 'lift'; readonly why: string; readonly refs: readonly string[]; readonly reason?: string }
 }
 
 /** 一個有回報的過去決定 (s, a, G)。 */
@@ -84,7 +89,7 @@ export interface Experience {
   /** 決定所在的 session（把回憶帶進來的經歷對應回當時的決定用）。 */
   readonly session?: string | null
   /** 當時扣除、沒有做的做法與理由（D20：扣除之後發生了什麼，就是這筆經驗的結果）。 */
-  readonly excludedThen?: readonly { readonly action: string; readonly reason: string }[]
+  readonly excludedThen?: readonly { readonly action: string; readonly kind?: string; readonly reason: string }[]
   /** 事後比對時，個體自己判斷當時的預測有沒有成真（D20 第二版：比回報少一層價值判斷）。 */
   readonly matched?: 'yes' | 'partly' | 'no'
 }

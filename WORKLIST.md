@@ -240,6 +240,10 @@
   - Telegram 綁定：照 dsh-im 5.8.0 的管理 API 與驗證規則（讀 npm 發布的套件原始碼；`bot.bind-credentials`、`bot.access-policy.set`）建構 payload，綁定後立刻設為安全模式（私聊只允許使用者、群組全部拒絕）；token 與 User ID 只從環境變數讀，輸出只有遮罩。產生的 policy 另以 dsh-im 自己的 `validateAccessPolicy` 確認可接受（一次性檢查，沒有放進 repo）。
   - 測試：`individual/test/host.test.ts`（真的程序：PID 讀寫、不存在與被重用的 PID、程序群組；`host.sh stop/status` 對不存在的 PID 安全結束；fetch 的測試替身：/connect、綁定流程）。
   - **未驗證**：真正的啟動、換 cookie 與綁定要由使用者在本機確認；`dsh web` 印出啟動網址的格式只依 DSH 的原始碼推定（網址帶 `token` 參數），沒有實際跑過。
+- [x] 第 11 項：繁簡漂移的描述性監測。`experiments/eval/lib/script-drift.ts` 與 `experiments/eval/script-drift.ts`（CLI，只讀 records.jsonl）：每一回合（對方的話 → 回覆）計數，只輸出描述表；沒有在任何提示中加入語言指示。
+  - 發現：個體的字體檢查（`recall/script.ts`）的字表沒有清單引用的「运」「难」。監測另加補充字表（只用於計數）；要不要擴充個體的字表（會改變輔助呼叫的重試）留給本機的真實測試。
+  - 以既有紀錄試跑（描述，不計入驗收）：dev13 memory-v3 歷史 38 個繁體回合中 7 個回覆有簡體字，探針 48 個中 3 個；personality-v3 探針 49 個中 4 個；rd-v4（rdv4h1）兩個條件的歷史各 1 個。
+  - 測試：手寫繁、簡樣本。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID

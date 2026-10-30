@@ -19,9 +19,19 @@ function count(text: string, set: ReadonlySet<string>): number {
   return n
 }
 
+/** 文字中的簡體專用字（依出現順序，可重複）；描述性監測用（experiments/eval/lib/script-drift.ts）。 */
+export function simplifiedChars(text: string): string[] {
+  return [...text].filter((ch) => SIMPLIFIED_ONLY.has(ch))
+}
+
+/** 文字看得出是繁體：至少一個繁體專用字、沒有簡體專用字（driftedToSimplified 對輸入的判斷）。 */
+export function looksTraditional(text: string): boolean {
+  return count(text, TRADITIONAL_ONLY) > 0 && count(text, SIMPLIFIED_ONLY) === 0
+}
+
 /** 輸入看得出是繁體（至少一個繁體專用字、沒有簡體專用字），輸出卻有至少 minSimplified 個簡體專用字。 */
 export function driftedToSimplified(input: string, output: string, minSimplified = 2): boolean {
-  return count(input, TRADITIONAL_ONLY) > 0 && count(input, SIMPLIFIED_ONLY) === 0 && count(output, SIMPLIFIED_ONLY) >= minSimplified
+  return looksTraditional(input) && count(output, SIMPLIFIED_ONLY) >= minSimplified
 }
 
 export const SCRIPT_RETRY_NOTE = '（注意：上一次的輸出用了簡體字。原文是繁體中文，這次所有文字都要用繁體中文。）'

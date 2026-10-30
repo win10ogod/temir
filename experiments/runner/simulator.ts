@@ -4,7 +4,8 @@
  * 依隱藏的角色與反應規則，看這段對話到目前為止的內容，產生下一句話：回饋因此取決於個體實際做了什麼，
  * 而不是固定的台詞。個體看不到規則；規則也要求模擬使用者不要明說自己的偏好，個體只能從對方的反應中學。
  *
- * 呼叫 DeepSeek（OpenAI 相容 /chat/completions，deepseek-flash，thinking disabled，temperature 0）。
+ * 呼叫 DeepSeek（OpenAI 相容 /chat/completions，deepseek-flash，temperature 0）。
+ * 思考開著（使用者 2026-10-30「不關思考」）；rd-v1、rd-v2 是 thinking disabled，rd-v3 起開著（執行紀錄的 simulatedUser.thinking）。
  * 金鑰只從 DEEPSEEK_API_KEY 讀取、只放在 Authorization 標頭。產生的句子照常記進紀錄，並標明 simulated。
  */
 
@@ -16,6 +17,7 @@ export interface SimulatedUser {
 }
 
 export const SIMULATOR_MODEL = 'deepseek-flash'
+export const SIMULATOR_THINKING = 'enabled'
 const ENDPOINT = 'https://api.deepseek.com/chat/completions'
 
 function clip(text: string, max: number): string {
@@ -62,8 +64,9 @@ export async function simulateNext(
         { role: 'user', content: prompt.user },
       ],
       temperature: 0,
-      max_tokens: 200,
-      thinking: { type: 'disabled' },
+      // 思考的 token 也算在上限內。
+      max_tokens: 4096,
+      thinking: { type: SIMULATOR_THINKING },
       stream: false,
     }),
     ...(options.signal ? { signal: options.signal } : {}),

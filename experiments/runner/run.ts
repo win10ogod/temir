@@ -35,7 +35,7 @@ import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { HarnessProcess, INDIVIDUAL_PATCH, MODELS, REPO, textOf, type Block, type ModelName } from '../../cli/harness.ts'
-import { SIMULATOR_MODEL, simulateNext, type SimulatedUser } from './simulator.ts'
+import { SIMULATOR_MODEL, SIMULATOR_THINKING, simulateNext, type SimulatedUser } from './simulator.ts'
 
 const RUNNER = join(REPO, 'experiments', 'runner')
 const CLOCK = join(RUNNER, 'clock.ts')
@@ -298,7 +298,7 @@ async function main(): Promise<void> {
     probes: probes.map((p) => ({ id: p.id, repeats: p.meta?.repeats ?? 1 })),
     historyFrom: fromRun ?? null,
     ...(values['history-condition'] ? { historyCondition: values['history-condition'] } : {}),
-    ...(simulatedUser ? { simulatedUser: { ...simulatedUser, model: SIMULATOR_MODEL, temperature: 0 } } : {}),
+    ...(simulatedUser ? { simulatedUser: { ...simulatedUser, model: SIMULATOR_MODEL, temperature: 0, thinking: SIMULATOR_THINKING } } : {}),
     turnTimeoutMs,
     // 所有條件相同：工具審核一律允許一次（記在 logs/approvals.log），受試者提問一律回覆同一句話（logs/questions.log）。
     approvals: 'allowed-once for every request',

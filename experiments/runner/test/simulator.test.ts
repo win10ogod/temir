@@ -18,7 +18,7 @@ test('cleanUtterance strips quotes and speaker prefixes', () => {
   assert.equal(cleanUtterance('  算了。 '), '算了。')
 })
 
-test('simulateNext sends one non-streaming flash request with thinking disabled (test double for fetch)', async () => {
+test('simulateNext sends one non-streaming flash request with thinking enabled (test double for fetch)', async () => {
   const seen: { url: string; body: Record<string, unknown>; auth: string }[] = []
   // 測試替身（單元測試專用）：記下請求，回傳固定的回覆。
   const fetchImpl = (async (url: string, init: { body: string; headers: Record<string, string> }) => {
@@ -28,6 +28,6 @@ test('simulateNext sends one non-streaming flash request with thinking disabled 
   const next = await simulateNext(USER, [{ user: 'a', assistant: 'b' }], { apiKey: 'test-key', fetchImpl })
   assert.equal(next, '喔。')
   assert.equal(seen[0]!.url, 'https://api.deepseek.com/chat/completions')
-  assert.deepEqual([seen[0]!.body['model'], seen[0]!.body['temperature'], (seen[0]!.body['thinking'] as { type: string }).type, seen[0]!.body['stream']], ['deepseek-flash', 0, 'disabled', false])
+  assert.deepEqual([seen[0]!.body['model'], seen[0]!.body['temperature'], (seen[0]!.body['thinking'] as { type: string }).type, seen[0]!.body['stream']], ['deepseek-flash', 0, 'enabled', false])
   assert.equal(seen[0]!.auth, 'Bearer test-key')
 })

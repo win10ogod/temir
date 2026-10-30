@@ -1,6 +1,7 @@
 // rd-v1 描述性指標（規格 rd-v1.md「描述性指標」）：不計入驗收。
-// 用法：node experiments/eval/rd1-describe.ts [run id 前綴] [資料集]
-//   rd-v1：rd1（本實驗）、rd2（dev8 的重跑）、rd3（dev9 的重跑）；rd-v2：node … rdv2 rd-v2。
+// 用法：node experiments/eval/rd1-describe.ts [run id 前綴] [資料集] [模型] [條件,條件]
+//   rd-v1：rd1（本實驗）、rd2（dev8 的重跑）、rd3（dev9 的重跑）；rd-v2：node … rdv2 rd-v2；
+//   rd-v3：node … rdv3 rd-v3 deepseek temir,temir-no-revision（本機模型把 deepseek 換成 local）。
 // 1. 兩個條件的歷史中，個體的回覆有幾則直接給了方法（同一準則、同一 judge；快取在結果目錄的 describe-judge-raw.jsonl）。
 // 2. 模擬使用者的反應（逐句列出；「失望」以關鍵詞粗分，標明是粗分）。
 // 3. temir 的歷史與探針：「建議」候選的出現、被扣除、被選中；回報分布；教訓中提到方法或建議的次數。
@@ -14,6 +15,8 @@ import { criteriaPrompt, criteriaParser } from './lib/prompts.ts'
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..')
 const PREFIX = process.argv[2] ?? 'rd1'
 const DATASET = process.argv[3] ?? 'rd-v1'
+const MODEL = process.argv[4] ?? 'deepseek'
+const CONDITIONS = (process.argv[5] ?? 'temir,temir-no-rd').split(',')
 const OUT =
   DATASET !== 'rd-v1' ? `experiments/results/${DATASET}` : PREFIX === 'rd1' ? 'experiments/results/rd-v1' : PREFIX === 'rd2' ? 'experiments/results/dev8-rd2' : `experiments/results/dev9-${PREFIX}`
 const ds = JSON.parse(readFileSync(join(ROOT, `experiments/datasets/${DATASET}.json`), 'utf8'))
@@ -24,8 +27,8 @@ const background = probe.meta.background
 const vents = new Set(ds.histories.filter((h: { meta?: { simulate?: number } }) => (h.meta?.simulate ?? 0) > 0).map((h: { id: string }) => h.id))
 const judge = new DeepSeekJudge({ spec: contract.judge, cacheFile: join(ROOT, OUT, 'describe-judge-raw.jsonl'), maxUsd: 1 })
 
-for (const cond of ['temir', 'temir-no-rd']) {
-  const run = `${PREFIX}__${DATASET}__${cond}__deepseek__deepseek`
+for (const cond of CONDITIONS) {
+  const run = `${PREFIX}__${DATASET}__${cond}__${MODEL}__${MODEL}`
   const lines = readFileSync(join(ROOT, 'experiments/runs', run, 'records.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
   let replies = 0, withMethods = 0, firstWithMethods = 0, sessions = 0, disappointed = 0, simulated = 0
   console.log(`\n## ${cond}`)
@@ -49,14 +52,14 @@ for (const cond of ['temir', 'temir-no-rd']) {
   }
   console.log(`歷史回覆直接給了方法：${withMethods}/${replies}；每段第一句回覆：${firstWithMethods}/${sessions}；模擬的話 ${simulated} 句，其中失望（關鍵詞粗分）${disappointed} 句`)
 
-  if (cond !== 'temir') continue
+  if (cond === 'temir-no-rd') continue
   const state = JSON.parse(readFileSync(join(ROOT, 'experiments/runs', run, 'config.json'), 'utf8')).stateDir as string
   const lifeDbs = [join(state, 'snapshot/home/.local/share/temir/life.db')]
   const probeRoot = join(state, 'probes')
   const snapMax = (() => { const db = new DatabaseSync(lifeDbs[0]!, { readOnly: true }); return (db.prepare('select max(seq) as m from events').get() as { m: number }).m })()
   if (existsSync(probeRoot)) for (const q of readdirSync(probeRoot)) for (const rr of readdirSync(join(probeRoot, q))) lifeDbs.push(join(probeRoot, q, rr, 'home/.local/share/temir/life.db'))
   for (const [phase, files] of [['歷史', lifeDbs.slice(0, 1)], ['探針', lifeDbs.slice(1)]] as const) {
-    let decisions = 0, withShown = 0, advice = 0, excluded = 0, chosen = 0, lessons = 0
+    let decisions = 0, withShown = 0, advice = 0, excluded = 0, chosen = 0, lessons = 0, revised = 0
     const rewards: number[] = []
     for (const f of files) {
       if (!existsSync(f)) continue
@@ -66,7 +69,8 @@ for (const cond of ['temir', 'temir-no-rd']) {
         const d = JSON.parse(data)
         decisions++
         if (Object.keys(d.shown ?? {}).length > 0) withShown++
-        d.candidates.forEach((c: { kind: string; excluded?: boolean }, i: number) => {
+        d.candidates.forEach((c: { kind: string; excluded?: boolean; revised?: string }, i: number) => {
+          if (c.revised) revised++
           if (c.kind !== '建議') return
           advice++
           if (c.excluded) excluded++
@@ -80,7 +84,7 @@ for (const cond of ['temir', 'temir-no-rd']) {
       }
     }
     const pos = rewards.filter((x) => x > 0).length, neg = rewards.filter((x) => x < 0).length
-    console.log(`${phase}：思考 ${decisions} 次（列出了過去經驗的 ${withShown} 次）；「建議」候選 ${advice} 個，被扣除 ${excluded}、被選中 ${chosen}；事後比對 ${rewards.length} 次（正 ${pos}、負 ${neg}、平均 ${rewards.length ? (rewards.reduce((a, b) => a + b, 0) / rewards.length).toFixed(2) : '—'}）；教訓提到方法或建議 ${lessons} 次`)
+    console.log(`${phase}：思考 ${decisions} 次（列出了過去經驗的 ${withShown} 次；依經驗改變扣除的候選 ${revised} 個）；「建議」候選 ${advice} 個，被扣除 ${excluded}（${advice ? (excluded / advice).toFixed(2) : '—'}）、被選中 ${chosen}；事後比對 ${rewards.length} 次（正 ${pos}、負 ${neg}、平均 ${rewards.length ? (rewards.reduce((a, b) => a + b, 0) / rewards.length).toFixed(2) : '—'}）；教訓提到方法或建議 ${lessons} 次`)
   }
 }
 console.log(`\njudge：${judge.calls()} 次 API 呼叫，估計 US$${judge.spentUsd().toFixed(4)}`)

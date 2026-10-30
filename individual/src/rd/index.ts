@@ -31,9 +31,11 @@ import {
   DECISION_KIND,
   OUTCOME_KIND,
   experiences,
+  experiencesOfRecalled,
   decisionTurn,
   openDecision,
   relevantExperiences,
+  shownExperiences,
   renderExperiences,
   renderPreparation,
   type DecisionData,
@@ -253,7 +255,11 @@ export function apply(ctx: Context, config: Config | undefined): void {
 
         const params = paramsNow()
         const memory = jitrl ? experiences(life, params.gamma) : []
-        const shown = relevantExperiences(cue, memory, 5)
+        // 這一步的自動回憶（temir-recall 在同一步之中先寫下）帶進來的經歷：當時做過的決定與結果排在前面。
+        const recall = life.allInSession(session, 'memory/recall').at(-1)
+        const recallData = recall?.data as { mode?: string; cue?: string } | undefined
+        const recalledIds = recall && recallData?.mode === 'automatic' && recallData.cue === clip(cue, 500) ? recall.causes : []
+        const shown = shownExperiences(experiencesOfRecalled(life, memory, recalledIds), relevantExperiences(cue, memory, 5), 5)
         const labels = new Map(shown.map((e, i) => [`E${i + 1}`, e.id]))
         const recalled = decision.messages
           .filter((m) => m.source.kind === 'temir-recall')

@@ -7,7 +7,7 @@
  */
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import type { ReplayCase } from './replay.ts'
-import { clip, clipEnds, isHeard, replyOf } from '../recall/retrieve.ts'
+import { clip, clipEnds, heardText, isHeard, replyOf } from '../recall/retrieve.ts'
 import { formatDay, type Significance } from '../self/state.ts'
 import type { Deliberation } from './aux.ts'
 import { discountedReturns, jaccard, termSet, type Correction, type Experience, type Neighbor, type Params, type Scored } from './jitrl.ts'
@@ -126,6 +126,7 @@ export function experiences(life: LifeStore, gamma: number): Experience[] {
         kind: outcome.didAction ? outcome.didKind : (planned?.kind ?? '其他'),
         ret,
         outcome: [outcome.actual, outcome.lesson && `教訓：${outcome.lesson}`].filter(Boolean).join('；'),
+        session: event.session,
       })
     })
   }
@@ -183,6 +184,32 @@ export function relevantExperiences(cue: string, memory: readonly Experience[], 
     .sort((a, b) => b.s - a.s || b.e.ts - a.e.ts)
     .slice(0, n)
     .map((x) => x.e)
+}
+
+/**
+ * 回憶帶進這一步的經歷中，我當時做過的決定：同一個 session、決定的 cue 就是對方那句話，由新到舊。
+ * 自動回憶是個體自己對「相關的過往」的判斷，那些回合中做了什麼、結果如何，就是過去類似處境的結果，也是 H0「−RD」扣除的依據。
+ * relevantExperiences 只比對剛說的那一句；新的說法與舊的處境常常沒有共同的詞。
+ * rd-v1 重跑的 q04：歷史中有 21 次事後比對，思考時卻「沒有找到類似的經驗」，扣除只能依模型的預設。
+ */
+export function experiencesOfRecalled(life: LifeStore, memory: readonly Experience[], recalledIds: readonly string[]): Experience[] {
+  const wanted = new Set<string>()
+  for (const id of recalledIds) {
+    const e = life.get(id)
+    if (e?.session && isHeard(e)) wanted.add(`${e.session}\u0000${heardText(e)}`)
+  }
+  if (wanted.size === 0) return []
+  return memory.filter((x) => x.session && wanted.has(`${x.session}\u0000${x.cue.trim()}`)).sort((a, b) => b.ts - a.ts)
+}
+
+/** 思考時列出的經驗：回憶帶進來的經歷中做過的決定在前，其次是與剛說的話用詞相近的；不重複，最多 n 個。 */
+export function shownExperiences(fromRecall: readonly Experience[], lexical: readonly Experience[], n: number): Experience[] {
+  const out: Experience[] = []
+  for (const e of [...fromRecall, ...lexical]) {
+    if (out.length >= n) break
+    if (!out.some((x) => x.id === e.id)) out.push(e)
+  }
+  return out
 }
 
 export function renderExperiences(shown: readonly Experience[]): string {

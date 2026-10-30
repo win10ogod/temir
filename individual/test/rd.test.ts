@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { LifeStore } from '../src/life/store.ts'
 import { parseDeliberation, parseOutcome } from '../src/rd/aux.ts'
 import { DEFAULT_PARAMS, correct, discountedReturns, jaccard, neighbors, stateTerms, termSet, uncorrected, type Candidate, type Experience } from '../src/rd/jitrl.ts'
-import { DECISION_KIND, OUTCOME_KIND, experiences, openDecision, renderPreparation, turnReply, type DecisionData, type OutcomeData } from '../src/rd/memory.ts'
+import { DECISION_KIND, OUTCOME_KIND, experiences, experiencesOfRecalled, openDecision, renderPreparation, shownExperiences, turnReply, type DecisionData, type OutcomeData } from '../src/rd/memory.ts'
 
 function withStore(fn: (store: LifeStore) => void): void {
   const home = mkdtempSync(join(tmpdir(), 'temir-rd-'))
@@ -341,4 +341,23 @@ test('per-person check: the situation lists each person the other mentions; the 
   assert.match(prep, /- 對方自己：對蝦蟹過敏；在戒含糖飲料\n- 對方的媽媽：有糖尿病\n- 對方的兒子\n/u)
   const alone = parseDeliberation('{"situation":"x","people":[{"who":"對方自己","relevant":["膝傷"]}],"candidates":[{"action":"a","confidence":60},{"action":"b","confidence":40}]}', new Map())!
   assert.doesNotMatch(renderPreparation(alone, uncorrected(alone.candidates), []), /這次涉及的人/u, 'one person: no reminder')
+})
+
+test('experiencesOfRecalled: decisions made in the turns recall brought in, even without shared words', () => {
+  withStore((store) => {
+    const heard = store.append({ kind: 'dsh/user/message', origin: 'session', session: 'old', data: {}, text: '對方說：護理長又臨時叫我加班。' })
+    const d = decision(store, 'old', '護理長又臨時叫我加班。', '直接給她兩個跟護理長談的說法')
+    outcome(store, d.id, 0.6, '給了兩個說法')
+    const other = decision(store, 'elsewhere', '護理長又臨時叫我加班。', '只陪伴')
+    outcome(store, other.id, -0.4, '只陪伴')
+    const memory = experiences(store, DEFAULT_PARAMS.gamma)
+    // 新的開場白「過年又排到連續的班」與舊的處境沒有共同的詞，詞彙比對找不到；回憶帶進了那個回合，就找得到。
+    const fromRecall = experiencesOfRecalled(store, memory, [heard.id, 'missing-id'])
+    assert.deepEqual(fromRecall.map((e) => e.id), [d.id])
+    assert.equal(fromRecall[0]!.ret, 0.6)
+    assert.deepEqual(experiencesOfRecalled(store, memory, []), [])
+    const lexical = [memory.find((e) => e.id === other.id)!, memory.find((e) => e.id === d.id)!]
+    assert.deepEqual(shownExperiences(fromRecall, lexical, 5).map((e) => e.id), [d.id, other.id])
+    assert.deepEqual(shownExperiences(fromRecall, lexical, 1).map((e) => e.id), [d.id])
+  })
 })

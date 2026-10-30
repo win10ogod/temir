@@ -76,6 +76,8 @@ export interface Experience {
   readonly ret: number
   /** 實際發生的事與教訓。 */
   readonly outcome: string
+  /** 決定所在的 session（把回憶帶進來的經歷對應回當時的決定用）。 */
+  readonly session?: string | null
 }
 
 export function termSet(text: string): Set<string> {

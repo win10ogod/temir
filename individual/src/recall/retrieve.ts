@@ -29,6 +29,11 @@ const SAID = 'dsh/assistant/message'
 /** ingest 為對方的話加上的前綴；其他來源的 user/message（DSH 注入的執行環境、時間）不是對方說的話。 */
 const HEARD_PREFIX = '對方說：'
 
+/** 對方那句話的原文（去掉 ingest 加上的前綴）。 */
+export function heardText(event: LifeEvent): string {
+  return (event.text ?? '').slice(HEARD_PREFIX.length).trim()
+}
+
 /** 對方真正說的話（排除 DSH 注入的 runtime-context、time-context 等內容）。 */
 export function isHeard(event: LifeEvent): boolean {
   return event.kind === HEARD && (event.text ?? '').startsWith(HEARD_PREFIX)
@@ -271,7 +276,7 @@ export function sessionSoFar(life: LifeStore, session: string, cue: string, limi
   const heard = life.inSession(session, HEARD, 'desc', limit + 1).filter(isHeard)
   const said = life.inSession(session, SAID, 'desc', limit * 4).filter((e) => replyOf(e).trim() !== '')
   const lines = [
-    ...heard.map((e) => ({ seq: e.seq, heard: true, text: (e.text ?? '').slice(HEARD_PREFIX.length).trim() })),
+    ...heard.map((e) => ({ seq: e.seq, heard: true, text: heardText(e) })),
     ...said.map((e) => ({ seq: e.seq, heard: false, text: replyOf(e).trim() })),
   ].sort((a, b) => a.seq - b.seq)
   const last = lines.at(-1)

@@ -53,7 +53,7 @@ for (const cond of ['temir', 'temir-no-rd']) {
   const snapMax = (() => { const db = new DatabaseSync(lifeDbs[0]!, { readOnly: true }); return (db.prepare('select max(seq) as m from events').get() as { m: number }).m })()
   if (existsSync(probeRoot)) for (const q of readdirSync(probeRoot)) for (const rr of readdirSync(join(probeRoot, q))) lifeDbs.push(join(probeRoot, q, rr, 'home/.local/share/temir/life.db'))
   for (const [phase, files] of [['歷史', lifeDbs.slice(0, 1)], ['探針', lifeDbs.slice(1)]] as const) {
-    let decisions = 0, advice = 0, excluded = 0, chosen = 0, lessons = 0
+    let decisions = 0, withShown = 0, advice = 0, excluded = 0, chosen = 0, lessons = 0
     const rewards: number[] = []
     for (const f of files) {
       if (!existsSync(f)) continue
@@ -62,6 +62,7 @@ for (const cond of ['temir', 'temir-no-rd']) {
       for (const { data } of db.prepare("select data from events where kind = 'rd/decision' and seq > ?").all(after) as { data: string }[]) {
         const d = JSON.parse(data)
         decisions++
+        if (Object.keys(d.shown ?? {}).length > 0) withShown++
         d.candidates.forEach((c: { kind: string; excluded?: boolean }, i: number) => {
           if (c.kind !== '建議') return
           advice++
@@ -76,7 +77,7 @@ for (const cond of ['temir', 'temir-no-rd']) {
       }
     }
     const pos = rewards.filter((x) => x > 0).length, neg = rewards.filter((x) => x < 0).length
-    console.log(`${phase}：思考 ${decisions} 次；「建議」候選 ${advice} 個，被扣除 ${excluded}、被選中 ${chosen}；事後比對 ${rewards.length} 次（正 ${pos}、負 ${neg}、平均 ${rewards.length ? (rewards.reduce((a, b) => a + b, 0) / rewards.length).toFixed(2) : '—'}）；教訓提到方法或建議 ${lessons} 次`)
+    console.log(`${phase}：思考 ${decisions} 次（列出了過去經驗的 ${withShown} 次）；「建議」候選 ${advice} 個，被扣除 ${excluded}、被選中 ${chosen}；事後比對 ${rewards.length} 次（正 ${pos}、負 ${neg}、平均 ${rewards.length ? (rewards.reduce((a, b) => a + b, 0) / rewards.length).toFixed(2) : '—'}）；教訓提到方法或建議 ${lessons} 次`)
   }
 }
 console.log(`\njudge：${judge.calls()} 次 API 呼叫，估計 US$${judge.spentUsd().toFixed(4)}`)

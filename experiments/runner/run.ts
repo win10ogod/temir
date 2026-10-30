@@ -35,6 +35,7 @@ import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { HarnessProcess, INDIVIDUAL_PATCH, MODELS, REPO, textOf, type Block, type ModelName } from '../../cli/harness.ts'
+import { SIMULATOR_MODEL, simulateNext, type SimulatedUser } from './simulator.ts'
 
 const RUNNER = join(REPO, 'experiments', 'runner')
 const CLOCK = join(RUNNER, 'clock.ts')
@@ -75,12 +76,14 @@ export type Condition = keyof typeof CONDITIONS
 
 interface Dataset {
   readonly id: string
-  readonly meta?: { readonly probeAt?: string }
-  readonly histories: readonly { readonly id: string; readonly turns: readonly string[]; readonly meta?: { readonly at?: string } }[]
+  readonly meta?: { readonly probeAt?: string; readonly simulatedUser?: SimulatedUser }
+  readonly histories: readonly { readonly id: string; readonly turns: readonly string[]; readonly meta?: { readonly at?: string; readonly simulate?: number } }[]
   readonly probes: readonly { readonly id: string; readonly turns: readonly string[]; readonly meta?: { readonly repeats?: number } }[]
 }
 
 export interface TurnRecord {
+  /** 這句話由模擬使用者產生（simulator.ts），不是資料集的固定台詞。 */
+  simulated?: boolean
   user: string
   assistant: string
   toolCalls: { name: string; arguments: string }[]
@@ -239,6 +242,7 @@ async function main(): Promise<void> {
   const dataset = JSON.parse(datasetRaw.toString('utf8')) as Dataset
   const probeFilter = values.probes ? new Set(values.probes.split(',')) : undefined
   const probes = dataset.probes.filter((p) => !probeFilter || probeFilter.has(p.id))
+  const simulatedUser = dataset.meta?.simulatedUser
   if (probeFilter && probes.length !== probeFilter.size) throw new Error('--probes 含有資料集中不存在的 id')
 
   const stamp = new Date().toISOString().replaceAll(':', '-').replace(/\..+$/, '')
@@ -293,6 +297,7 @@ async function main(): Promise<void> {
     probes: probes.map((p) => ({ id: p.id, repeats: p.meta?.repeats ?? 1 })),
     historyFrom: fromRun ?? null,
     ...(values['history-condition'] ? { historyCondition: values['history-condition'] } : {}),
+    ...(simulatedUser ? { simulatedUser: { ...simulatedUser, model: SIMULATOR_MODEL, temperature: 0 } } : {}),
     turnTimeoutMs,
     // 所有條件相同：工具審核一律允許一次（記在 logs/approvals.log），受試者提問一律回覆同一句話（logs/questions.log）。
     approvals: 'allowed-once for every request',
@@ -315,7 +320,7 @@ async function main(): Promise<void> {
   let errors = 0
 
   /** 在一個 DSH 執行期中跑一個 session（多輪），回傳逐輪紀錄。執行期出錯時丟出，由呼叫端重啟。 */
-  async function runSession(harness: HarnessProcess, turns: readonly string[]): Promise<{ sessionId: string; records: TurnRecord[] }> {
+  async function runSession(harness: HarnessProcess, turns: readonly string[], simulate = 0): Promise<{ sessionId: string; records: TurnRecord[] }> {
     const sessionId = `session-${randomUUID()}`
     const records: TurnRecord[] = []
     let current: TurnRecord | undefined
@@ -339,8 +344,16 @@ async function main(): Promise<void> {
       }
     })
     try {
-      for (const user of turns) {
-        const turn: TurnRecord = { user, assistant: '', toolCalls: [], recallInjected: condition === 'baseline' ? null : 0, error: null, ms: 0, usage: [] }
+      // 固定台詞之後，由模擬使用者依個體實際的回應產生接下來的話（E-RD；資料集的 meta.simulatedUser）。
+      async function* utterances(): AsyncGenerator<{ readonly user: string; readonly simulated: boolean }> {
+        for (const user of turns) yield { user, simulated: false }
+        for (let i = 0; i < simulate; i++) {
+          if (!simulatedUser) throw new Error('資料集沒有 meta.simulatedUser')
+          yield { user: await simulateNext(simulatedUser, records, { apiKey: process.env['DEEPSEEK_API_KEY'] ?? '', signal: AbortSignal.timeout(60_000) }), simulated: true }
+        }
+      }
+      for await (const { user, simulated: isSimulated } of utterances()) {
+        const turn: TurnRecord = { ...(isSimulated ? { simulated: true } : {}), user, assistant: '', toolCalls: [], recallInjected: condition === 'baseline' ? null : 0, error: null, ms: 0, usage: [] }
         current = turn
         records.push(turn)
         const started = Date.now()
@@ -421,7 +434,7 @@ async function main(): Promise<void> {
       }
       const startedAt = new Date().toISOString()
       try {
-        const { sessionId, records } = await runSession(harness, history.turns)
+        const { sessionId, records } = await runSession(harness, history.turns, history.meta?.simulate ?? 0)
         write('history', history.id, historyModel, sessionId, records, startedAt)
       } catch (error) {
         const failed = error as Error & { records?: TurnRecord[]; sessionId?: string }

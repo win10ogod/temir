@@ -25,6 +25,7 @@ import { subtractionV1 } from './subtraction-v1.source.ts'
 import { multipersonV1 } from './multiperson-v1.source.ts'
 import { multipersonV2 } from './multiperson-v2.source.ts'
 import { skillsV1 } from './skills-v1.source.ts'
+import { rdV1 } from './rd-v1.source.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const specs = join(here, '..', 'specs')
@@ -43,6 +44,7 @@ export const TARGETS: readonly { readonly dataset: Dataset; readonly file: strin
   { dataset: multipersonV1, file: join(here, 'multiperson-v1.json'), contract: join(specs, 'multiperson-v1.contract.json') },
   { dataset: multipersonV2, file: join(here, 'multiperson-v2.json'), contract: join(specs, 'multiperson-v2.contract.json') },
   { dataset: skillsV1, file: join(here, 'skills-v1.json'), contract: join(specs, 'skills-v1.contract.json') },
+  { dataset: rdV1, file: join(here, 'rd-v1.json'), contract: join(specs, 'rd-v1.contract.json') },
 ]
 
 export function serialize(dataset: Dataset): string {

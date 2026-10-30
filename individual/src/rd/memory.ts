@@ -190,7 +190,7 @@ export function relevantExperiences(cue: string, memory: readonly Experience[], 
  * 回憶帶進這一步的經歷中，我當時做過的決定：同一個 session、決定的 cue 就是對方那句話，由新到舊。
  * 自動回憶是個體自己對「相關的過往」的判斷，那些回合中做了什麼、結果如何，就是過去類似處境的結果，也是 H0「−RD」扣除的依據。
  * relevantExperiences 只比對剛說的那一句；新的說法與舊的處境常常沒有共同的詞。
- * rd-v1 重跑的 q04：歷史中有 21 次事後比對，思考時卻「沒有找到類似的經驗」，扣除只能依模型的預設。
+ * rd-v1 重跑（rd2）的探針中，17 次思考有 4 次沒有列出任何經驗，例如 q04：歷史中有 21 次事後比對，思考時卻「沒有找到類似的經驗」。
  */
 export function experiencesOfRecalled(life: LifeStore, memory: readonly Experience[], recalledIds: readonly string[]): Experience[] {
   const wanted = new Set<string>()

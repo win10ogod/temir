@@ -81,6 +81,15 @@ export interface LifeRow {
 }
 
 export function lifeDecisions(stateDir: string, kinds: readonly string[] = ['rd/decision']): { readonly history: LifeRow[]; readonly probes: LifeRow[] } | undefined {
+  const groups = lifeGroups(stateDir, kinds)
+  return groups && { history: groups.history, probes: groups.probes.flat() }
+}
+
+/**
+ * 同 lifeDecisions，但每一個探針生命分開（依 seq 排序）。看前後相鄰的事件時要用這個
+ * （例如同一個輸入連續問兩次＝重問；同一題的兩次重複，輸入也可能相同，不能跨生命相接）。
+ */
+export function lifeGroups(stateDir: string, kinds: readonly string[]): { readonly history: LifeRow[]; readonly probes: LifeRow[][] } | undefined {
   const snap = join(stateDir, 'snapshot/home/.local/share/temir/life.db')
   if (!existsSync(snap)) return undefined
   const read = (file: string, after: number): LifeRow[] => {
@@ -95,13 +104,13 @@ export function lifeDecisions(stateDir: string, kinds: readonly string[] = ['rd/
   const base = (snapDb.prepare('select max(seq) as s from events').get() as { s: number }).s
   snapDb.close()
   const history = read(snap, 0)
-  const probes: LifeRow[] = []
+  const probes: LifeRow[][] = []
   const root = join(stateDir, 'probes')
   if (existsSync(root)) {
     for (const q of readdirSync(root)) {
       for (const r of readdirSync(join(root, q))) {
         const file = join(root, q, r, 'home/.local/share/temir/life.db')
-        if (existsSync(file)) probes.push(...read(file, base))
+        if (existsSync(file)) probes.push(read(file, base))
       }
     }
   }

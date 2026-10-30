@@ -91,7 +91,7 @@ export function memoryLines(life: LifeStore): string[] {
 
 export function stateLines(life: LifeStore, cycleCount = 3): string[] {
   const lines = [renderSelfSnapshot(life, [...renderPotential(life), ...renderThoughts(life), ...renderOwnSkills(life), ...renderOwnPlugins(life)]).replace(/^（以下是你的生命紀錄中目前的自我狀態，由系統自動附上。）\n\n/, '')]
-  if (life.all(SKILL_KIND.decision).length > 0) lines.push('', '## 技能的帳本（最近；閘門＝行為對照，未經量測）', ...renderLedger(life, 8))
+  if (life.latest(SKILL_KIND.decision)) lines.push('', '## 技能的帳本（最近；閘門＝行為對照，未經量測）', ...renderLedger(life, 8))
   const lessons = life.recent(5, [LESSON_KIND]).reverse()
   lines.push('', '## 教訓（最近）')
   if (lessons.length === 0) lines.push('還沒有。')

@@ -15,6 +15,7 @@
  *   以輔助呼叫產生「沒有技能」與「有技能」的回覆。這是行為對照，不是正確性驗證。
  * - 合成由個體自己判斷；修改後的版本當作新的提案再探測一次，不直接採用（Harness² 的序列遞迴）。
  */
+import { Projection } from '../life/projection.ts'
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import { LESSON_KIND } from '../integrate/carried.ts'
 import type { LessonData } from '../integrate/evidence.ts'
@@ -101,26 +102,38 @@ export interface Skill extends SkillDraft {
   readonly uses: number
 }
 
+/**
+ * 採用中的技能與使用次數的增量投影（life/projection.ts；改進清單第 7 項的延續：技能的快照每一步都會讀）。
+ * 提案的 purpose 在讀取時才從提案事件取得，與原本每次重讀全表的結果相同。
+ */
+const SKILLS = new Projection<{ current: Map<string, Omit<Skill, 'uses' | 'purpose'> & { readonly proposal: string }>; uses: Map<string, number> }>(
+  [SKILL_KIND.decision, SKILL_KIND.use],
+  () => ({ current: new Map(), uses: new Map() }),
+  (state, event) => {
+    if (event.kind === SKILL_KIND.use) {
+      const name = (event.data as { name?: string }).name ?? ''
+      state.uses.set(name, (state.uses.get(name) ?? 0) + 1)
+      return
+    }
+    const d = event.data as SkillDecisionData
+    if (d.verdict !== 'adopt') return
+    if (d.op === 'retire') {
+      state.current.delete(d.name)
+      return
+    }
+    if (!d.skill) return
+    state.current.set(d.skill.name, { ...d.skill, version: event.id, adoptedAt: event.ts, proposal: d.proposal })
+  },
+)
+
 /** 目前採用中的技能（帳本的投影；生命日誌是唯一的真相來源）。 */
 export function ownSkills(life: LifeStore): Skill[] {
-  const current = new Map<string, Omit<Skill, 'uses'>>()
-  for (const event of life.all(SKILL_KIND.decision)) {
-    const d = event.data as SkillDecisionData
-    if (d.verdict !== 'adopt') continue
-    if (d.op === 'retire') {
-      current.delete(d.name)
-      continue
-    }
-    if (!d.skill) continue
-    const proposal = life.get(d.proposal)?.data as ProposalData | undefined
-    current.set(d.skill.name, { ...d.skill, version: event.id, adoptedAt: event.ts, purpose: proposal?.purpose ?? '' })
-  }
-  const uses = new Map<string, number>()
-  for (const event of life.all(SKILL_KIND.use)) {
-    const name = (event.data as { name?: string }).name ?? ''
-    uses.set(name, (uses.get(name) ?? 0) + 1)
-  }
-  return [...current.values()].map((s) => ({ ...s, uses: uses.get(s.name) ?? 0 }))
+  const { current, uses } = SKILLS.of(life)
+  return [...current.values()].map(({ proposal, ...s }) => ({
+    ...s,
+    purpose: (life.get(proposal)?.data as ProposalData | undefined)?.purpose ?? '',
+    uses: uses.get(s.name) ?? 0,
+  }))
 }
 
 /** 還沒有決定的提案（中斷後下次重做）。 */
@@ -333,7 +346,7 @@ export function reviewInput(life: LifeStore, now = Date.now()): string {
     ...(own.length > 0 ? own.map(renderSkillLine) : ['（還沒有）']),
     '',
     '## 技能的紀錄（最近的提案與結果）',
-    ...(life.all(SKILL_KIND.decision).length > 0 ? renderLedger(life) : ['（還沒有）']),
+    ...(life.latest(SKILL_KIND.decision) ? renderLedger(life) : ['（還沒有）']),
     '',
     '## 上次回顧以後的教訓',
     ...(lessons.length > 0 ? lessons : ['（沒有）']),

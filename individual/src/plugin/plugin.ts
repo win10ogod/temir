@@ -13,6 +13,7 @@
  * DSH 的動態插件只屬於一段對話、重啟就消失，所以核准過的版本在每段新的對話中重新啟用；修改後的版本要重新核准。
  */
 import { createHash } from 'node:crypto'
+import { Projection } from '../life/projection.ts'
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import { formatDay } from '../self/state.ts'
 
@@ -94,15 +95,24 @@ export function codeHash(code: string): string {
   return createHash('sha256').update(code).digest('hex')
 }
 
+/** 每個名字最新的提案與核准過的版本的增量投影（life/projection.ts；個體的快照每一步都會讀）。 */
+const PLUGINS = new Projection<{ current: Map<string, LifeEvent>; approved: Set<string> }>(
+  [PLUGIN_KIND.proposal, PLUGIN_KIND.approval],
+  () => ({ current: new Map(), approved: new Set() }),
+  (state, event) => {
+    if (event.kind === PLUGIN_KIND.approval) {
+      state.approved.add((event.data as PluginApprovalData).proposal)
+      return
+    }
+    const p = event.data as PluginProposalData
+    if (p.op === 'retire') state.current.delete(p.name)
+    else state.current.set(p.name, event)
+  },
+)
+
 /** 目前的插件（每個名字最新的版本；移除的不列）與核准狀態。 */
 export function ownPlugins(life: LifeStore): OwnPlugin[] {
-  const current = new Map<string, LifeEvent>()
-  for (const event of life.all(PLUGIN_KIND.proposal)) {
-    const p = event.data as PluginProposalData
-    if (p.op === 'retire') current.delete(p.name)
-    else current.set(p.name, event)
-  }
-  const approved = new Set(life.all(PLUGIN_KIND.approval).map((e) => (e.data as PluginApprovalData).proposal))
+  const { current, approved } = PLUGINS.of(life)
   return [...current.values()].map((event) => {
     const p = event.data as PluginProposalData
     return { name: p.name, purpose: p.purpose, code: p.code, sha256: p.sha256, version: event.id, approved: approved.has(event.id), writtenAt: event.ts }

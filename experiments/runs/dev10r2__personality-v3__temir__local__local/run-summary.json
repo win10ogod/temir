@@ -1,0 +1,22 @@
+{
+  "runId": "dev10r2__personality-v3__temir__local__local",
+  "endedAt": "2026-10-30T08:39:01.956Z",
+  "histories": 10,
+  "historyFrom": null,
+  "probes": 33,
+  "probeSessions": 49,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 90,
+      "errors": 1
+    },
+    "probes": {
+      "calls": 103,
+      "errors": 1
+    }
+  },
+  "deepseekSpentUsd": null
+}

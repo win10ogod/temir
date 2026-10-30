@@ -1,0 +1,22 @@
+{
+  "runId": "dev10__personality-v3__baseline__local__local",
+  "endedAt": "2026-10-30T04:33:30.584Z",
+  "histories": 10,
+  "historyFrom": null,
+  "probes": 33,
+  "probeSessions": 49,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": null,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 0,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 0,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

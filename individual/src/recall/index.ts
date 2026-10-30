@@ -211,7 +211,14 @@ export function apply(ctx: Context, config: Config | undefined): void {
             person: [...new Set(person.map((p) => p.id))],
             hits: recalled.map((r) => ({ id: r.event.id, reply: r.reply?.id ?? null, via: r.via, score: r.score })),
           },
-          causes: [...new Set([...recalled.flatMap((r) => [r.event.id, ...(r.reply ? [r.reply.id] : [])]), ...person.map((p) => p.id)])],
+          // causes 記下帶進上下文的每一則經歷，包括短期記憶的回合（之後追溯記憶是否參與了決策）。
+          causes: [
+            ...new Set([
+              ...recalled.flatMap((r) => [r.event.id, ...(r.reply ? [r.reply.id] : [])]),
+              ...recent.flatMap((p) => [p.heard.id, ...(p.reply ? [p.reply.id] : [])]),
+              ...person.map((p) => p.id),
+            ]),
+          ],
         })
         if (recalled.length === 0 && recent.length === 0 && person.length === 0) return decision
         const recall = createUserMessage({

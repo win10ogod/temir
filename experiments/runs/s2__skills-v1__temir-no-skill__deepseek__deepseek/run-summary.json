@@ -1,0 +1,22 @@
+{
+  "runId": "s2__skills-v1__temir-no-skill__deepseek__deepseek",
+  "endedAt": "2026-10-30T00:30:47.526Z",
+  "histories": 0,
+  "historyFrom": "s2__skills-v1__temir__deepseek__deepseek",
+  "probes": 10,
+  "probeSessions": 16,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": null,
+  "unsettledSelfStatements": null,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 66,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 36,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

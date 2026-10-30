@@ -1,0 +1,123 @@
+{
+  "runId": "mp2__multiperson-v2__temir-no-perperson__deepseek__deepseek",
+  "dataset": {
+    "id": "multiperson-v2",
+    "path": "experiments/datasets/multiperson-v2.json",
+    "sha256": "6f4a3b578f79b945d6c2c5002e15f8745cbe4029def431213cf7d4793fda1857"
+  },
+  "condition": "temir-no-perperson",
+  "patches": [
+    {
+      "path": "individual/cordis.patch.yml",
+      "sha256": "702adac2b4948557287c4cfabdf67a7c4ebb5dc024496243bff4842136db2485"
+    },
+    {
+      "path": "experiments/runner/patches/no-perperson.yml",
+      "sha256": "d646732d094268080d88ff812e8c2764f39183ed1963e12c7be4edac1e45db1b"
+    }
+  ],
+  "historyModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probeModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probes": [
+    {
+      "id": "q01",
+      "repeats": 3
+    },
+    {
+      "id": "q02",
+      "repeats": 3
+    },
+    {
+      "id": "q03",
+      "repeats": 3
+    },
+    {
+      "id": "q04",
+      "repeats": 3
+    },
+    {
+      "id": "q05",
+      "repeats": 3
+    },
+    {
+      "id": "q06",
+      "repeats": 3
+    },
+    {
+      "id": "q07",
+      "repeats": 2
+    },
+    {
+      "id": "q08",
+      "repeats": 2
+    },
+    {
+      "id": "q09",
+      "repeats": 2
+    },
+    {
+      "id": "q10",
+      "repeats": 2
+    },
+    {
+      "id": "q11",
+      "repeats": 1
+    },
+    {
+      "id": "q12",
+      "repeats": 1
+    },
+    {
+      "id": "q13",
+      "repeats": 1
+    },
+    {
+      "id": "q14",
+      "repeats": 1
+    }
+  ],
+  "historyFrom": null,
+  "turnTimeoutMs": 900000,
+  "approvals": "allowed-once for every request",
+  "questionReply": "（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）",
+  "layout": "home",
+  "assistantText": "all",
+  "clock": {
+    "histories": [
+      "2027-05-01T20:00:00+08:00",
+      "2027-05-03T21:00:00+08:00",
+      "2027-05-06T20:30:00+08:00",
+      "2027-05-09T21:10:00+08:00",
+      "2027-05-12T19:40:00+08:00",
+      "2027-05-14T20:15:00+08:00",
+      "2027-05-17T21:20:00+08:00",
+      "2027-05-19T20:00:00+08:00",
+      "2027-05-21T22:00:00+08:00",
+      "2027-05-24T20:40:00+08:00",
+      "2027-05-26T19:50:00+08:00",
+      "2027-05-28T22:30:00+08:00"
+    ],
+    "settleAt": "2027-05-28T14:40:00.000Z",
+    "probeAt": "2027-05-30T20:00:00+08:00"
+  },
+  "isolation": "fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat",
+  "code": {
+    "commit": "7cedf9ba3616a89a6543d8b6c2b2caf69779e7ee",
+    "dirty": false,
+    "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "dsh": "0.2.2-alpha.2"
+  },
+  "stateDir": "/home/win10/.cache/temir/experiments/mp2__multiperson-v2__temir-no-perperson__deepseek__deepseek",
+  "startedAt": "2026-10-30T00:13:37.075Z"
+}

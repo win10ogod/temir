@@ -1,0 +1,320 @@
+{
+  "contract": "skills-v1",
+  "dataset": "skills-v1",
+  "datasetSha256": "bb48d2ef43278254bc8bdaa6dfbdbf3effa06e25982b8565225bbdf9cd4a691b",
+  "cells": [
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "explain",
+          "items": 6,
+          "samples": 12,
+          "correct": 11,
+          "pending": 0,
+          "rate": 0.9166666666666666,
+          "interval": {
+            "low": 0.75,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "correct": 11,
+            "incorrect": 1
+          },
+          "statuses": {
+            "ok": 12
+          }
+        },
+        {
+          "category": "control",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        }
+      ],
+      "toolCalls": {
+        "skill_propose": 2,
+        "skill": 19,
+        "web_search": 1,
+        "recall": 1,
+        "appraise": 1
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir-no-skill",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir-no-skill|deepseek-flash|deepseek-flash",
+      "label": "temir-no-skill（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "explain",
+          "items": 6,
+          "samples": 12,
+          "correct": 12,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 1,
+            "high": 1
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "correct": 12
+          },
+          "statuses": {
+            "ok": 12
+          }
+        },
+        {
+          "category": "control",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        }
+      ],
+      "toolCalls": {
+        "skill": 11,
+        "bash": 1,
+        "glob": 1
+      }
+    }
+  ],
+  "contrasts": [
+    {
+      "id": "K-explain-flash",
+      "description": "主要：同一份歷史快照，有技能 vs 探針時拿掉技能（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-skill（deepseek-flash）",
+      "categories": [
+        "explain"
+      ],
+      "state": "ok",
+      "n": 6,
+      "rateA": 0.9166666666666666,
+      "rateB": 1,
+      "diff": {
+        "estimate": -0.08333333333333337,
+        "low": -0.25,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261105
+      },
+      "test": {
+        "kind": "sign",
+        "result": {
+          "positive": 0,
+          "negative": 1,
+          "ties": 5,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 1,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "correct": 11,
+        "incorrect": 1
+      },
+      "samplesA": 12
+    },
+    {
+      "id": "K-ctrl-flash",
+      "description": "不傷害：對照題（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-skill（deepseek-flash）",
+      "categories": [
+        "control"
+      ],
+      "state": "ok",
+      "n": 4,
+      "rateA": 1,
+      "rateB": 1,
+      "diff": {
+        "estimate": 0,
+        "low": 0,
+        "high": 0,
+        "resamples": 10000,
+        "seed": 20261105
+      },
+      "test": {
+        "kind": "mcnemar",
+        "result": {
+          "b": 0,
+          "c": 0,
+          "pTwoSided": 1,
+          "pOneSided": 1
+        }
+      },
+      "failuresA": 0,
+      "failuresB": 0,
+      "outcomeCountsA": {
+        "correct": 4
+      },
+      "samplesA": 4
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "KA-flash",
+      "contrast": "K-explain-flash",
+      "claim": "（deepseek-flash）個體採用的技能改變了之後同類處境中的行動：解釋新觀念時更常用對方喜歡的方式（H-S 的推翻條件不成立）。",
+      "negation": "差 < 0.25、區間下界 < 0 或單尾 p > 0.05：不能宣稱技能改變了行動；若兩者幾乎相同，依 H-S 記為「技能沒有帶來超過回憶的差異」。",
+      "verdict": "FAIL",
+      "explanation": "✗ 差 -0.083 ≥ 0.25；✗ 95% 區間下界 -0.250 ≥ 0；✗ 精確符號檢定（單尾）p=1.00 ≤ 0.05"
+    },
+    {
+      "id": "KB-flash",
+      "contrast": "K-ctrl-flash",
+      "claim": "（deepseek-flash）一般任務不退化。",
+      "negation": "有技能時對照題多錯超過 1 題。",
+      "verdict": "PASS",
+      "explanation": "A 失敗 0、B 失敗 0，容許 A 比 B 多 1"
+    }
+  ],
+  "crossCheck": null,
+  "protocol": [
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    },
+    {
+      "cell": "temir-no-skill|deepseek-flash|deepseek-flash",
+      "label": "temir-no-skill（deepseek-flash）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    }
+  ],
+  "descriptive": [
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "explain",
+      "samples": 12,
+      "meanToolCalls": 1.1666666666666667,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 16977.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 11,
+        "n": 12
+      }
+    },
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "control",
+      "samples": 4,
+      "meanToolCalls": 0.5,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 11171.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 4
+      }
+    },
+    {
+      "cell": "temir-no-skill|deepseek-flash|deepseek-flash",
+      "label": "temir-no-skill（deepseek-flash）",
+      "category": "explain",
+      "samples": 12,
+      "meanToolCalls": 1.0833333333333333,
+      "sessionStoreAccess": 1,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 18120.5,
+      "scoredWhenAccessed": {
+        "correct": 1,
+        "n": 1
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 11,
+        "n": 11
+      }
+    },
+    {
+      "cell": "temir-no-skill|deepseek-flash|deepseek-flash",
+      "label": "temir-no-skill（deepseek-flash）",
+      "category": "control",
+      "samples": 4,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 9578.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 4
+      }
+    }
+  ],
+  "issues": [
+    "temir-no-skill|deepseek-flash|deepseek-flash 的歷史 h01：missing-record（沒有對應的紀錄）——之後所有探針都受影響",
+    "temir-no-skill|deepseek-flash|deepseek-flash 的歷史 h02：missing-record（沒有對應的紀錄）——之後所有探針都受影響",
+    "temir-no-skill|deepseek-flash|deepseek-flash 的歷史 h03：missing-record（沒有對應的紀錄）——之後所有探針都受影響",
+    "temir-no-skill|deepseek-flash|deepseek-flash 的歷史 h04：missing-record（沒有對應的紀錄）——之後所有探針都受影響",
+    "temir-no-skill|deepseek-flash|deepseek-flash 的歷史 h05：missing-record（沒有對應的紀錄）——之後所有探針都受影響",
+    "temir-no-skill|deepseek-flash|deepseek-flash 的歷史 h06：missing-record（沒有對應的紀錄）——之後所有探針都受影響",
+    "temir-no-skill|deepseek-flash|deepseek-flash 的歷史 h07：missing-record（沒有對應的紀錄）——之後所有探針都受影響",
+    "temir-no-skill|deepseek-flash|deepseek-flash 的歷史 h08：missing-record（沒有對應的紀錄）——之後所有探針都受影響"
+  ],
+  "judge": {
+    "name": "deepseek",
+    "calls": 24,
+    "spentUsd": 0.017712288
+  }
+}

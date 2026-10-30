@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { LifeStore } from '../src/life/store.ts'
 import { parseAux } from '../src/recall/aux.ts'
-import { FACTS_KIND, clipEnds, fuse, hybridRecall, knownFacts, lastConversation, personFacts, recalledOf, renderRecall, replyOf, selectFacts, shortId } from '../src/recall/retrieve.ts'
+import { FACTS_KIND, clipEnds, fuse, hybridRecall, knownFacts, lastConversation, personFacts, recalledOf, renderRecall, replyOf, selectFacts, sessionSoFar, shortId } from '../src/recall/retrieve.ts'
 
 function withStore(fn: (store: LifeStore) => void): void {
   const home = mkdtempSync(join(tmpdir(), 'temir-recall-'))
@@ -353,5 +353,20 @@ test('the facts shown every time are bounded: facts sharing terms with the cue f
     const text = renderRecall(store, [], undefined, '回憶：', chosen, { omittedFacts: known.length - chosen.length })
     assert.match(text, /另有 2 條較早、和現在的話題比較無關的事實沒有列出/)
     assert.match(text, /（1970\/01\/01）\n- 對方對花生過敏/, 'facts heard on the same day share one date line')
+  })
+})
+
+test('sessionSoFar: what was heard and said in this session, in order, without the cue being deliberated', () => {
+  withStore((store) => {
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 'old', data: {}, text: '對方說：別的對話' })
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 'now', data: {}, text: '對方說：今天被家屬罵了' })
+    injected(store, 'now', 'runtime-context', '執行環境')
+    assistant(store, 'now', { reasoning: '想想看', reply: '聽起來很委屈。' })
+    assistant(store, 'now', { tool: 'recall' })
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 'now', data: {}, text: '對方說：嗯。' })
+    assert.deepEqual(sessionSoFar(store, 'now', '嗯。'), ['對方：今天被家屬罵了', '我：聽起來很委屈。'])
+    assert.deepEqual(sessionSoFar(store, 'now', '還沒寫進日誌的話'), ['對方：今天被家屬罵了', '我：聽起來很委屈。', '對方：嗯。'])
+    assert.deepEqual(sessionSoFar(store, 'now', '嗯。', 1), ['我：聽起來很委屈。'])
+    assert.deepEqual(sessionSoFar(store, 'empty', '你好'), [])
   })
 })

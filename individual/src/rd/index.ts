@@ -21,7 +21,7 @@ import type { LifeEvent } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { latestRoute } from '../integrate/index.ts'
 import { callModel, type AuxRoute } from '../recall/aux.ts'
-import { clip, clipEnds } from '../recall/retrieve.ts'
+import { clip, clipEnds, sessionSoFar } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, SIGNIFICANCE_LABEL, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
 import { deliberateSystem, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, withoutExclusions } from './aux.ts'
@@ -266,6 +266,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
         const heldNow = potentialView?.shown ?? []
         const potentialLabels = potentialView?.labels ?? new Map<string, string>()
         const goalIds = new Set(goals(life).filter((g) => g.status === 'active' || g.status === 'paused').map((g) => g.id))
+        const soFar = sessionSoFar(life, session, cue)
         const input = [
           '## 你目前的自我狀態',
           renderSelfSnapshot(life, potentialView?.lines ?? []),
@@ -275,6 +276,9 @@ export function apply(ctx: Context, config: Config | undefined): void {
           '',
           '## 自動回憶',
           recalled ? clipEnds(recalled, 5000) : '（沒有）',
+          '',
+          '## 這段對話到目前為止（不含對方剛說的話）',
+          soFar.length > 0 ? soFar.join('\n') : '（這段對話剛開始）',
           '',
           '## 過去類似處境的經驗',
           renderExperiences(shown),

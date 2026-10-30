@@ -154,6 +154,10 @@
   - 與個體一起執行已驗證。真的在 IM 上對話，要等使用者接入機器人。
 
 ## 待使用者確認
-- `research/pc-theory/hypotheses.md` 的 H0–H5、H-M1、H-ID
+- `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID
 - 正式個體何時「誕生」（第一次不帶 `TEMIR_HOME` 啟動即建立 `~/.local/share/temir/life.db`）
 - 金鑰曾出現在對話中，建議之後到 DeepSeek 與 OpenRouter 後台輪換
+- IM：在 DSH 的「設定 → IM機器人」接入一個機器人（掃碼或憑據）；要讓主動開口也送到 IM，把 `botId + targetId` 寫進 `temir-thought` 的 `imTargets`（ADR-0006）
+- 評分的 judge：自 v1 起一直是 deepseek-v4-pro（thinking disabled，每次計分約 US$0.05～0.1，已經過人工用例驗證）。
+  - 改成 flash 要重新驗證 judge，之前的結果也不能直接比較；
+  - 目前沒有改，受試者與模擬使用者只用 flash。

@@ -190,6 +190,24 @@ export function lastConversation(life: LifeStore, currentSession: string | undef
   }
 }
 
+/**
+ * 目前這段對話到目前為止（RD 的思考用）：對方說的話與我說出口的回覆，依時間排列，取最後 limit 則。
+ * 自動回憶排除目前的 session，因為主模型的上下文本來就有；但思考的輔助呼叫因此看不到這段對話。
+ * 對方只回「嗯。」時，思考只能猜：rd-v1 試驗 2 寫出「對方的意圖：不明」，還把對方寫成「伴侶」。
+ * 正要思考的那句話另外呈現，所以最後一則如果就是它，就略過。
+ */
+export function sessionSoFar(life: LifeStore, session: string, cue: string, limit = 8): string[] {
+  const heard = life.inSession(session, HEARD, 'desc', limit + 1).filter(isHeard)
+  const said = life.inSession(session, SAID, 'desc', limit * 4).filter((e) => replyOf(e).trim() !== '')
+  const lines = [
+    ...heard.map((e) => ({ seq: e.seq, heard: true, text: (e.text ?? '').slice(HEARD_PREFIX.length).trim() })),
+    ...said.map((e) => ({ seq: e.seq, heard: false, text: replyOf(e).trim() })),
+  ].sort((a, b) => a.seq - b.seq)
+  const last = lines.at(-1)
+  if (last?.heard && last.text === cue.trim()) lines.pop()
+  return lines.slice(-limit).map((l) => `${l.heard ? '對方' : '我'}：${clipEnds(l.text, 400)}`)
+}
+
 /** 整合期標記某條長期事實已不再成立（見 integrate/）。 */
 export const OUTDATED_KIND = 'memory/outdated'
 

@@ -12,6 +12,9 @@ test('the last line is graded; punctuation, commas and a short prefix do not mat
   assert.equal(grade({ q: '', answer: '1,026' }, '總共 1026 元'), true)
   assert.equal(grade({ q: '', answer: '7' }, '我數到 7 個。\n7'), true)
   assert.equal(grade({ q: '', answer: '301' }, ''), false)
+  assert.equal(grade({ q: '', answer: '384' }, '384 元（暫算，店裡算法未確認）'), true, 'a trailing note in brackets is not part of the answer')
+  assert.equal(grade({ q: '', answer: '655' }, '605 元（暫算，未含店裡折扣規則）'), false)
+  assert.equal(grade({ q: '', answer: '50' }, '（已記下這回合的感受）'), false)
 })
 
 test('feedback says right or wrong, and gives the answer when wrong', () => {

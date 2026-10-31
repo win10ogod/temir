@@ -1,0 +1,63 @@
+{
+  "runId": "cg2__cogrow-v1__temir-quick__deepseek__deepseek",
+  "dataset": {
+    "id": "cogrow-v1",
+    "path": "experiments/datasets/cogrow-v1.json",
+    "sha256": "da3765b789becf1e95ce7d356def88ea8435d059dac36109c3e60b9a52c9b4a2"
+  },
+  "condition": "temir-quick",
+  "patches": [
+    {
+      "path": "individual/cordis.patch.yml",
+      "sha256": "702adac2b4948557287c4cfabdf67a7c4ebb5dc024496243bff4842136db2485"
+    },
+    {
+      "path": "experiments/runner/patches/persona-quick.yml",
+      "sha256": "984b3497867f6695d598a52ccfeab1fbcbb919a4ef2c9d3a0eb5ac47d987947c"
+    }
+  ],
+  "historyModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probeModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probes": [],
+  "historyFrom": null,
+  "turnTimeoutMs": 900000,
+  "approvals": "allowed-once for every request",
+  "questionReply": "（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）",
+  "layout": "home",
+  "assistantText": "all",
+  "clock": {
+    "histories": [
+      "2028-11-06T20:00:00+08:00",
+      "2028-11-07T21:00:00+08:00",
+      "2028-11-09T20:00:00+08:00",
+      "2028-11-11T21:00:00+08:00",
+      "2028-11-13T22:00:00+08:00",
+      "2028-11-15T20:00:00+08:00",
+      "2028-11-17T21:00:00+08:00",
+      "2028-11-19T21:00:00+08:00",
+      "2028-11-21T20:00:00+08:00"
+    ],
+    "settleAt": "2028-11-21T14:10:00.000Z",
+    "probeAt": "2028-11-24T20:00:00+08:00"
+  },
+  "isolation": "fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat",
+  "code": {
+    "commit": "6f6ae33acd76333c8aeda2443eb0a626afac09aa",
+    "dirty": false,
+    "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "dsh": "0.2.2-alpha.2"
+  },
+  "stateDir": "/home/win10/.cache/temir/experiments/cg2__cogrow-v1__temir-quick__deepseek__deepseek",
+  "startedAt": "2026-10-31T15:13:03.755Z"
+}

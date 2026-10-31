@@ -1,0 +1,22 @@
+{
+  "runId": "cg2__cogrow-v1__temir-quick__deepseek__deepseek",
+  "endedAt": "2026-10-31T16:07:01.300Z",
+  "histories": 9,
+  "historyFrom": null,
+  "probes": 0,
+  "probeSessions": 0,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 293,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 0,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

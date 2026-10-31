@@ -11,9 +11,13 @@ export interface Task {
   readonly answer: string
 }
 
-/** 比對時不計的字元：空白、逗號、引號、句末標點與常見的單位詞前綴（「答案：」）。 */
+/**
+ * 比對時不計的字元：空白、逗號、引號、句末標點、常見的單位詞前綴（「答案：」），以及答案後面的括號註記。
+ * 括號註記：cogrow-v1 中「384 元（暫算，店裡算法未確認）」數字是對的，原本被判錯，個體收到了錯的回饋（報告 cogrow-v1-report.md）。
+ */
 function normalize(s: string): string {
   return s
+    .replace(/\s*[（(][^（）()]*[）)]\s*$/u, '')
     .replace(/^.*?(答案|答|總共|合計)[:：是為]?/u, '')
     .replace(/[\s,，。．.、「」『』"'：:*`]/gu, '')
     .replace(/元$|天$|個$|次$/u, '')

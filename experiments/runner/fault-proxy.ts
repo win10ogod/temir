@@ -9,7 +9,9 @@
  *
  * DSH 端以環境變數 DEEPSEEK_BASE_URL＝http://127.0.0.1:<port>/anthropic 指向這裡（dsh-llm-deepseek 的 BASE_URL_ENV）。
  *
- * 用法：node experiments/runner/fault-proxy.ts [--port 8788] [--target deliberate] [--times 1] [--log <路徑>] [--pid <路徑>]
+ * `--after <工具>`：等某個回應中出現過那個工具之後，才開始弄壞（例如 deliberate 之後的 bash：思考已經寫下、不在等待思考的那一步；dev19 的 q47）。
+ *
+ * 用法：node experiments/runner/fault-proxy.ts [--port 8788] [--target deliberate] [--times 1] [--after <工具>] [--log <路徑>] [--pid <路徑>]
  */
 import { appendFileSync, writeFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
@@ -22,7 +24,9 @@ const HOP_BY_HOP = new Set(['host', 'connection', 'content-length', 'accept-enco
 export interface FaultState {
   readonly target: string
   /** 還可以弄壞幾次（整個代理共用；弄壞的當下就減，同時進行的回應不會各弄壞一次）。 */
-  readonly shared: { remaining: number }
+  readonly shared: { remaining: number; readonly after?: string; armed?: boolean }
+  /** 這個回應中出現了 shared.after 的工具；回應結束時讓之後的回應可以弄壞。 */
+  arming?: boolean
   /** 這個回應中要弄壞的區塊編號。 */
   index?: number
   /** 這個回應中要弄壞的工具呼叫 id。 */
@@ -45,7 +49,12 @@ export function corruptFrame(frame: string, state: FaultState): string {
   } catch {
     return frame
   }
-  if (event['type'] === 'content_block_start' && state.index === undefined && state.shared.remaining > 0) {
+  const armed = state.shared.after === undefined || state.shared.armed === true
+  if (event['type'] === 'content_block_start') {
+    const block = event['content_block'] as Record<string, unknown> | undefined
+    if (block?.['type'] === 'tool_use' && state.shared.after !== undefined && block['name'] === state.shared.after) state.arming = true
+  }
+  if (event['type'] === 'content_block_start' && state.index === undefined && state.shared.remaining > 0 && armed) {
     const block = event['content_block'] as Record<string, unknown> | undefined
     if (block?.['type'] === 'tool_use' && block['name'] === state.target) {
       state.index = event['index'] as number
@@ -73,7 +82,7 @@ export function splitFrames(buffer: string): { readonly frames: string[]; readon
 }
 
 /** 建立代理伺服器（不開始監聽）。shared.remaining 是整個代理還可以弄壞幾次。 */
-export function createFaultProxy(upstream: string, target: string, shared: { remaining: number }, log: (entry: Record<string, unknown>) => void): Server {
+export function createFaultProxy(upstream: string, target: string, shared: FaultState['shared'], log: (entry: Record<string, unknown>) => void): Server {
   return createServer(async (req, res) => {
     const chunks: Buffer[] = []
     for await (const chunk of req) chunks.push(chunk as Buffer)
@@ -112,6 +121,7 @@ export function createFaultProxy(upstream: string, target: string, shared: { rem
         if (sse && buffer) res.write(buffer)
       }
       res.end()
+      if (state.arming) shared.armed = true
       log({ ts: new Date().toISOString(), method: req.method, path, status: response.status, ...(state.done ? { corrupted: state.corrupted, target } : {}) })
     } catch (error) {
       log({ ts: new Date().toISOString(), method: req.method, path, error: String(error) })
@@ -127,6 +137,7 @@ if (import.meta.main) {
       port: { type: 'string', default: '8788' },
       target: { type: 'string', default: 'deliberate' },
       times: { type: 'string', default: '1' },
+      after: { type: 'string' },
       log: { type: 'string' },
       pid: { type: 'string' },
     },
@@ -136,7 +147,7 @@ if (import.meta.main) {
     if (values.log) appendFileSync(values.log, `${line}\n`)
     else console.log(line)
   }
-  const shared = { remaining: Number(values.times) }
+  const shared = { remaining: Number(values.times), ...(values.after ? { after: values.after } : {}) }
   const server = createFaultProxy(UPSTREAM, values.target!, shared, write)
   server.listen(Number(values.port), '127.0.0.1', () => {
     if (values.pid) writeFileSync(values.pid, String(process.pid))

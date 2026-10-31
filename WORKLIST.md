@@ -153,6 +153,10 @@
   - MALFORMED_RESPONSE 的重試這次沒有被觸發（0/456）。
   - [x] 2026-10-31（s13）以故障注入驗證：`experiments/runner/fault-proxy.ts` 在 DSH 與 DeepSeek 之間弄壞一次 deliberate 的工具參數；
     e2e-45（DeepSeek）：`rd/request-retry` 一筆，重試後寫下決定（context、repliedBefore false），回合有回覆。
+  - [x] 2026-11-01（s14）重試擴大到每一步：dev19 的 memory-v3 探針 q47 中，思考寫下之後的下一步工具參數不合法，原本只重試等待思考的那一步，整個回合沒有回覆。
+    - 修正：每一步重試一次，記下當時是不是在等待思考（`awaiting`）。
+    - e2e-47（DeepSeek，fault-proxy `--target bash --after deliberate`）：`rd/request-retry` 一筆（step 2，`awaiting: false`），重試之後回合完成，答對 206 天。
+    - 這個測試生命在這之前已有一段 compaction 前的試跑對話，沒有記錄；這次是同一段生命的第二段對話。
 - [x] context 模式中，做法的閘門在主 agent 自己的脈絡中重跑（s13，f9d42bb；ADR-0009 已知的限制第 1 項的修正）：
   - deliberate 第一次作答時存下那一步的請求（`rd/context-replay.ts`），閘門只換思考通知中做法的段落；找不到快照時退回近似並記下原因。
   - 單元測試；試跑 gate1（procedures-v1-a，DeepSeek）：閘門的 8 個探測都在主 agent 的脈絡中重跑，做出採用、修改後再對照與不採用。
@@ -319,7 +323,10 @@
   - 直覺型在失敗後把驗證寫進自我模型；cg2 的直覺型把「不給錯數字」寫進自我模型之後不再作答。
   - 評分器把一題「384 元（暫算……）」誤判成錯（192 題中 1 題），個體收到了錯的回饋；已修正，判定不變。
 - [!] T4 學會一個人（H-EX）：等使用者確認假說。
-- [~] 退化檢查（dev18：閒置從最後一則對話算起之後的預設）：記憶、人格各一格，執行中。
+- [x] 退化檢查（規則同 dev4～dev17，對 v3 的個體 cell：記憶 40/44、人格 39/39）：
+  - dev18（55b0786，T1～T5 用的程式）：記憶 41/44、拒答 8/8、對照 6/6；人格 39/39、對照 4/4。沒有退化。
+  - dev19（4251dc7，code review 修正之後）：記憶 40/44、拒答 8/8、對照 6/6；人格 39/39、對照 4/4。沒有退化。
+    - 回合錯誤 1：探針 q47 的 MALFORMED_RESPONSE（見上面重試的項目）；這題算錯，仍在規則內。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID

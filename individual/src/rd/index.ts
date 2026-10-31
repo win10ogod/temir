@@ -785,16 +785,17 @@ export function apply(ctx: Context, config: Config | undefined): void {
         logger.error('rd turn end failed: %s', error)
       }
     })
-    // 主 agent 寫 deliberate 的參數時 JSON 不合法，DSH 以 MALFORMED_RESPONSE 結束那一步，整個回合就沒有回覆
-    // （context-v1 的 memory-v3 歷史 h05）。輔助呼叫的輸出不合格只會重問；這裡對等待思考中的那一步重試一次，照實記下。
+    // 主 agent 寫工具參數時 JSON 不合法，DSH 以 MALFORMED_RESPONSE 結束那一步，整個回合就沒有回覆
+    // （context-v1 的 memory-v3 歷史 h05：deliberate 的參數；dev19 的 q47：思考寫下之後的另一個工具）。
+    // 輔助呼叫的輸出不合格只會重問；這裡對每一步重試一次，記下當時是不是在等待思考，照實記下。
     const retried = new Set<string>()
     ctx.on('agent/request-error', async (payload, next) => {
       const action = await next()
       const session = payload.agent.session.id
       const key = `${session}#${payload.turn}#${payload.step}`
-      if (action || payload.signal.aborted || payload.failure.code !== 'MALFORMED_RESPONSE' || !rd.awaiting(session) || retried.has(key)) return action
+      if (action || payload.signal.aborted || payload.failure.code !== 'MALFORMED_RESPONSE' || retried.has(key)) return action
       retried.add(key)
-      if (ctx.life.isOpen) ctx.life.append({ kind: REQUEST_RETRY_KIND, origin: 'self', session, data: { turn: payload.turn, step: payload.step, code: payload.failure.code, message: clip(payload.failure.message, 300) } })
+      if (ctx.life.isOpen) ctx.life.append({ kind: REQUEST_RETRY_KIND, origin: 'self', session, data: { turn: payload.turn, step: payload.step, awaiting: rd.awaiting(session), code: payload.failure.code, message: clip(payload.failure.message, 300) } })
       return { kind: 'retry' }
     })
   }

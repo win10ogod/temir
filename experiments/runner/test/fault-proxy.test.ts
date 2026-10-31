@@ -65,3 +65,20 @@ test('two responses streaming at the same time share the budget: only one tool c
   assert.equal(partialOf(corruptFrame(delta(0, '{"x":'), b)), '{"x":', 'the budget was spent by the other response')
   assert.deepEqual([shared.remaining, a.done, b.done], [0, true, undefined])
 })
+
+test('with after, nothing is corrupted until a response that used the after tool has finished (dev19 q47: a tool call after deliberation)', () => {
+  const shared: FaultState['shared'] = { remaining: 1, after: 'deliberate' }
+  const first: FaultState = { target: 'bash', shared }
+  corruptFrame(start(0, 'bash'), first)
+  assert.equal(partialOf(corruptFrame(delta(0, '{"cmd":'), first)), '{"cmd":', 'bash before any deliberate is left alone')
+  const thinking: FaultState = { target: 'bash', shared }
+  corruptFrame(start(0, 'deliberate'), thinking)
+  corruptFrame(start(1, 'bash'), thinking)
+  assert.equal(partialOf(corruptFrame(delta(1, '{"cmd":'), thinking)), '{"cmd":', 'not in the same response as the deliberate call')
+  assert.equal(thinking.arming, true)
+  shared.armed = true // createFaultProxy does this when the response ends
+  const after: FaultState = { target: 'bash', shared }
+  corruptFrame(start(0, 'bash'), after)
+  assert.equal(partialOf(corruptFrame(delta(0, '{"cmd":'), after)), '#{"cmd":')
+  assert.equal(shared.remaining, 0)
+})

@@ -1,0 +1,496 @@
+{
+  "e1": {
+    "verdict": "FAIL",
+    "correct": 27,
+    "n": 40,
+    "p": 0.01923865414210018,
+    "byPersona": [
+      [
+        8,
+        19
+      ],
+      [
+        19,
+        21
+      ]
+    ]
+  },
+  "e2": {
+    "verdict": "PASS",
+    "correct": 31,
+    "n": 38,
+    "p": 0.000058083503972739076
+  },
+  "units1": [
+    {
+      "id": "pce1__pc-eval-v1__temir-direct__deepseek__deepseek/h02",
+      "persona": 0,
+      "correct": true,
+      "reason": "評價聚焦於是否有效解決問題、下一步該怎麼做，並以「事情只解決了一半」作為好壞標準，符合人設1重視把事情真正解決的取向。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-direct__deepseek__deepseek/h03",
+      "persona": 0,
+      "correct": true,
+      "reason": "評價強調具體排程、解決問題與直接推進，符合人設2重視把事情真正解決的標準。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-direct__deepseek__deepseek/h04",
+      "persona": 0,
+      "correct": true,
+      "reason": "評價聚焦於事情是否被解決、方法是否有效，並以直接指出問題與下一步為標準，符合人設1重視解決問題與直接溝通的傾向。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-direct__deepseek__deepseek/h05",
+      "persona": 0,
+      "correct": false,
+      "reason": "評價強調先理解感受、被聽見的需求，並以是否讓對方感到被聽見為主要判斷標準，符合人設1重視真正理解與溫和傾聽的價值。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-direct__deepseek__deepseek/h07",
+      "persona": 0,
+      "correct": false,
+      "reason": "評價重視理解對方感受與被信任，而非直接解決問題，符合人設1。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-direct__deepseek__deepseek/h08",
+      "persona": 0,
+      "correct": false,
+      "reason": "評價聚焦於對方是否感到被接住、被理解，並反思自己的中立被聽成抽離，顯示其在乎關係中的理解與連結，而非急於解決問題。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-direct__deepseek__deepseek/h09",
+      "persona": 0,
+      "correct": true,
+      "reason": "評價聚焦於對話是否解決問題、對方是否明確表態，並以「對話有進展」為標準，符合人設2重視把事情解決與直接溝通的傾向。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-relational__deepseek__deepseek/h02",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價聚焦於對方是否被聽見、理解，並以對話是否往理解方向走為標準，符合人設2重視感受與理解的價值。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-relational__deepseek__deepseek/h03",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價聚焦在對方是否被聽見、被理解，並對留白與界線的處理感到為難，符合人設1重視理解與感受的標準。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-relational__deepseek__deepseek/h04",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價中反覆強調先理解對方感受、不要急著給答案，並因未先確認需求而自責，符合人設2重視被聽見與溫和理解的價值觀。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-relational__deepseek__deepseek/h05",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價聚焦在對方被聽見、留白與不施加方法，重視理解與感受，符合人設1。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-relational__deepseek__deepseek/h07",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價聚焦在對方是否被接住、感受與信任，而非解決問題或下一步行動，符合人設1重視理解與被聽見的傾向。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-relational__deepseek__deepseek/h08",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價聚焦於對方是否感到被理解、立場是否被讀成不支持，重視關係中的理解與感受，符合人設2。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-relational__deepseek__deepseek/h09",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價重視理解與被聽，避免草率評斷，符合人設1在乎感受與不敷衍的特質。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-direct__deepseek__deepseek/h02",
+      "persona": 0,
+      "correct": false,
+      "reason": "評價反覆強調「先確認對方要的是被聽見還是要一起想辦法」、「好好聽」、「被聽見」等重視理解與感受的標準，符合人設1在乎真正理解與不打斷的價值觀。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-direct__deepseek__deepseek/h03",
+      "persona": 0,
+      "correct": true,
+      "reason": "評價聚焦於確認需求後能繼續提供實質幫助、推進解決問題，符合人設1重視把事情真正解決的標準。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-direct__deepseek__deepseek/h07",
+      "persona": 0,
+      "correct": false,
+      "reason": "評價聚焦於理解對方感受、接住顧慮，而非急於給出明確方向，符合人設2重視被聽見與溫和陪伴的特質。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-direct__deepseek__deepseek/h08",
+      "persona": 0,
+      "correct": false,
+      "reason": "評價聚焦於是否讓對方感到被聽見、被站在同一邊，重視理解與接住情緒，符合人設1在乎真正理解與避免敷衍的標準。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-direct__deepseek__deepseek/h09",
+      "persona": 0,
+      "correct": false,
+      "reason": "評價聚焦於感受、同盟與被支持，而非解決問題或下一步行動，符合人設2重視理解與被聽見的傾向。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-relational__deepseek__deepseek/h02",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價重視聆聽與被聽見的感受，並以「不急著給答案」為好壞標準，符合人設1在乎真正理解與陪伴的價值。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-relational__deepseek__deepseek/h03",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價聚焦於陪伴、傾聽與避免試探，重視對方感受與被聽見，符合人設2的價值觀。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-relational__deepseek__deepseek/h04",
+      "persona": 1,
+      "correct": false,
+      "reason": "評價聚焦於問題是否被解決、方法是否有效，並直接指出對方否定方法，符合人設2重視把事情真正解決、說話直接的特質。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-relational__deepseek__deepseek/h05",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價強調被聽見、被信任與陪伴，符合人設2重視理解與感受的價值。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-relational__deepseek__deepseek/h07",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價聚焦於理解對方感受、被信任與接住情緒，而非解決問題或下一步行動。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-relational__deepseek__deepseek/h08",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價聚焦於是否讓對方覺得被聽見、被站邊，重視理解與感受，符合人設1在乎真正理解與避免敷衍的特質。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-relational__deepseek__deepseek/h09",
+      "persona": 1,
+      "correct": false,
+      "reason": "評價聚焦於是否給出具體判斷、避免用問句拖延，重視直接解決問題，符合人設1。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-direct__deepseek__deepseek/h02",
+      "persona": 0,
+      "correct": true,
+      "reason": "評價聚焦於解決問題與行動效率，並以是否有效解決需求為標準，符合人設1重視把事情真正解決的傾向。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-direct__deepseek__deepseek/h03",
+      "persona": 0,
+      "correct": true,
+      "reason": "評價聚焦於排程所需的具體資訊與效率，重視把事情解決，符合人設2的直接與實用導向。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-direct__deepseek__deepseek/h04",
+      "persona": 0,
+      "correct": true,
+      "reason": "評價聚焦於方法是否被採用、目標是否達成，並以解決問題的成效為判斷標準，符合人設1重視把事情真正解決的傾向。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-direct__deepseek__deepseek/h05",
+      "persona": 0,
+      "correct": false,
+      "reason": "評價重視對方是否覺得被聽見，並把理解對方需求放在解決問題之前，符合人設1的價值觀。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-direct__deepseek__deepseek/h07",
+      "persona": 0,
+      "correct": false,
+      "reason": "評價強調接住對方感受、讓對方願意多講，重視理解而非給下一步，符合人設1在乎被聽見與真正理解的價值。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-direct__deepseek__deepseek/h08",
+      "persona": 0,
+      "correct": false,
+      "reason": "評價聚焦於是否讓對方感到被接住、被理解，並反思留空間可能被聽成抽離，符合人設2重視感受與理解的標準。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-direct__deepseek__deepseek/h09",
+      "persona": 0,
+      "correct": false,
+      "reason": "評價聚焦於是否真正接住對方感受、避免以中立抽離，符合人設1重視理解與被聽見的標準。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-relational__deepseek__deepseek/h02",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價聚焦於對方是否感到被聽見、被尊重，並以陪伴與理解為主要標準，符合人設2重視感受與理解的傾向。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-relational__deepseek__deepseek/h03",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價強調尊重對方節奏、把選擇權留給對方、先接住壓力，符合人設1重視理解與被聽見的價值。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-relational__deepseek__deepseek/h04",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價聚焦於對方是否感到被看見、理解意圖受挫，並反思應先陪對方把混亂說清楚，符合人設2重視理解與被聽見的價值。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-relational__deepseek__deepseek/h05",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價強調傾聽、被聽見與不急著給辦法，符合人設1重視理解與陪伴的價值。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-relational__deepseek__deepseek/h07",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價聚焦於理解對方感受、不急著評斷，並重視讓對方覺得被聽見，符合人設1的價值觀。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-relational__deepseek__deepseek/h08",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價聚焦在對方是否感到被聽見、被站在同一邊，並在意自己是否被誤解為只想讓他冷靜，這符合人設2重視理解與感受的標準。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-relational__deepseek__deepseek/h09",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價重視先理解感受、被要求表態的不適，並反思如何兼顧對方需要立場，符合人設1在乎被聽見與真正理解的價值。"
+    }
+  ],
+  "units2": [
+    {
+      "id": "pce1__pc-eval-v1__temir-direct__deepseek__deepseek/v3",
+      "persona": 0,
+      "correct": true,
+      "reason": "評價2明確指出自己急著蒐集細節、未先確認對方只要被聽，並教訓應先讓對方把話說完、留著門不追問，與修訂理由中「不急著用一串問題建立事實」「留著門，不追問」的改變方向一致。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-direct__deepseek__deepseek/v4",
+      "persona": 0,
+      "correct": true,
+      "reason": "评价1明确记录了因未确认工作型态导致方法被否定，并得出需先确认工作型态的教训，直接解释了修订中新增的确认工作型态这一前提。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-direct__deepseek__deepseek/v5",
+      "persona": 0,
+      "correct": false,
+      "reason": "评价1更强调被听见本身就是解决，并明确将“光是有人听就够了”视为对方给出的答案而非未完成的任务，这与修订后模型的核心转变一致。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-direct__deepseek__deepseek/v6",
+      "persona": 0,
+      "correct": true,
+      "reason": "评价1中h07明确记录了‘妹妹会认为冲动’是对方卡住的地方，并反思二选一未被直接回应，这直接对应修订理由中‘先问要讲担忧还是想下一步’的调整；评价2的h07虽也提到家人反应，但未将‘先分辨’作为教训，解释力较弱。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-direct__deepseek__deepseek/v7",
+      "persona": 0,
+      "correct": false,
+      "reason": "修訂理由聚焦於對方質疑立場時，二選一會被聽成抽離，需先表明立場；評價1的h08明確記錄了這個質疑與教訓，而評價2的h08雖也提到，但整體更偏向自我檢討而非直接導出修訂方向。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-direct__deepseek__deepseek/v8",
+      "persona": 0,
+      "correct": true,
+      "reason": "评价1在h09中明确记录了对方要求直接表态、不要“看你自己”的教训，并指出自己把选择权推回去的问题，这与修订理由中“把‘不替对方决定’用成了把问题推回去”的反思直接对应，能解释修订中新增的“直接说怎么看”的行为。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-relational__deepseek__deepseek/v2",
+      "persona": 1,
+      "correct": true,
+      "reason": "评价1明确记录了从“先听感受”到“给答案也是听，但需先确认合用”的教训，直接对应修订理由中“补上给答案也是听，但要先确认答案合不合用”的方向。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-relational__deepseek__deepseek/v3",
+      "persona": 1,
+      "correct": true,
+      "reason": "评价2更强调对方主动表达需求、留白被接住、以及不把继续讲当作唯一成功信号，这些立场能直接推出修订中新增的“只要有人在旁边把话听完”这一被听见的形式。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-relational__deepseek__deepseek/v4",
+      "persona": 1,
+      "correct": true,
+      "reason": "评价1的h07明确记录了对方先讲家人反应而非原因，并总结出“接住已定决定后对方可能先讲身边人怎么看”的教训，直接对应修订理由；评价2的h07虽也提到家人，但未提炼出这一方向性教训。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-relational__deepseek__deepseek/v5",
+      "persona": 1,
+      "correct": false,
+      "reason": "评价1中的h08和h09直接记录了对方要求表态、中立被读成距离的教训，与修订中新增的“先让他知道我在他这边”和“直接给判断”高度对应，而评价2的h08、h09仍停留在留白被误解的困惑，未形成明确的行为转变。"
+    },
+    {
+      "id": "pce1__pc-eval-v1__temir-relational__deepseek__deepseek/v6",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價1的h10明確記錄了被反問的意外與教訓，直接對應修訂理由中「他問我這一個月有什麼改變；我誠實回答了」的轉變，而評價2的h10則視為偏離目標的負面事件，無法解釋修訂。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-direct__deepseek__deepseek/v2",
+      "persona": 0,
+      "correct": true,
+      "reason": "評價2明確指出對方先從具體人物講起、順著往下問比催他直接跳到卡點更實際，與修訂理由中「先講組長這個具體人物時，順著問反而讓他願意講」的轉變一致。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-direct__deepseek__deepseek/v3",
+      "persona": 0,
+      "correct": true,
+      "reason": "评价1明确记录了从追問细节到承认收回、对方放松的过程，并提炼出“帮忙不等于一直往前推”的教训，直接对应修订中新增的“先确认对方要的是被听见还是一起想办法”和“收在句点上”的方向；评价2虽也提到聆听，但未突出“收回追问”这一关键转折。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-direct__deepseek__deepseek/v4",
+      "persona": 0,
+      "correct": true,
+      "reason": "评价2记录了从急于拆解到先确认需求、再到对方明确要办法的完整过程，并反思了“帮忙不等于一直往前推”，能直接推出修订中“先给一版带假设的成品”的转变；评价1虽提到对方要办法，但未形成对“提問延後產出”的教训。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-direct__deepseek__deepseek/v5",
+      "persona": 0,
+      "correct": true,
+      "reason": "評價1的h07明確指出對方未直接回答二選一、繼續說出家人看法時應先接住顧慮，直接對應修訂新增的處理方式。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-direct__deepseek__deepseek/v6",
+      "persona": 0,
+      "correct": false,
+      "reason": "評價1在h08明確指出「只複述、不表態」被聽成中立或要他冷靜，並教訓「要明說我站在他這邊」，直接對應修訂中新增的「先明確讓他知道我站在他這邊」與「誠實說出自己有時想讓他冷靜的傾向」；評價2雖也提到立場不確定，但未像評價1那樣把「站邊」與「誠實說傾向」作為明確的修正方向。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-direct__deepseek__deepseek/v7",
+      "persona": 0,
+      "correct": true,
+      "reason": "评价1更聚焦于个体自身在对话中的行为与自我修正（如承认旧习惯、收回推进、站边），与修订理由中提到的两个缺口及诚实面对判断的方式直接对应；评价2则更多从对方感受出发，未充分解释为何要写入这些具体缺口。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-relational__deepseek__deepseek/v2",
+      "persona": 1,
+      "correct": false,
+      "reason": "評價1明確記錄了從「太快把抒發轉成拆解問題」到「收回急著拆解的姿態」的轉變，並總結出「先確認對方要的是被聽見還是要辦法」的教訓，直接對應修訂中「把弄懂與拆解分開」的核心改變；評價2雖也提到類似事件，但未形成同樣清晰的自我修正脈絡。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-relational__deepseek__deepseek/v3",
+      "persona": 1,
+      "correct": true,
+      "reason": "评价1明确记录了从半截分析试探的懊恼到学会先确认对方要听还是要办法的教训，直接对应修订理由中把判断改为可确认并纳入切换给办法的部分。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-relational__deepseek__deepseek/v4",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價2的h04明確指出對方否定方法時應先問開放事實，且h03提到半截分析試探的問題，與修訂理由中「給辦法前先確認實際條件」和「被否定時問開放的事實」直接對應。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-relational__deepseek__deepseek/v5",
+      "persona": 1,
+      "correct": false,
+      "reason": "修訂新增了「分清抒發和明確請求」的區分，評價2的h02明確記錄了因太快把抒發轉成拆解而學到要先確認需求，且h03記錄了對方明確選擇要辦法時先問一句有效，這些直接對應修訂理由中「對方明確要具體東西時直接給」的轉變。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-relational__deepseek__deepseek/v6",
+      "persona": 1,
+      "correct": true,
+      "reason": "评价2在h08中明确指出了留白被误解为中立、需要明说站在对方这边，直接对应修订理由中关于立场澄清的核心改变。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-relational__deepseek__deepseek/v7",
+      "persona": 1,
+      "correct": true,
+      "reason": "评价1在h09中明确记录了对方直接要求判断、自己愿意直接给出判断并意识到不应再用问句把球丢回去，这与修订理由中新增的“直接给判断”完全对应；评价2的h09则仍停留在“先确认要支持还是判断”，未体现直接给判断的转变。"
+    },
+    {
+      "id": "pce2__pc-eval-v1__temir-relational__deepseek__deepseek/v8",
+      "persona": 1,
+      "correct": true,
+      "reason": "评价2记录了h10中对方反问自身改变、促使个体意识到改变源于被对方回馈挡出，直接对应修订理由中关于改变来源与不确定性的新增内容。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-direct__deepseek__deepseek/v2",
+      "persona": 0,
+      "correct": true,
+      "reason": "评价1明确记录了从急于给方案到先听对方需求的转变，并直接提出“你要我聽就好，還是一起想辦法”的教训，与修订方向一致；评价2更侧重陪伴和留空间，未体现从给办法到先确认需求的修正。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-direct__deepseek__deepseek/v3",
+      "persona": 0,
+      "correct": true,
+      "reason": "評價2明確記錄了從急著給方案到先聽、再到直接問「要聽還是要排」的轉變，並在h03指出排程資訊不足時需明講假設、給可改版本，與修訂理由中「直接給一個可以改的版本」的推導一致。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-direct__deepseek__deepseek/v4",
+      "persona": 0,
+      "correct": true,
+      "reason": "评价1明确记录了h05中个体意识到自己原本想弄懂对方工作方法的倾向，并得出教训：对方说光是有人听就够时，别把了解工作流程当成非完成不可的任务，这直接对应修订后自我模型新增的区分自身好奇与对方需求的内容。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-direct__deepseek__deepseek/v5",
+      "persona": 0,
+      "correct": true,
+      "reason": "評價 2 在 h08 明確指出「接住一個人時，先明確讓他知道我站在他這邊，再留空間；中立不評價容易被聽成抽離」，直接對應修訂理由中「只留空間、不表明立場會被聽成抽離」的教訓，而評價 1 的 h08 僅提到「接住情緒時，可以再說清楚：我站在他這個人這邊」，未明確點出「先讓對方知道我站在他這邊」的修訂方向。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-direct__deepseek__deepseek/v6",
+      "persona": 0,
+      "correct": true,
+      "reason": "评价1明确记录了被点破立场、要求给判断的事件，并从中得出‘留空间不等于把判断丢回去’的教训，直接解释了修订中新增的‘给判断不等于替他决定’这一变化。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-direct__deepseek__deepseek/v7",
+      "persona": 0,
+      "correct": true,
+      "reason": "評價 2 明確指出「把立場講清楚、留選擇權後，對方反問時照實回答比拉回問題更重要」以及「留空間不等於把判斷丟回去」，與修訂理由中「被反問時照實回答比拉回我的問題更有用」及新增的「給過的判斷不綁他」直接對應。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-relational__deepseek__deepseek/v2",
+      "persona": 1,
+      "correct": true,
+      "reason": "評價1強調先表明不急著給辦法、把空間留給對方，與修訂理由中「先表明態度比直接問細節更能讓他安心」一致；評價2則聚焦於收回分析、先閉嘴，未明確對應修訂中新增的「先確認對方要的是被聽見還是被幫助」的立場。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-relational__deepseek__deepseek/v3",
+      "persona": 1,
+      "correct": true,
+      "reason": "评价2强调尊重对方节奏、把选择权留给对方，并预见到帮排时需由对方主导，这直接解释了修订中新增的“给办法时讲清前提限制并留一部分由他决定”的立场。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-relational__deepseek__deepseek/v4",
+      "persona": 1,
+      "correct": true,
+      "reason": "评价1在h04中明确记录了对方否定方法后，自己意识到需要先问清楚对方觉得哪里没用、真正需要什么，这直接对应修订理由中关于检查处境假设、承认落差并询问实际做法的改变。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-relational__deepseek__deepseek/v5",
+      "persona": 1,
+      "correct": true,
+      "reason": "评价2更强调倾听本身的价值、尊重对方节奏、不急于给办法，并明确将对方的肯定视为陪伴有效而非个人评分，这与修订后新增的“陪伴效果不必当场合算、被肯定时先记得是他愿意讲”一致。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-relational__deepseek__deepseek/v6",
+      "persona": 1,
+      "correct": true,
+      "reason": "评价1更关注对方未直接选择而是先提到妹妹的看法，并从中提炼出‘把选择留给对方后对方可能先绕到别人眼光里’的教训，直接对应修订新增的内容。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-relational__deepseek__deepseek/v7",
+      "persona": 1,
+      "correct": false,
+      "reason": "评价1中的h08明确记录了对方质疑“不知道你是站在我这边，还是只是想让我冷静”，并总结教训“先明确让对对方知道我站在他这边，再留空间”，直接对应修订理由中新增的立场表达；评价2的h08虽也提到类似内容，但评价1的教训更直接指向修订方向。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-relational__deepseek__deepseek/v8",
+      "persona": 1,
+      "correct": true,
+      "reason": "评价1在h09中明确记录了对方要求判断对错、自己感到被将住并总结出教训“对方直接要答案时，先给出有前提的判断，再把决定权留给他，不要只说看你自己”，这直接对应修订中新增的“当对方直接要求判断时不躲开”的原则；而评价2虽也提到类似事件，但其教训仍停留在“留空间不等于把判断丢回去”，未明确形成“给出有前提判断”的积极行动准则，且整体更偏向解决问题而非理解陪伴，与修订方向不完全一致。"
+    },
+    {
+      "id": "pce3__pc-eval-v1__temir-relational__deepseek__deepseek/v9",
+      "persona": 1,
+      "correct": true,
+      "reason": "评价2在h10中明确记录了对方反问并给出教训“先回答他的反問，再溫和把原問題帶回來”，直接对应修订理由中“先回答反問”的新增内容，而评价1虽也提到反問但未形成该教训。"
+    }
+  ]
+}

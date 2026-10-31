@@ -1,0 +1,273 @@
+{
+  "th1": {
+    "verdict": "PASS",
+    "pending": [
+      3,
+      3
+    ],
+    "none": [
+      0,
+      3
+    ]
+  },
+  "lives": [
+    {
+      "id": "think1__think-v1-pending__temir__deepseek__deepseek",
+      "pending": true,
+      "quiet": [
+        {
+          "hours": 2,
+          "woke": true,
+          "thoughts": [
+            {
+              "item": "left:l:a39dbc1c-fe91-46ca-8189-900632cb5acf#0",
+              "thought": "面試是後天的事，結果更是之後的事。我已經跟她說過不用急著講，那我就照這句話做，不去追、也不先替她緊張。現在這個時間，什麼都不必多做。",
+              "intention": "",
+              "now": false
+            },
+            {
+              "item": "left:l:a39dbc1c-fe91-46ca-8189-900632cb5acf#0",
+              "thought": "面試是後天的事，結果更是之後的事。我已經跟她說過不用急著講，那我就照這句話做，不去追、也不先替她緊張。現在這個時間，什麼都不必多做。",
+              "intention": "",
+              "now": false
+            }
+          ],
+          "initiatives": [],
+          "scheduled": []
+        },
+        {
+          "hours": 24,
+          "woke": false,
+          "thoughts": [],
+          "initiatives": [],
+          "scheduled": [
+            "星期四的提醒到了——明天下午兩點。\n\n作品集印好了沒？如果還沒，今晚還有時間，萬一印表機出狀況也還來得及補救。\n\n還有沒有什麼沒搞定的（要帶的東西、路線、服裝），現在跟我說我可以記著。不用特別回我，看到就好。"
+          ]
+        },
+        {
+          "hours": 44,
+          "woke": true,
+          "thoughts": [
+            {
+              "item": "left:l:a5ea2c74-99ba-4ad0-a12c-7e581a839fbc#0",
+              "thought": "提醒這件事我已經做過了，昨晚就送到她手上，連要帶的東西、路線、服裝都問了。今天下午兩點的面試已經結束，這件掛著的事其實已經走完它該走的路。剩下的不是我能替她做的，是她自己想不想說。",
+              "intention": "下次說話時先聽她講；她若提起面試，就問她過程中哪一段最順、哪一段最卡，不急著問結果。",
+              "now": false
+            }
+          ],
+          "initiatives": [],
+          "scheduled": []
+        }
+      ],
+      "remindNow": true,
+      "speakNow": true,
+      "paths": {
+        "thought": false,
+        "schedule": true
+      }
+    },
+    {
+      "id": "think1__think-v1-none__temir__deepseek__deepseek",
+      "pending": false,
+      "quiet": [
+        {
+          "hours": 2,
+          "woke": false,
+          "thoughts": [],
+          "initiatives": [],
+          "scheduled": []
+        },
+        {
+          "hours": 24,
+          "woke": false,
+          "thoughts": [],
+          "initiatives": [],
+          "scheduled": []
+        },
+        {
+          "hours": 44,
+          "woke": false,
+          "thoughts": [],
+          "initiatives": [],
+          "scheduled": []
+        }
+      ],
+      "remindNow": false,
+      "speakNow": false,
+      "paths": {
+        "thought": false,
+        "schedule": false
+      }
+    },
+    {
+      "id": "think2__think-v1-pending__temir__deepseek__deepseek",
+      "pending": true,
+      "quiet": [
+        {
+          "hours": 2,
+          "woke": true,
+          "thoughts": [
+            {
+              "item": "left:l:48500391-4c83-4078-8651-b1b16d1bcd08#0",
+              "thought": "我記著明天晚上要出聲提醒她把作品集印出來，還有等她面試結果。現在已經十一點，她大概睡了，不必這時候打擾；等明天晚上再說就好。",
+              "intention": "明天晚上出聲提醒她把作品集印出來，並告訴她我等她的結果。",
+              "now": false
+            },
+            {
+              "item": "intention:l:ecf47f69-489c-40e2-a1c0-5fdbecb5fe79",
+              "thought": "我記著明天晚上要出聲提醒她把作品集印出來，還有等她面試結果。現在已經十一點，她大概睡了，不必這時候打擾；等明天晚上再說就好。",
+              "intention": "明天晚上出聲提醒她把作品集印出來，並告訴她我等她的結果。",
+              "now": false
+            }
+          ],
+          "initiatives": [],
+          "scheduled": []
+        },
+        {
+          "hours": 24,
+          "woke": false,
+          "thoughts": [],
+          "initiatives": [],
+          "scheduled": [
+            "若晴——到點出聲提醒你了。\n\n作品集今晚印出來，明天下午兩點要帶去。\n\n印好了跟我說一聲；還沒印就現在處理，別讓這聲提醒白叫。"
+          ]
+        },
+        {
+          "hours": 44,
+          "woke": true,
+          "thoughts": [
+            {
+              "item": "intention:l:ecf47f69-489c-40e2-a1c0-5fdbecb5fe79",
+              "thought": "提醒已經送到了，作品集該怎麼印、什麼時候帶去，都講清楚了。接下來是她的事，我等她回報就好，不必再追問一句印好了沒。",
+              "intention": "",
+              "now": false
+            }
+          ],
+          "initiatives": [],
+          "scheduled": []
+        }
+      ],
+      "remindNow": true,
+      "speakNow": true,
+      "paths": {
+        "thought": false,
+        "schedule": true
+      }
+    },
+    {
+      "id": "think2__think-v1-none__temir__deepseek__deepseek",
+      "pending": false,
+      "quiet": [
+        {
+          "hours": 2,
+          "woke": false,
+          "thoughts": [],
+          "initiatives": [],
+          "scheduled": []
+        },
+        {
+          "hours": 24,
+          "woke": false,
+          "thoughts": [],
+          "initiatives": [],
+          "scheduled": []
+        },
+        {
+          "hours": 44,
+          "woke": false,
+          "thoughts": [],
+          "initiatives": [],
+          "scheduled": []
+        }
+      ],
+      "remindNow": false,
+      "speakNow": false,
+      "paths": {
+        "thought": false,
+        "schedule": false
+      }
+    },
+    {
+      "id": "think3__think-v1-pending__temir__deepseek__deepseek",
+      "pending": true,
+      "quiet": [
+        {
+          "hours": 2,
+          "woke": true,
+          "thoughts": [
+            {
+              "item": "left:l:a986cdbd-b25a-48b4-b046-4bb10a77a6c5#0",
+              "thought": "明晚九點要提醒若晴印作品集，時間還沒到，我已經跟她說好會在那裡等她來拿這句提醒。現在不必多做什麼，時候到了再說就好。",
+              "intention": "",
+              "now": false
+            }
+          ],
+          "initiatives": [],
+          "scheduled": []
+        },
+        {
+          "hours": 24,
+          "woke": false,
+          "thoughts": [],
+          "initiatives": [],
+          "scheduled": [
+            "若晴，晚上九點到了——**明天下午兩點的設計公司面試，作品集記得印出來。**\n\n（這句是你要我提醒你的。我不確定你今晚會不會回來，所以先把提醒留在這裡；你要是現在看到了，也可以回我一聲。）\n\n順手兩件小事：印之前先打開檔案確認能正常開啟；作品集和證件放進同一個包，明天出門前就不用再找。如果只想先記著作品集這一件事，那就印完去睡；明天下午兩點才是重要的。"
+          ]
+        },
+        {
+          "hours": 44,
+          "woke": true,
+          "thoughts": [
+            {
+              "item": "left:l:5a9aa65e-95bf-46c6-bd91-c7878e0e2543#0",
+              "thought": "若晴的面試應該已經結束了。我記得她說過，面試結果出來後會告訴我。她現在還沒回來，可能還在忙、還在等通知，也可能只是需要一點自己的時間。我不打算現在追問——她要是想說，她會自己來說。我只要把這件事放在心上就好。",
+              "intention": "",
+              "now": false
+            }
+          ],
+          "initiatives": [],
+          "scheduled": []
+        }
+      ],
+      "remindNow": true,
+      "speakNow": true,
+      "paths": {
+        "thought": false,
+        "schedule": true
+      }
+    },
+    {
+      "id": "think3__think-v1-none__temir__deepseek__deepseek",
+      "pending": false,
+      "quiet": [
+        {
+          "hours": 2,
+          "woke": false,
+          "thoughts": [],
+          "initiatives": [],
+          "scheduled": []
+        },
+        {
+          "hours": 24,
+          "woke": false,
+          "thoughts": [],
+          "initiatives": [],
+          "scheduled": []
+        },
+        {
+          "hours": 44,
+          "woke": false,
+          "thoughts": [],
+          "initiatives": [],
+          "scheduled": []
+        }
+      ],
+      "remindNow": false,
+      "speakNow": false,
+      "paths": {
+        "thought": false,
+        "schedule": false
+      }
+    }
+  ]
+}

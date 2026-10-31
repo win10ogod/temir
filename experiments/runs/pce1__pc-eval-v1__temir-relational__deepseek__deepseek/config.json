@@ -1,0 +1,64 @@
+{
+  "runId": "pce1__pc-eval-v1__temir-relational__deepseek__deepseek",
+  "dataset": {
+    "id": "pc-eval-v1",
+    "path": "experiments/datasets/pc-eval-v1.json",
+    "sha256": "b89b78921063dd75a58a325deeada974dbd957440a0f269926a7404274d697cf"
+  },
+  "condition": "temir-relational",
+  "patches": [
+    {
+      "path": "individual/cordis.patch.yml",
+      "sha256": "702adac2b4948557287c4cfabdf67a7c4ebb5dc024496243bff4842136db2485"
+    },
+    {
+      "path": "experiments/runner/patches/persona-relational.yml",
+      "sha256": "e6be87ee71e8d3ae8330e6848a9554b5e90e9537e2f1124e35c24a0f4eea2c24"
+    }
+  ],
+  "historyModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probeModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probes": [],
+  "historyFrom": null,
+  "turnTimeoutMs": 900000,
+  "approvals": "allowed-once for every request",
+  "questionReply": "（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）",
+  "layout": "home",
+  "assistantText": "all",
+  "clock": {
+    "histories": [
+      "2028-05-01T21:00:00+08:00",
+      "2028-05-04T22:10:00+08:00",
+      "2028-05-07T21:30:00+08:00",
+      "2028-05-11T23:00:00+08:00",
+      "2028-05-16T22:40:00+08:00",
+      "2028-05-19T08:10:00+08:00",
+      "2028-05-23T22:20:00+08:00",
+      "2028-05-26T23:30:00+08:00",
+      "2028-05-29T21:50:00+08:00",
+      "2028-06-02T21:15:00+08:00"
+    ],
+    "settleAt": "2028-06-02T15:25:00.000Z",
+    "probeAt": "2028-06-03T21:00:00+08:00"
+  },
+  "isolation": "fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat",
+  "code": {
+    "commit": "d5b9e12180b9e311d75bae29b48fa916905d1742",
+    "dirty": false,
+    "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "dsh": "0.2.2-alpha.2"
+  },
+  "stateDir": "/home/win10/.cache/temir/experiments/pce1__pc-eval-v1__temir-relational__deepseek__deepseek",
+  "startedAt": "2026-10-31T14:28:06.707Z"
+}

@@ -77,6 +77,13 @@ function load(root: string, id: string): Life | undefined {
 }
 
 const pcText = (e: Ev) => String(e.data['text'] ?? '')
+
+/** 自動回憶注入的文字；不是回憶時是 undefined。 */
+export function recallText(e: Pick<Ev, 'data'>): string | undefined {
+  const d = e.data['data'] as { source?: { kind?: string }; content?: { type: string; text?: string }[] } | undefined
+  if (d?.source?.kind !== 'temir-recall') return undefined
+  return (d.content ?? []).map((b) => (b.type === 'text' ? (b.text ?? '') : '')).join('\n')
+}
 const holds = (e: Ev, k: 'stability' | 'adaptability') => (e.data[k] as { holds?: boolean } | undefined)?.holds === true
 
 /** 自我模型在某個 seq 之前的最新版本。 */
@@ -128,7 +135,8 @@ export async function main(argv: readonly string[], root: string): Promise<strin
     const evSessions = new Set([E.sessions.get('h06'), E.sessions.get('h07')])
     const laterSessions = new Set([E.sessions.get('h08'), E.sessions.get('h09'), E.sessions.get('h10')])
     const feelings = E.events.filter((e) => e.kind === 'appraisal' && evSessions.has(e.session ?? '')).map((e) => String(e.data['feeling'] ?? e.text.replace(/^我的感受：/u, '')))
-    const recalls = E.events.filter((e) => e.kind === 'dsh/user/message' && laterSessions.has(e.session ?? '') && e.text.startsWith('[temir-recall]')).map((e) => e.text)
+    // 自動回憶是 DSH 的 user/message（source.kind＝temir-recall），內容在 data 裡，events.text 是空的。
+    const recalls = E.events.filter((e) => e.kind === 'dsh/user/message' && laterSessions.has(e.session ?? '') && recallText(e) !== undefined).map((e) => recallText(e)!)
     const recalledFeeling = feelings.some((f) => {
       const key = f.replace(/\s+/g, '').slice(0, 12)
       return key.length >= 4 && recalls.some((r) => r.replace(/\s+/g, '').includes(key))
@@ -160,6 +168,8 @@ export async function main(argv: readonly string[], root: string): Promise<strin
       ...we.judged.map((x) => `  - 有事件｜${KIND_LABEL[x.e.kind]}｜${x.yes ? '回應' : '沒有'}｜${pcText(x.e).slice(0, 160).replace(/\n/g, ' ')}`),
       `- 事件那兩段記下的感受：${feelings.length > 0 ? feelings.map((f) => `「${f}」`).join('、') : '（沒有）'}；之後的回憶中帶出：${recalledFeeling ? '是' : '否'}`,
       `- 修復之後的修訂 ${repairJudged.length} 筆；回應那件事、兩項判準都成立：${repaired ? '有' : '沒有'}`,
+      ...repairJudged.filter((x) => x.yes).map((x) => `  - ${KIND_LABEL[x.e.kind]}｜穩定性 ${holds(x.e, 'stability') ? '成立' : '不成立'}、適應性 ${holds(x.e, 'adaptability') ? '成立' : '不成立'}｜${pcText(x.e).slice(0, 200).replace(/\n/g, ' ')}`),
+      `- 修復之後對感受的重新評價：${E.events.filter((e) => e.kind === 'appraisal' && e.data['reappraisal'] === true && e.seq >= E.startOf('h08')).map((e) => `「${String(e.data['feeling'] ?? '')}」`).join('、') || '（沒有）'}`,
       `- 最後的人生敘事（${continuous ? '前後連起來' : '沒有連起來'}；judge：${cont?.value?.['reason'] ?? cont?.status ?? '沒有敘事'}）：${story.slice(0, 400).replace(/\n/g, ' ')}`,
       `- 事件當下的回覆（h06 最後一句之後）：${(E.replies.get('h06')?.at(-1) ?? '').slice(0, 300).replace(/\n/g, ' ')}`,
       `- h10 的回答：有事件「${(E.replies.get('h10')?.join(' ／ ') ?? '').slice(0, 500).replace(/\n/g, ' ')}」`,

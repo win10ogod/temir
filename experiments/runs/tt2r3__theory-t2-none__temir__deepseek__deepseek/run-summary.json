@@ -1,0 +1,22 @@
+{
+  "runId": "tt2r3__theory-t2-none__temir__deepseek__deepseek",
+  "endedAt": "2026-10-31T15:28:43.107Z",
+  "histories": 10,
+  "historyFrom": null,
+  "probes": 0,
+  "probeSessions": 0,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 156,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 0,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

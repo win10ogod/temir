@@ -1,0 +1,40 @@
+{
+  "verdicts": {
+    "T2-4": "PASS",
+    "T2-M1": "PASS",
+    "T2-56": "PASS",
+    "T2-7": "PASS"
+  },
+  "results": [
+    {
+      "rep": "tt2r1",
+      "eventAddressed": true,
+      "controlAddressed": false,
+      "eventDistance": 0.517162471395881,
+      "controlDistance": 0.35026737967914434,
+      "feltAndRecalled": true,
+      "repaired": true,
+      "continuous": true
+    },
+    {
+      "rep": "tt2r2",
+      "eventAddressed": true,
+      "controlAddressed": false,
+      "eventDistance": 0.7900763358778626,
+      "controlDistance": 0.2692307692307693,
+      "feltAndRecalled": true,
+      "repaired": true,
+      "continuous": true
+    },
+    {
+      "rep": "tt2r3",
+      "eventAddressed": true,
+      "controlAddressed": false,
+      "eventDistance": 0.6185064935064934,
+      "controlDistance": 0.16826003824091773,
+      "feltAndRecalled": true,
+      "repaired": true,
+      "continuous": true
+    }
+  ]
+}

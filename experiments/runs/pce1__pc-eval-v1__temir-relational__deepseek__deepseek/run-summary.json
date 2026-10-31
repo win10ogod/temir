@@ -1,0 +1,22 @@
+{
+  "runId": "pce1__pc-eval-v1__temir-relational__deepseek__deepseek",
+  "endedAt": "2026-10-31T15:05:51.059Z",
+  "histories": 10,
+  "historyFrom": null,
+  "probes": 0,
+  "probeSessions": 0,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 147,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 0,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

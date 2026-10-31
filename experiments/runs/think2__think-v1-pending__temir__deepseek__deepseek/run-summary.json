@@ -1,0 +1,22 @@
+{
+  "runId": "think2__think-v1-pending__temir__deepseek__deepseek",
+  "endedAt": "2026-10-31T15:04:25.054Z",
+  "histories": 2,
+  "historyFrom": null,
+  "probes": 0,
+  "probeSessions": 0,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 24,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 0,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

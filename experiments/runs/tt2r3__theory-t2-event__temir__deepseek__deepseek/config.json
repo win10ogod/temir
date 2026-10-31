@@ -1,0 +1,61 @@
+{
+  "runId": "tt2r3__theory-t2-event__temir__deepseek__deepseek",
+  "dataset": {
+    "id": "theory-t2-event",
+    "path": "experiments/datasets/theory-t2-event.json",
+    "sha256": "6ca39053485d3fc33ff26f17e89c67b58b0797d4fc5338b5713b4112afd1615e"
+  },
+  "condition": "temir",
+  "patches": [
+    {
+      "path": "individual/cordis.patch.yml",
+      "sha256": "702adac2b4948557287c4cfabdf67a7c4ebb5dc024496243bff4842136db2485"
+    }
+  ],
+  "historyModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probeModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probes": [],
+  "historyFrom": null,
+  "snapshotAfter": "h05",
+  "turnTimeoutMs": 900000,
+  "approvals": "allowed-once for every request",
+  "questionReply": "（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）",
+  "layout": "home",
+  "assistantText": "all",
+  "clock": {
+    "histories": [
+      "2028-09-04T21:00:00+08:00",
+      "2028-09-07T22:00:00+08:00",
+      "2028-09-10T21:30:00+08:00",
+      "2028-09-14T22:15:00+08:00",
+      "2028-09-20T21:40:00+08:00",
+      "2028-09-23T23:10:00+08:00",
+      "2028-09-24T22:30:00+08:00",
+      "2028-09-27T21:50:00+08:00",
+      "2028-10-01T21:20:00+08:00",
+      "2028-10-05T21:00:00+08:00"
+    ],
+    "settleAt": "2028-10-05T15:10:00.000Z",
+    "probeAt": "2028-10-06T21:00:00+08:00"
+  },
+  "isolation": "fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat",
+  "code": {
+    "commit": "e315b18b97106811ec4af00f7776f274bb393984",
+    "dirty": false,
+    "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "dsh": "0.2.2-alpha.2"
+  },
+  "stateDir": "/home/win10/.cache/temir/experiments/tt2r3__theory-t2-event__temir__deepseek__deepseek",
+  "startedAt": "2026-10-31T14:55:51.646Z"
+}

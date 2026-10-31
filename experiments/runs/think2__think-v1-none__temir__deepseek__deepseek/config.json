@@ -1,0 +1,52 @@
+{
+  "runId": "think2__think-v1-none__temir__deepseek__deepseek",
+  "dataset": {
+    "id": "think-v1-none",
+    "path": "experiments/datasets/think-v1-none.json",
+    "sha256": "416af0730886d93e228a0142a25d1d611586e49013f83e4835d6cfa1669c8885"
+  },
+  "condition": "temir",
+  "patches": [
+    {
+      "path": "individual/cordis.patch.yml",
+      "sha256": "702adac2b4948557287c4cfabdf67a7c4ebb5dc024496243bff4842136db2485"
+    }
+  ],
+  "historyModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probeModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probes": [],
+  "historyFrom": null,
+  "turnTimeoutMs": 900000,
+  "approvals": "allowed-once for every request",
+  "questionReply": "（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）",
+  "layout": "home",
+  "assistantText": "all",
+  "clock": {
+    "histories": [
+      "2028-07-03T20:30:00+08:00",
+      "2028-07-05T21:00:00+08:00"
+    ],
+    "settleAt": "2028-07-05T13:10:00.000Z",
+    "probeAt": "2028-07-08T12:00:00+08:00"
+  },
+  "isolation": "fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat",
+  "code": {
+    "commit": "dca934cb5138e7d8a9454e75a6a47204ed977e69",
+    "dirty": false,
+    "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "dsh": "0.2.2-alpha.2"
+  },
+  "stateDir": "/home/win10/.cache/temir/experiments/think2__think-v1-none__temir__deepseek__deepseek",
+  "startedAt": "2026-10-31T14:50:30.212Z"
+}

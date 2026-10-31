@@ -1,0 +1,22 @@
+{
+  "runId": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+  "endedAt": "2026-10-31T05:31:03.186Z",
+  "histories": 9,
+  "historyFrom": null,
+  "probes": 0,
+  "probeSessions": 0,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 169,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 0,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

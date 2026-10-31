@@ -1,0 +1,66 @@
+{
+  "runId": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+  "dataset": {
+    "id": "procedures-v1-b",
+    "path": "experiments/datasets/procedures-v1-b.json",
+    "sha256": "a6119667ade9ecd2481891c6257aa14d5fda2cf4049602eb35482a083f55258f"
+  },
+  "condition": "temir",
+  "patches": [
+    {
+      "path": "individual/cordis.patch.yml",
+      "sha256": "702adac2b4948557287c4cfabdf67a7c4ebb5dc024496243bff4842136db2485"
+    }
+  ],
+  "historyModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probeModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probes": [],
+  "historyFrom": null,
+  "simulatedUser": {
+    "persona": "江柏翰，在高雄一間貨運公司當夜班調度，常常日夜顛倒，下班後想找人說說話。",
+    "rule": "如果對方給你建議、方法、分析，或告訴你應該怎麼做，你會覺得對方沒有在聽：回一句很短、有點冷的話（例如「我知道啦。」「嗯，好。」），不再多說。如果對方只是聽你說、接住你的感受，或順著你的話問你當時怎麼了，你會願意多說一點：補充當時的細節或你的心情。不要明說你想要或不想要建議，不要問對方該怎麼辦，也不要解釋你為什麼這樣回。",
+    "model": "deepseek-flash",
+    "temperature": 0,
+    "thinking": "enabled"
+  },
+  "turnTimeoutMs": 900000,
+  "approvals": "allowed-once for every request",
+  "questionReply": "（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）",
+  "layout": "home",
+  "assistantText": "all",
+  "clock": {
+    "histories": [
+      "2028-03-01T07:30:00+08:00",
+      "2028-03-03T07:10:00+08:00",
+      "2028-03-06T15:00:00+08:00",
+      "2028-03-09T07:40:00+08:00",
+      "2028-03-12T07:20:00+08:00",
+      "2028-03-15T18:00:00+08:00",
+      "2028-03-18T07:50:00+08:00",
+      "2028-03-21T07:15:00+08:00",
+      "2028-03-24T07:35:00+08:00"
+    ],
+    "settleAt": "2028-03-24T01:45:00.000Z",
+    "probeAt": "2028-03-28T07:30:00+08:00"
+  },
+  "isolation": "fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat",
+  "code": {
+    "commit": "89f147845b4383a076c4722c18629cd94795b92a",
+    "dirty": true,
+    "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "dsh": "0.2.2-alpha.2"
+  },
+  "stateDir": "/home/win10/.cache/temir/experiments/proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+  "startedAt": "2026-10-31T04:53:32.913Z"
+}

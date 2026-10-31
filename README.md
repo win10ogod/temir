@@ -62,7 +62,7 @@ DeepSeek Harness（身體：CLI、Web、工具、技能、MCP、子代理……�
  │                                                工具：self_revise、narrate、goal、appraise
  │  agent/pre-step ◄──────────────  temir-recall 線索理解 → 混合回憶 → 「回憶」訊息（新 session 附上關於對方的長期事實）
  │                                                工具：recall（可依 id 展開片段）
- │  agent/pre-step ◄──────────────  temir-rd     事後比對上一個決定 → 思考處境與候選 → JitRL 經驗修正 → 「準備」訊息
+ │  agent/pre-step ◄──────────────  temir-rd     事後比對上一個決定 → 主 agent 以 deliberate 工具思考處境與候選 → JitRL 經驗修正 → 「準備」
  │  閒置／工具 ───────────────────►  temir-integrate 整合期：教訓、重新評價、自我與敘事修訂（經驗證後寫入）
  ▼
 個體的回覆 ──► 背景擷取「我的立場與承諾」，寫回生命日誌
@@ -72,6 +72,7 @@ DeepSeek Harness（身體：CLI、Web、工具、技能、MCP、子代理……�
 - **回憶**（`individual/src/recall`）：每則新訊息做一次小型模型呼叫，擷取「值得記住的事實」與「回想用的線索詞」（依據 LongMemEval 的 key expansion 與 query expansion 結果），原句與線索詞兩條檢索路徑以 Reciprocal Rank Fusion 合併；新 session 的第一句會帶入上一段對話。所有輔助呼叫的輸入輸出都寫進生命日誌。
 - **自我**（`individual/src/self`）：系統提示只陳述事實（它是什麼、記憶怎麼運作、它可以拒絕），人格由個體自己寫的紀錄承載。人生敘事一開始是空的，由個體自己寫。
 - **行動前的思考與經驗修正**（`individual/src/rd`）：每則對方的話之前，以自我狀態、回憶與過去類似處境的結果為條件，寫出處境與 3 個候選做法（附預期後果與口述信心），以 JitRL（arXiv:2601.18510）的優勢估計修正選擇；下一則話來時比對預測與實際，依個體自己的價值評估回報。與論文不同的地方都列在 [`ADR-0002`](research/decisions/ADR-0002-rd-jitrl-integration-disclosure.md)。
+  - 2026-10-31 起，思考由主 agent 在自己的回合中以 `deliberate` 工具做（context 模式，[`ADR-0009`](research/decisions/ADR-0009-deliberate-in-context.md)）；程式驗證同樣的強制判斷。三段歷史合併的不劣比較見 [`context-v2-report.md`](experiments/results/context-v2-report.md)。原本的輔助呼叫留作條件（`mode: aux`）。
 - **整合期**（`individual/src/integrate`）：模型只能「提出」修訂，每一項都必須引用這段期間的事件 id，由確定性程式碼驗證後在同一個交易中寫入；安全模型參考了其他 DSH 記憶插件的做法（調查見 [`memory-plugins-survey.md`](research/dsh/memory-plugins-survey.md)）。
 
 詳細的研究依據：[`research/methods/`](research/methods)（JitRL、WikiSkill、RRSI、Dream-RSI、Harness² 的方法與論文↔程式碼對照）、[`research/dsh/architecture.md`](research/dsh/architecture.md)、[`research/decisions/ADR-0001-build-on-dsh.md`](research/decisions/ADR-0001-build-on-dsh.md)。

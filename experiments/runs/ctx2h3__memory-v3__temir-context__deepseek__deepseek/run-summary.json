@@ -1,0 +1,22 @@
+{
+  "runId": "ctx2h3__memory-v3__temir-context__deepseek__deepseek",
+  "endedAt": "2026-10-31T06:12:54.316Z",
+  "histories": 20,
+  "historyFrom": null,
+  "probes": 58,
+  "probeSessions": 58,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 174,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 168,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

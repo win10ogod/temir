@@ -1,0 +1,4 @@
+# 條件：思考由另外的輔助呼叫做，主 agent 收到準備訊息（temir-rd 的 mode: aux；context-v2 之前的預設）。其他個體功能照舊。
+- id: temir-rd
+  config:
+    mode: aux

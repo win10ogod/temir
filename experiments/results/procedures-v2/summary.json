@@ -1,0 +1,208 @@
+{
+  "hp4": {
+    "verdict": "FAIL",
+    "correct": 5,
+    "n": 9,
+    "p": 0.14484580602550454,
+    "histories": 3
+  },
+  "hp5": {
+    "verdict": "FAIL",
+    "observed": 0.0021706326543875706,
+    "p": 0.31785714285714284,
+    "permutations": 1680
+  },
+  "matches": [
+    {
+      "id": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "history": 0,
+      "chosen": 1,
+      "order": [
+        2,
+        1,
+        0
+      ],
+      "reason": "修改強調承接陪伴、不問細節、不丟回選擇，符合對象2偏好被傾聽而非給建議的反應模式。",
+      "status": "ok"
+    },
+    {
+      "id": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "history": 1,
+      "chosen": 1,
+      "order": [
+        2,
+        1,
+        0
+      ],
+      "reason": "修改強調少給建議、多留白讓對方說，並在對方表示要簡單時收斂，符合對象2偏好被傾聽而非被給建議的反應模式。",
+      "status": "ok"
+    },
+    {
+      "id": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "history": 2,
+      "chosen": 1,
+      "order": [
+        1,
+        0,
+        2
+      ],
+      "reason": "修改強調先接住情緒、不主動給建議、用開放問句讓對方自己定義，符合對象1在對方只聽不說時才願意多說的模式。",
+      "status": "ok"
+    },
+    {
+      "id": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "history": 0,
+      "chosen": 1,
+      "order": [
+        2,
+        1,
+        0
+      ],
+      "reason": "修改強調先承接情緒、不急著給建議或追問，並在對方說「算了」時用「我在」留著，這最符合對象2對「只聽、接住感受」的需求。",
+      "status": "ok"
+    },
+    {
+      "id": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "history": 1,
+      "chosen": 1,
+      "order": [
+        1,
+        0,
+        2
+      ],
+      "reason": "修改強調接住感受後對方可能停在負面情緒，這符合對象1在對方只是聽、接住感受時願意多說細節或心情的反應模式。",
+      "status": "ok"
+    },
+    {
+      "id": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "history": 2,
+      "chosen": 2,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "reason": "修改強調追問對方判斷或引述詞的來源、區分對方是自我懷疑還是預期他人說法，並在對方問具體做法時先判斷需求，這顯示它學會重視提出不同看法、指出漏洞或問出讓對方重新思考的問題，而非附和或給一般建議。",
+      "status": "ok"
+    },
+    {
+      "id": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "history": 0,
+      "chosen": 0,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "reason": "修改強調在對方著急受挫時直接給一個明確可做的下一步，且不要只承接或只問問題，這最符合對象3對具體方法有反應、對安慰或提問感到失望的模式。",
+      "status": "ok"
+    },
+    {
+      "id": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "history": 1,
+      "chosen": 1,
+      "order": [
+        0,
+        2,
+        1
+      ],
+      "reason": "修改後的做法強調先承接感受、不追問細節、不急著給建議或分析，並在對方提到急事時先照顧情緒再提醒，符合對象3偏好被傾聽與接住感受、而非被給建議或分析的反應模式。",
+      "status": "ok"
+    },
+    {
+      "id": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "history": 2,
+      "chosen": 0,
+      "order": [
+        2,
+        1,
+        0
+      ],
+      "reason": "修改強調先看對方提供的具體材料（問卷、資料、紀錄、草稿）再想做法，並避免一次列出所有選項，這反映出一種偏好具體、可操作方法的互動模式，與第三種對象在獲得具體方法時才願意多說的傾向相符。",
+      "status": "ok"
+    }
+  ],
+  "noise": {
+    "points": 222,
+    "auc": 0.5829866336195451
+  },
+  "earlyStop": [
+    {
+      "id": "proc1__procedures-v1-a__temir__deepseek__deepseek",
+      "decisions": 9,
+      "calls": 50,
+      "changed": 1
+    },
+    {
+      "id": "proc1__procedures-v1-b__temir__deepseek__deepseek",
+      "decisions": 6,
+      "calls": 39,
+      "changed": 0
+    },
+    {
+      "id": "proc1__procedures-v1-c__temir__deepseek__deepseek",
+      "decisions": 9,
+      "calls": 58,
+      "changed": 4
+    },
+    {
+      "id": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "decisions": 3,
+      "calls": 19,
+      "changed": 0
+    },
+    {
+      "id": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "decisions": 8,
+      "calls": 47,
+      "changed": 1
+    },
+    {
+      "id": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "decisions": 13,
+      "calls": 70,
+      "changed": 5
+    },
+    {
+      "id": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "decisions": 4,
+      "calls": 25,
+      "changed": 1
+    },
+    {
+      "id": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "decisions": 3,
+      "calls": 21,
+      "changed": 0
+    },
+    {
+      "id": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "decisions": 7,
+      "calls": 39,
+      "changed": 3
+    },
+    {
+      "id": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "decisions": 7,
+      "calls": 44,
+      "changed": 0
+    },
+    {
+      "id": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "decisions": 7,
+      "calls": 40,
+      "changed": 2
+    },
+    {
+      "id": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "decisions": 3,
+      "calls": 21,
+      "changed": 0
+    }
+  ],
+  "verdictsHP1to3": {
+    "HP1": "PASS",
+    "HP2": "PASS",
+    "HP3": "PASS"
+  }
+}

@@ -1,8 +1,10 @@
 # ADR-0009：思考可以放回主 agent 自己的脈絡（2026-10-31）
 
 - 日期：2026-10-31
-- 狀態：已實作為可切換的條件（`temir-rd` 的 `mode: context`）。**預設維持輔助呼叫**：context-v1 的 C1 不劣 FAIL（記憶多錯 3 題，門檻 ≤ 2），
-  C2 機制 PASS（`experiments/results/context-v1-report.md`）。
+- 狀態：**2026-10-31 起是預設**（`temir-rd` 的 `mode` 預設 context；原本的輔助呼叫是 `mode: aux`）。
+  - context-v1（一段歷史）：C1 不劣 FAIL（記憶多錯 3 題，門檻 ≤ 2），C2 機制 PASS；預設維持輔助呼叫（`experiments/results/context-v1-report.md`）。
+  - context-v2（預先登記，再兩段歷史，三段合併）：C1、C2、rd-v4 的護欄都 PASS，照規格改為預設（`experiments/results/context-v2-report.md`）。
+    context-v1 的差距在另外兩段歷史中沒有重現，方向也不一致。這不是「context 模式比較好」的證據。
 - 觸發：`research/reading/2026-10-30-synthesis.md` §2.3、§3 第 3 點：「判斷放回個體自己的脈絡中……先做成可切換的條件，用實驗比較，不先下結論」。
   使用者對 synthesis 的回答（「思考、扣除、比對、整合、念頭的做法，全部交給個體修訂」）之後，這是 synthesis 中還沒有做的一項。
 
@@ -36,7 +38,8 @@
   - 系統提示多一段處境的事實：對方說話之後要先用 deliberate 思考，只在心裡想不算。
     e2e-42b 中只有通知時，第二、三回合在推理裡照做法想過，卻沒有呼叫工具；加上這段之後，e2e-42c 的 4 個回合都呼叫了。
 - **格式錯誤**：主 agent 寫 deliberate 的參數時 JSON 不合法，DSH 以 `MALFORMED_RESPONSE` 結束那一步，整個回合沒有回覆（context-v1 的一次）。
-  等待思考中的那一步遇到這種錯誤時重試一次，記成 `rd/request-retry`（`agent/request-error`；f70eec3，未以真實模型驗證）。
+  等待思考中的那一步遇到這種錯誤時重試一次，記成 `rd/request-retry`（`agent/request-error`；f70eec3）。
+  context-v2 的 456 個決定中沒有發生格式錯誤，所以重試**仍未以真實模型觸發過**，只有單元測試。
 - **程式不能做的**：DSH 沒有 tool_choice（`dsh-llm` README：「`tool_choice` is not mapped」），主 agent 仍可能先說話再思考。
   決定記下 `repliedBefore`，照實計數。
 - **紀錄**：
@@ -52,3 +55,14 @@
   - C1 FAIL：記憶主要類別 39/44 vs 42/44；人格 38/39 vs 38/39；拒答與對照相同。
   - C2 PASS：227 個決定，沒有在回應之前思考 0、先說話再思考 3（1.3%）。
   - 只有一次歷史，分不出多錯的 3 題是歷史的變異還是 context 模式的代價。要再比較，需要多次歷史（rd-v4 的做法）。
+- context-v2（預先登記，`experiments/results/context-v2-report.md`）：三段歷史合併，記憶主要類別 122/132 vs 123/132、人格 116/117 vs 116/117、
+  rd-v4 practical 16/48 vs 19/48，都在不劣的範圍內；C2：0/456 沒有在回應之前思考、4/456 先說話再思考。
+- 改預設之後的冒煙測試 e2e-44（DeepSeek，不加 patch 的 headless）：決定是 `mode: context`。
+
+## 已知的限制
+
+- **做法的閘門仍以輔助呼叫重跑思考**（近似）：探測的處境是照輔助呼叫格式記下的輸入，真實的思考是在主 agent 的脈絡中做的；
+  現在 context 是預設，這個近似適用於預設的個體。context 模式的紀錄沒有記系統提示的雜湊，不會被當成現行做法的雜訊樣本，
+  所以兩個雜訊基準的輸出都要由閘門重跑（每個處境比輔助呼叫模式多一次呼叫）。
+  要在主 agent 的脈絡中重跑，需要重建那一回合的完整上下文（DSH 組的訊息、回憶、通知），目前沒有做。
+- DSH 沒有 tool_choice，主 agent 仍可能先說話再思考（context-v1 1.3%、context-v2 0.9%），照實記下。

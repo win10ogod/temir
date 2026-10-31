@@ -72,8 +72,10 @@ export const CONDITIONS = {
   'temir-no-subtraction': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-subtraction.yml')],
   'temir-no-perperson': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-perperson.yml')],
   'temir-no-skill': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-skill.yml')],
-  // 2026-10-31：判斷放回主 agent 自己的脈絡（temir-rd mode: context）。
+  // 2026-10-31：判斷放回主 agent 自己的脈絡（temir-rd mode: context）。context-v2 之後這是預設，`temir` 也是 context 模式；
+  // `temir-context` 留著讓之前的規格可以重現，`temir-aux` 是原本的輔助呼叫。
   'temir-context': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'context.yml')],
+  'temir-aux': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'aux.yml')],
 } as const
 export type Condition = keyof typeof CONDITIONS
 
@@ -347,7 +349,8 @@ async function main(): Promise<void> {
     assistantText,
     clock: simulated ? { histories: dataset.histories.map((h) => h.meta?.at ?? null), settleAt, probeAt } : null,
     isolation: 'fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat',
-    code: { commit: git('rev-parse', 'HEAD'), dirty: git('status', '--porcelain').length > 0, diffSha256: sha256(git('diff', 'HEAD')) },
+    // 執行器自己的輸出（experiments/runs/ 下未追蹤的目錄）不算：同一個 worktree 中先開始的批次會先建立它們（procedures-v2 的 proc2r2、proc2r3）。
+    code: { commit: git('rev-parse', 'HEAD'), dirty: git('status', '--porcelain', '--', '.', ':(exclude)experiments/runs').length > 0, diffSha256: sha256(git('diff', 'HEAD')) },
     runtime: { node: process.version, dsh: execFileSync('dsh', ['--version'], { encoding: 'utf8' }).trim() },
     stateDir,
     startedAt: new Date().toISOString(),

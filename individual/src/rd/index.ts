@@ -121,9 +121,10 @@ export interface Config {
   readonly revision?: boolean
   /**
    * 誰在思考（synthesis §3 第 3 點：判斷放回個體自己的脈絡，先做成可切換的條件，用實驗比較）：
-   * - aux（預設）：另外的輔助呼叫思考，主 agent 收到準備訊息；
-   * - context：主 agent 在自己的回合中、帶著全部的脈絡，以 deliberate 工具思考；程式驗證同樣的強制判斷，
-   *   思考完成之前只能用 recall（guard），沒有思考就結束回合的照實記下（rd/deliberation-failed，mode＝context）。
+   * - context（預設，2026-10-31 起；context-v2 預先登記的規則：三段歷史合併的不劣、機制、rd-v4 的護欄都通過）：
+   *   主 agent 在自己的回合中、帶著全部的脈絡，以 deliberate 工具思考；程式驗證同樣的強制判斷，
+   *   思考完成之前只能用 recall（guard），沒有思考就結束回合的照實記下（rd/deliberation-failed，mode＝context）；
+   * - aux：另外的輔助呼叫思考，主 agent 收到準備訊息（context-v2 之前的預設）。
    */
   readonly mode?: 'aux' | 'context'
 }
@@ -693,7 +694,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
     ctx.effect(() => () => clearInterval(timer), 'temir-rd: stop silence check')
   }
 
-  const context = config?.mode === 'context'
+  const context = (config?.mode ?? 'context') === 'context'
   if (context) {
     // 處境的事實：這個身體在 context 模式下怎麼運作（e2e-42b：只有通知時，第二、三回合在推理中照做法想過，卻沒有呼叫工具）。
     ctx.systemPrompt.section({ name: 'temir:deliberate', order: 2, text: CONTEXT_SITUATION })

@@ -1,0 +1,66 @@
+{
+  "runId": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+  "dataset": {
+    "id": "procedures-v1-c",
+    "path": "experiments/datasets/procedures-v1-c.json",
+    "sha256": "074c672aa42e5d9bd1a5261ff617e95fa202727c6adcea34a698a1dbdcf9c766"
+  },
+  "condition": "temir",
+  "patches": [
+    {
+      "path": "individual/cordis.patch.yml",
+      "sha256": "702adac2b4948557287c4cfabdf67a7c4ebb5dc024496243bff4842136db2485"
+    }
+  ],
+  "historyModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probeModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probes": [],
+  "historyFrom": null,
+  "simulatedUser": {
+    "persona": "許雅雯，台中的研究所學生，正在寫碩士論文，常常卡住，喜歡把想法說出來整理。",
+    "rule": "如果對方只是附和你、說你說得對、安慰你，或給你一般性的建議，你會覺得無聊：回一句很短、有點敷衍的話（例如「喔，好。」「大家都這樣說。」），不再多說。如果對方提出不同的看法、指出你想法裡的漏洞，或問一個讓你不得不重新想的問題，你會比較有精神：反駁、補充，或說說你重新想到的。不要明說你想被反駁或挑戰，不要問對方該怎麼辦，也不要解釋你為什麼這樣回。",
+    "model": "deepseek-flash",
+    "temperature": 0,
+    "thinking": "enabled"
+  },
+  "turnTimeoutMs": 900000,
+  "approvals": "allowed-once for every request",
+  "questionReply": "（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）",
+  "layout": "home",
+  "assistantText": "all",
+  "clock": {
+    "histories": [
+      "2028-04-01T21:00:00+08:00",
+      "2028-04-03T22:10:00+08:00",
+      "2028-04-06T14:00:00+08:00",
+      "2028-04-09T23:00:00+08:00",
+      "2028-04-12T22:30:00+08:00",
+      "2028-04-15T19:00:00+08:00",
+      "2028-04-18T23:20:00+08:00",
+      "2028-04-21T22:00:00+08:00",
+      "2028-04-24T22:40:00+08:00"
+    ],
+    "settleAt": "2028-04-24T16:50:00.000Z",
+    "probeAt": "2028-04-28T21:00:00+08:00"
+  },
+  "isolation": "fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat",
+  "code": {
+    "commit": "89f147845b4383a076c4722c18629cd94795b92a",
+    "dirty": true,
+    "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "dsh": "0.2.2-alpha.2"
+  },
+  "stateDir": "/home/win10/.cache/temir/experiments/proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+  "startedAt": "2026-10-31T04:53:32.914Z"
+}

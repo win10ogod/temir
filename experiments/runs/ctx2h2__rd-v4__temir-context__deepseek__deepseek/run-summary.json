@@ -1,0 +1,22 @@
+{
+  "runId": "ctx2h2__rd-v4__temir-context__deepseek__deepseek",
+  "endedAt": "2026-10-31T05:23:25.044Z",
+  "histories": 9,
+  "historyFrom": null,
+  "probes": 12,
+  "probeSessions": 20,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 134,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 59,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

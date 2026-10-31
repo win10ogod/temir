@@ -9,6 +9,7 @@
  * 聽到的話另外標出「長期」的事實（幾週後仍然成立或重要），供新 session 開頭的「關於對方」使用（hypotheses.md H-M2）；
  * 自己說的話先寫結論，因為 v2 實驗中結論常在回覆最後，被截斷後個體記錯自己的立場。
  */
+import { createHash } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import { BlockAssembler, createUserMessage, type ReasoningEffortId, type TokenUsage } from '@deepseek-ai/dsh-llm'
 
@@ -144,6 +145,14 @@ export interface ModelResult {
 /** memory/aux 紀錄中與呼叫本身有關的欄位（rd、recall、integrate、thought、skill 共用）。 */
 export function auxRecord(r: ModelResult): { ms: number; effort: string | null; reasoningChars: number; usage: TokenUsage | null; finish: string } {
   return { ms: r.ms, effort: r.effort, reasoningChars: r.reasoningChars, usage: r.usage, finish: r.finish }
+}
+
+/**
+ * 系統提示的雜湊（memory/aux 的 systemHash）：做法的閘門以它判斷一次真實呼叫是不是照現行的做法、相同的框架與輸出段做的，
+ * 相同時那次的輸出就是現行做法的一個樣本，不必重跑（integrate/procedure-gate.ts）。
+ */
+export function promptHash(system: string): string {
+  return createHash('sha256').update(system).digest('hex').slice(0, 16)
 }
 
 /**

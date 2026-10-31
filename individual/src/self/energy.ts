@@ -66,6 +66,8 @@ export interface ThoughtData {
   readonly thought: string
   readonly intention: string
   readonly releasedItems: readonly string[]
+  /** 這次的打算取代的懸著的事（不再列出）；舊紀錄沒有這個欄位。 */
+  readonly replacedItems?: readonly string[]
   readonly trigger: 'idle'
   /** 念頭決定現在就主動開口（M4）；舊紀錄沒有這個欄位。 */
   readonly now?: boolean
@@ -108,7 +110,7 @@ const POTENTIAL = new Projection<{ readonly released: Set<string>; readonly item
       for (const r of (e.data as { released?: readonly { key: string }[] }).released ?? []) released.add(r.key)
     } else if (e.kind === THOUGHT_KIND) {
       const t = e.data as ThoughtData
-      for (const k of t.releasedItems ?? []) released.add(k)
+      for (const k of [...(t.releasedItems ?? []), ...(t.replacedItems ?? [])]) released.add(k)
       if (t.intention) items.push({ key: `intention:${e.id}`, kind: 'intention', outward: true, text: t.intention, ...from(e) })
     } else {
       const o = e.data as OutcomeData

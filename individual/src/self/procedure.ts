@@ -135,6 +135,17 @@ export function procedurePrompt(frame: string, procedures: readonly Pick<Procedu
   return [frame, ...procedures.map(procedureSection), `## 輸出（每一項都要照格式作答）\n${contract}`].join('\n\n')
 }
 
+/**
+ * 一次輔助呼叫的系統提示中，做法以外會變的部分（memory/aux 的 variant）：深度整合，以及消融關掉的機制。
+ * 做法的閘門重跑時照同樣的設定組出系統提示（integrate/procedure-gate.ts 的 systemWith）。預設值不記。
+ */
+export interface ProcedureVariant {
+  readonly deep?: true
+  readonly energy?: false
+  readonly subtraction?: false
+  readonly perPerson?: false
+}
+
 /** memory/aux 記下這次呼叫用了哪幾個做法的哪一版（name → version）。 */
 export function procedureVersions(procedures: readonly Pick<Procedure, 'name' | 'version'>[]): Record<string, number> {
   return Object.fromEntries(procedures.map((p) => [p.name, p.version]))
@@ -156,8 +167,8 @@ export interface ProcedureDecisionData {
   readonly proposal: string
   readonly name: ProcedureName
   readonly verdict: ProcedureVerdict
-  /** 每個理由指出是哪個處境（S1、S2…）、看到了什麼差異。 */
-  readonly reasons: readonly { readonly situation: string; readonly observation: string }[]
+  /** 每個理由指出是哪個處境（S1、S2…）、看到了什麼差異；beyondNoise＝差異大於照現行做法兩次之間的差異（gate＝noise 時必答）。 */
+  readonly reasons: readonly { readonly situation: string; readonly observation: string; readonly beyondNoise?: boolean }[]
   readonly probes: readonly string[]
   /** 文字增減的字數（成本：做法每次呼叫都進入系統提示）。 */
   readonly costChars: number
@@ -165,8 +176,18 @@ export interface ProcedureDecisionData {
   readonly adopted?: string
   /** 判斷不合格（重問之後仍不合格）時的問題；這時記為 reject。 */
   readonly problems?: readonly string[]
-  /** 個體沒有可重複評估的任務集，量不出雜訊下限（ADR-0008 §3；與 ADR-0003 相同）。 */
-  readonly gate: 'contrast' | 'none'
+  /**
+   * 閘門的種類：
+   * - noise：每個處境有照現行做法的兩個輸出，個體逐項判斷差異是否大於兩者之間的差異（雜訊；ADR-0008 §3 第二版）；
+   * - contrast：只有一個現行做法的輸出（第一版的紀錄）；
+   * - none：沒有探測。
+   * 個體沒有可重複評估的任務集，量不出數值的雜訊下限 δ（ADR-0003）；這裡的雜訊是同一個處境上的定性比較。
+   */
+  readonly gate: 'noise' | 'contrast' | 'none'
+  /** 這一輪閘門的模型呼叫次數（探測與合成；第二版起記）。 */
+  readonly calls?: number
+  /** 重用的現行做法輸出（那次真實呼叫的輸出、之前探測的輸出）幾個（第二版起記）。 */
+  readonly reused?: number
 }
 
 /**

@@ -21,7 +21,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
-import { auxRecord, modelCaller, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
+import { auxRecord, modelCaller, promptHash, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
 import { clipKeepLines, isHeard } from '../recall/retrieve.ts'
 import { currentProcedure, pendingProcedureProposals, procedureVersions } from '../self/procedure.ts'
 import { INTEGRATION_KIND, collect, integrationStart, reconsiderSince, renderEvidence, type IntegrationTrigger } from './evidence.ts'
@@ -85,14 +85,14 @@ export async function gateProcedures(deps: IntegrateDeps, timeoutMs: number, rou
   const gated: string[] = []
   const gateCall: GateCall = async (prompt, probeInput, purpose) => {
     const call = await deps.call(route, prompt, probeInput, AbortSignal.timeout(timeoutMs), purpose === 'procedure-probe' ? 32_000 : undefined)
-    if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose, ...auxRecord(call), input: clipKeepLines(probeInput, 20_000), output: call.output } })
+    if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose, ...auxRecord(call), input: clipKeepLines(probeInput, 20_000), systemHash: promptHash(prompt), output: call.output } })
     return call.output
   }
   for (const id of ids) {
     try {
       let proposalEvent = life.get(id)
       for (let round = 0; proposalEvent && round < 2 && life.isOpen; round++) {
-        const { decision, next } = await runProcedureGate(life, proposalEvent, gateCall)
+        const { decision, next } = await runProcedureGate(life, proposalEvent, gateCall, model)
         gated.push(describeGate(life, decision))
         proposalEvent = next
       }
@@ -132,12 +132,12 @@ export async function runIntegration(deps: IntegrateDeps, config: Config | undef
   const procedure = currentProcedure(life, 'integrate')
   const system = integrateSystem({ procedure, deep })
   // 輸入保留換行：做法的閘門以真實的輸入重跑（ADR-0008 §3）。
-  const used = { procedures: procedureVersions([procedure]), input: clipKeepLines(input, 60_000) }
+  const used = { procedures: procedureVersions([procedure]), input: clipKeepLines(input, 60_000), ...(deep ? { variant: { deep: true } } : {}) }
   async function ask(prompt: string): Promise<{ readonly output: string } | { readonly error: unknown }> {
     try {
       // 會推理的模型可能把大部分 token 用在推理（e2e-13 中 Nemotron 在 8192 上限下只輸出 287 字的殘缺 JSON），所以上限放寬。
       const call = await deps.call(route!, prompt, input, AbortSignal.timeout(timeoutMs), 32_000)
-      life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'integrate', ...auxRecord(call), ...used, output: call.output } })
+      life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'integrate', ...auxRecord(call), ...used, systemHash: promptHash(prompt), output: call.output } })
       return { output: call.output }
     } catch (error) {
       if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'integrate', error: String(error), ...used } })

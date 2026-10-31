@@ -24,11 +24,11 @@ import { createUserMessage, type ContextFormed } from '@deepseek-ai/dsh-llm'
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { latestRoute } from '../integrate/index.ts'
-import { auxRecord, modelCaller, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
+import { auxRecord, modelCaller, promptHash, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
 import { clip, clipEnds, clipKeepLines, sessionSoFar } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, appraisalText, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
-import { currentProcedure, procedureVersions, type Procedure } from '../self/procedure.ts'
+import { currentProcedure, procedureVersions, type Procedure, type ProcedureVariant } from '../self/procedure.ts'
 import { ALL_EXCLUDED_NOTE, deliberateSystem, deliberationRetryNote, outcomeRetryNote, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, revisionRetryNote, revisionSystem, withoutExclusions } from './aux.ts'
 import { DEFAULT_PARAMS, allExcluded, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
 import { adoptedParamsOf } from './replay.ts'
@@ -155,6 +155,8 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
   const perPerson = config?.perPerson ?? true
   const revision = (config?.revision ?? true) && subtraction
   const silenceMs = (config?.silenceMinutes ?? 10) * 60_000
+  // 消融關掉的機制（memory/aux 的 variant）：做法的閘門照同樣的設定重跑（integrate/procedure-gate.ts）。
+  const variant: ProcedureVariant = { ...(energy ? {} : { energy: false }), ...(subtraction ? {} : { subtraction: false }), ...(perPerson ? {} : { perPerson: false }) }
 
   /** 背景的事後比對；卸載前等它們完成。 */
   const background = new Set<Promise<void>>()
@@ -177,8 +179,9 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
   ): Promise<string | undefined> {
     const deadline = signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs)
     const model = `${route.provider}/${route.model}`
-    // 輸入保留換行、最多 20000 字：做法的閘門以這些真實的輸入重跑（integrate/procedure-gate.ts；ADR-0008 §3）。
-    const used = { procedures: procedureVersions(procedures), input: clipKeepLines(input, 20_000) }
+    // 輸入保留換行、最多 20000 字：做法的閘門以這些真實的輸入重跑（integrate/procedure-gate.ts；ADR-0008 §3）；
+    // 系統提示的雜湊讓閘門認得出這次的輸出是不是照現行做法的樣本。
+    const used = { procedures: procedureVersions(procedures), input: clipKeepLines(input, 20_000), systemHash: promptHash(system), ...(Object.keys(variant).length > 0 ? { variant } : {}) }
     try {
       const result = await deps.call(route, system, input, deadline)
       life.append({ kind: 'memory/aux', origin: 'self', session, model, data: { purpose, ...auxRecord(result), ...used, output: result.output }, causes })

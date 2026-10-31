@@ -12,12 +12,14 @@
 import type { LifeStore } from '../life/store.ts'
 import { extractJson } from '../recall/aux.ts'
 import { clip, clipEnds, lastConversation, replyOf } from '../recall/retrieve.ts'
+import { INTEGRATION_KIND } from '../integrate/carried.ts'
+import { OUTCOME_KIND } from '../rd/memory.ts'
 import { THOUGHT_KIND, potentialItems, presentPotential, resolvePotential, unlabel, type ThoughtData } from '../self/energy.ts'
-import { DEFAULT_PROCEDURES, procedurePrompt, type Procedure } from '../self/procedure.ts'
+import { DEFAULT_PROCEDURES, PROCEDURE_KIND, procedurePrompt, type Procedure } from '../self/procedure.ts'
 import { KIND, appraisalText, formatTime, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
 
 const THOUGHT_CONTRACT = `只輸出一個 JSON 物件，不要任何其他文字：
-{"item": "", "thought": "", "feeling": "", "keepFeeling": false, "reconsider": false, "release": false, "intention": "", "now": false}
+{"item": "", "thought": "", "feeling": "", "keepFeeling": false, "reconsider": false, "release": false, "intention": "", "replaces": [], "now": false}
 - item：浮上心頭的那件事的編號：「懸著的事」的 P 編號（例如 "P2"），或目標的 id（例如 "g:3fa1c2d4"）。沒有就給空字串，其他欄位也留空或 false。
 - thought：你此刻的念頭，第一人稱。
 - feeling：這個念頭帶來的感受；沒有就給空字串。
@@ -25,6 +27,7 @@ const THOUGHT_CONTRACT = `只輸出一個 JSON 物件，不要任何其他文字
 - reconsider：item 不是空的時必答：這個念頭要不要讓你現在就重新檢視自己（核心價值、人生敘事與長期目標）：true 或 false。
 - release：item 不是空的時必答：這件事是否可以放下了：true 或 false。目標不在這裡放下。
 - intention：下次和對方說話時想做的事，一句；沒有就給空字串。
+- replaces：intention 不是空的時必答：這個打算取代了「懸著的事」中的哪幾件（P 編號的陣列，例如同一件事換了寫法、或已經包含在這個打算裡的；被取代的就不再列出）；沒有就給空陣列。
 - now：intention 不是空的時必答：要不要現在就主動對對方說，不等對方先開口：true 或 false。`
 
 /** 念頭的系統提示（框架＋念頭做法＋輸出；ADR-0008 §1）。 */
@@ -44,6 +47,8 @@ export interface ThoughtJudgement {
   readonly reconsider: boolean
   readonly release: boolean
   readonly intention: string
+  /** 這個打算取代了哪幾件懸著的事（模型寫的 P 編號，原樣保留；e2e-40：同一個打算換了寫法，一件一件累積下來）。 */
+  readonly replaces: readonly string[]
   /** 現在就主動開口（M4 的自發行動）。 */
   readonly now: boolean
 }
@@ -56,9 +61,10 @@ export type ThoughtParse = { readonly ok: true; readonly judgment: ThoughtJudgem
 
 /**
  * 解析念頭（強制判斷，CLAUDE.md 規則 2）：item 不是空的時，reconsider 與 release 必答；有感受時 keepFeeling 必答；
- * 有打算時 now 必答。缺了就列出問題，由呼叫端附上 thoughtRetryNote 重問一次。沒有浮上心頭的事時 item 為空字串。
+ * 有打算時 now 與 replaces 必答（replaces 只能指名輸入中列出的 P 編號，labels）。缺了就列出問題，由呼叫端附上 thoughtRetryNote 重問一次。
+ * 沒有浮上心頭的事時 item 為空字串。
  */
-export function parseThought(output: string): ThoughtParse {
+export function parseThought(output: string, labels: ReadonlyMap<string, string> = new Map()): ThoughtParse {
   const obj = extractJson(output)
   if (!obj) return { ok: false, problems: ['不是 JSON 物件'] }
   const item = text(obj['item'], 40)
@@ -66,11 +72,20 @@ export function parseThought(output: string): ThoughtParse {
   const intention = text(obj['intention'], 300)
   const problems: string[] = []
   const bool = (key: string) => typeof obj[key] === 'boolean'
+  const replaces: string[] = []
   if (item) {
     if (!bool('reconsider')) problems.push('reconsider 不是 true 或 false')
     if (!bool('release')) problems.push('release 不是 true 或 false')
     if (feeling && !bool('keepFeeling')) problems.push('有 feeling，但 keepFeeling 不是 true 或 false')
     if (intention && !bool('now')) problems.push('有 intention，但 now 不是 true 或 false')
+    if (intention) {
+      if (!Array.isArray(obj['replaces'])) problems.push('有 intention，但 replaces 不是陣列')
+      for (const raw of Array.isArray(obj['replaces']) ? (obj['replaces'] as unknown[]) : []) {
+        const ref = typeof raw === 'string' ? raw.trim().toUpperCase() : ''
+        if (!labels.has(ref)) problems.push(`replaces 的「${String(raw)}」不是列出的懸著的事`)
+        else if (!replaces.includes(ref)) replaces.push(ref)
+      }
+    }
   }
   if (problems.length > 0) return { ok: false, problems }
   return {
@@ -83,6 +98,7 @@ export function parseThought(output: string): ThoughtParse {
       reconsider: obj['reconsider'] === true,
       release: obj['release'] === true,
       intention,
+      replaces: intention ? replaces : [],
       now: intention !== '' && obj['now'] === true,
     },
   }
@@ -90,7 +106,25 @@ export function parseThought(output: string): ThoughtParse {
 
 /** 念頭不合格時重問一次所附的說明。 */
 export function thoughtRetryNote(problems: readonly string[]): string {
-  return `（重寫一次：上一次的輸出不完整。只輸出一個完整的 JSON 物件；item 不是空的時，reconsider 與 release 是 true 或 false，有 feeling 時 keepFeeling 是 true 或 false，有 intention 時 now 是 true 或 false。不合格的地方：${problems.join('；')}）`
+  return `（重寫一次：上一次的輸出不完整。只輸出一個完整的 JSON 物件；item 不是空的時，reconsider 與 release 是 true 或 false，有 feeling 時 keepFeeling 是 true 或 false，有 intention 時 now 是 true 或 false、replaces 是列出的 P 編號的陣列（可以是空的）。不合格的地方：${problems.join('；')}）`
+}
+
+/**
+ * 算作新經歷的事件：對方或我說的話、事後比對、整合、做法的新版本。念頭本身、它的感受紀錄、輔助呼叫、閘門的探測都不算：
+ * e2e-40 中閘門每寫一筆探測就觸發一次念頭，9 次念頭多半在想同一個打算。
+ */
+export const EXPERIENCE_KINDS: readonly string[] = ['dsh/user/message', 'dsh/assistant/message', OUTCOME_KIND, INTEGRATION_KIND, PROCEDURE_KIND.version]
+
+/** seq 之後有沒有新的經歷（排程用：每段新的經歷之後、再度閒置時，最多一次念頭）。 */
+export function newExperienceSince(life: LifeStore, seq: number): boolean {
+  return life.after(seq, EXPERIENCE_KINDS, 1).length > 0
+}
+
+/** 上一次念頭（或嘗試：念頭的輔助呼叫）的 seq；沒有就是 -1。程序重啟之後，排程從這裡接著算。 */
+export function lastThoughtSeq(life: LifeStore): number {
+  const thought = life.latest(THOUGHT_KIND)?.seq ?? -1
+  const attempt = life.recent(400, ['memory/aux']).find((e) => (e.data as { purpose?: string }).purpose === 'thought')?.seq ?? -1
+  return Math.max(thought, attempt)
 }
 
 /** 有沒有東西可以浮上心頭：懸著的事或進行中的目標。 */
@@ -142,11 +176,13 @@ export function recordThought(life: LifeStore, judged: ThoughtJudgement, labels:
   if (!key || !judged.thought) return undefined
   const item = potentialItems(life).find((p) => p.key === key)
   const held = potentialItems(life)
+  const replaced = judged.intention ? resolvePotential(judged.replaces, labels).filter((k) => !k.startsWith('goal:')) : []
   const data: ThoughtData = {
     item: key,
     thought: unlabel(judged.thought, labels, held),
     intention: unlabel(judged.intention, labels, held),
     releasedItems: judged.release && !key.startsWith('goal:') ? [key] : [],
+    ...(replaced.length > 0 ? { replacedItems: replaced } : {}),
     trigger: 'idle',
     ...(judged.now && judged.intention ? { now: true } : {}),
     ...(judged.reconsider ? { reconsider: true } : {}),
@@ -157,7 +193,7 @@ export function recordThought(life: LifeStore, judged: ThoughtJudgement, labels:
     origin: 'self',
     model,
     data,
-    text: `我想到（${about}）：${data.thought}${data.intention ? `\n我打算：${data.intention}` : ''}${data.releasedItems.length > 0 ? '\n這件事我可以放下了。' : ''}`,
+    text: `我想到（${about}）：${data.thought}${data.intention ? `\n我打算：${data.intention}` : ''}${replaced.length > 0 ? `\n這個打算取代了：${replaced.map((k) => clip(held.find((h) => h.key === k)?.text ?? k, 40)).join('、')}` : ''}${data.releasedItems.length > 0 ? '\n這件事我可以放下了。' : ''}`,
     causes: item ? [item.source] : [],
   })
   if (judged.feeling && judged.keepFeeling) {

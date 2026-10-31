@@ -68,7 +68,8 @@ export function deliberateSystem(options: DeliberateOptions = {}): string {
   let deliberate = options.procedures?.deliberate ?? DEFAULT('deliberate')
   if (!energy) deliberate = withoutLines(deliberate, ENERGY_WORDS)
   if (!perPerson) deliberate = withoutLines(deliberate, PER_PERSON_WORDS)
-  const frame = `你是一個人工個體。對方剛說了話，你在回應之前先思考與準備：理解眼前的處境，想出幾個可能的做法，預測各自的後果${subtraction ? '；再扣除不該做的做法，剩下的才會成為行動' : '，再決定傾向哪一個'}。照下面你自己的做法思考，輸出照最後一段的格式。`
+  // 這一步沒有工具（dev15 q17：模型兩次都寫出 recall 的工具呼叫，而不是 JSON）；輸入列出的工具是回應時才能用的。
+  const frame = `你是一個人工個體。對方剛說了話，你在回應之前先思考與準備：理解眼前的處境，想出幾個可能的做法，預測各自的後果${subtraction ? '；再扣除不該做的做法，剩下的才會成為行動' : '，再決定傾向哪一個'}。這一步只思考，不能呼叫工具；「你現在可以使用的工具」是你回應時可以用的，例如要先查記憶，就把它寫成一個做法。照下面你自己的做法思考，輸出照最後一段的格式。`
   let contract = DELIBERATE_CONTRACT
   if (!energy) contract = withoutFields(contract, ['drive', 'activated'])
   if (!perPerson) contract = withoutFields(contract, ['people'])
@@ -186,6 +187,9 @@ function text(value: unknown, max: number): string {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : ''
 }
 
+/** 模型自己寫出的工具呼叫（dev15 q17：`<tool_call name="recall">`、`<tool_call>{"name":"recall",…}`）。 */
+const TOOL_CALL = /<\/?tool_call\b|<\|tool_call|"name"\s*:\s*"(?:recall|integrate|appraise)"/u
+
 export type DeliberationParse = { readonly ok: true; readonly deliberation: Deliberation } | { readonly ok: false; readonly problems: readonly string[] }
 
 /** 做法編號的陣列 → candidates 中的位置；認不得的列為問題。 */
@@ -259,8 +263,8 @@ function experienceJudgments(
  */
 export function parseDeliberation(output: string, labels: ReadonlyMap<string, string>, withExcluded: ReadonlySet<string> = new Set()): DeliberationParse {
   const obj = extractJson(output)
-  if (!obj) return { ok: false, problems: ['不是 JSON 物件'] }
-  if (!Array.isArray(obj['candidates'])) return { ok: false, problems: ['沒有 candidates'] }
+  if (!obj) return { ok: false, problems: [TOOL_CALL.test(output) ? '輸出的是工具呼叫，不是 JSON 物件：這一步不能呼叫工具' : '不是 JSON 物件'] }
+  if (!Array.isArray(obj['candidates'])) return { ok: false, problems: [TOOL_CALL.test(output) ? '輸出的是工具呼叫，不是思考的結果：這一步不能呼叫工具' : '沒有 candidates'] }
   const problems: string[] = []
   const candidates: Candidate[] = []
   const numbered = new Map<number, number>()

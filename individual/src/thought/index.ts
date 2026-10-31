@@ -3,7 +3,8 @@
  *
  * 每隔 checkMinutes 檢查一次。生命紀錄已有 idleMinutes 沒有新事件、而且有懸著的事或進行中的目標時，
  * 就給個體一段安靜的時間：以它最近使用的模型問它有沒有哪件事浮上心頭（thought.ts）。
- * 每段閒置最多一次：念頭本身也是新的事件，之後要等到有新的經歷、再度閒置，才會有下一次。
+ * 每段新的經歷之後最多一次（thought.ts 的 EXPERIENCE_KINDS：說的話、事後比對、整合、做法的新版本）：念頭本身、
+ * 輔助呼叫與閘門的探測不算新的經歷（e2e-40：閘門的探測一直觸發念頭，同一個打算想了很多次）。
  * 計時器不讓程序多留（unref），所以一次性的 headless 執行與實驗的探針不會觸發。
  *
  * 自發行動（plan v2 M4）：念頭留下打算、而且個體決定現在就說（now）時，在最近一段對話中主動開口：
@@ -22,12 +23,28 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type {} from '../life/index.ts'
 import { latestRoute } from '../integrate/index.ts'
-import { auxRecord, callModel } from '../recall/aux.ts'
+import { auxRecord, callModel, promptHash } from '../recall/aux.ts'
 import { clipKeepLines } from '../recall/retrieve.ts'
 import type { ThoughtData } from '../self/energy.ts'
 import { currentProcedure, procedureVersions } from '../self/procedure.ts'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
-import { INITIATIVE_IM_KIND, INITIATIVE_KIND, InitiativeRelay, hasPotential, initiativeNote, mayInitiate, parseThought, recordThought, thoughtInput, thoughtRetryNote, thoughtSystem, type ImTarget, type InitiativeData } from './thought.ts'
+import {
+  INITIATIVE_IM_KIND,
+  INITIATIVE_KIND,
+  InitiativeRelay,
+  hasPotential,
+  initiativeNote,
+  lastThoughtSeq,
+  mayInitiate,
+  newExperienceSince,
+  parseThought,
+  recordThought,
+  thoughtInput,
+  thoughtRetryNote,
+  thoughtSystem,
+  type ImTarget,
+  type InitiativeData,
+} from './thought.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -137,8 +154,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
   // 輔助呼叫的逾時（思考開著時要留餘裕：本機的思考模型在負載下第 90 百分位 77 秒，DeepSeek low 最慢 52 秒；dev10）
   const timeoutMs = config?.timeoutMs ?? 180_000
   let running: Promise<void> | undefined
-  /** 上一次念頭（或嘗試）之後生命紀錄的最後一個 seq：沒有新事件就不再想。 */
-  let quietAfter = -1
+  /** 上一次念頭（或嘗試）時生命紀錄的最後一個 seq：之後沒有新的經歷就不再想。重啟之後從生命紀錄接著算。 */
+  let quietAfter = lastThoughtSeq(life)
 
   async function think(): Promise<void> {
     const route = latestRoute(life)
@@ -151,8 +168,8 @@ export function apply(ctx: Context, config: Config | undefined): void {
     const used = { procedures: procedureVersions([procedure]), input: clipKeepLines(input, 20_000) }
     const ask = async (prompt: string) => {
       const call = await callModel(ctx, route, prompt, input, AbortSignal.timeout(timeoutMs))
-      if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'thought', ...auxRecord(call), ...used, output: call.output } })
-      return parseThought(call.output)
+      if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'thought', ...auxRecord(call), ...used, systemHash: promptHash(prompt), output: call.output } })
+      return parseThought(call.output, labels)
     }
     try {
       let parsed = await ask(system)
@@ -174,7 +191,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const timer = setInterval(() => {
     try {
       if (running || !life.isOpen) return
-      if (life.lastSeq() === quietAfter) return
+      if (!newExperienceSince(life, quietAfter)) return
       const last = life.recent(1)[0]
       if (!last || Date.now() - last.ts < idleMs) return
       if (!hasPotential(life)) {

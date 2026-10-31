@@ -9,9 +9,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { LifeStore, type LifeEvent } from '../src/life/store.ts'
 import { runIntegration } from '../src/integrate/index.ts'
-import { COMPOSE_SYSTEM, composeRetryNote, probeSituations, runProcedureGate, systemWith, type GateCall } from '../src/integrate/procedure-gate.ts'
+import { COMPOSE_SYSTEM, composeRetryNote, parseComposed, probeSituations, runProcedureGate, systemWith, type GateCall } from '../src/integrate/procedure-gate.ts'
 import type { ProcedureProposalData } from '../src/integrate/proposal.ts'
-import type { CallModel } from '../src/recall/aux.ts'
+import { promptHash, type CallModel } from '../src/recall/aux.ts'
 import { createRd } from '../src/rd/index.ts'
 import { DECISION_KIND, type DecisionData } from '../src/rd/memory.ts'
 import {
@@ -123,7 +123,7 @@ test('procedure gate: no real call to compare on means unprobed, not adopted (Ha
     assert.equal(currentProcedure(store, 'thought').version, 1)
   }))
 
-test('procedure gate: each recent real call is run again with the current and the proposed procedure; the individual adopts on the contrast', () =>
+test('procedure gate: each real call gets two outputs of the current procedure and one of the proposal; the individual adopts only beyond that noise', () =>
   withStore(async (store) => {
     seedProcedures(store)
     pastThought(store, 1)
@@ -133,28 +133,86 @@ test('procedure gate: each recent real call is run again with the current and th
     assert.equal(probeSituations(store, 'thought').length, 2)
     const p = proposeThought(store, NEW_THOUGHT)
     const before = systemWith(store, 'thought', currentProcedure(store, 'thought'))
-    const adopt = '{"verdict":"adopt","reasons":[{"situation":"S1","observation":"提案的版本先想了他在不在，沒有一想到就說"}],"revised":null}'
-    const { call, calls } = scriptedGate(['現行 S1', '提案 S1', '現行 S2', '提案 S2', adopt])
+    const adopt = '{"verdict":"adopt","reasons":[{"situation":"S1","observation":"提案的版本先想了他在不在，現行的兩次都一想到就說","beyondNoise":true}],"revised":null}'
+    const { call, calls } = scriptedGate(['現行 S1 a', '現行 S1 b', '提案 S1', '現行 S2 a', '現行 S2 b', '提案 S2', adopt])
     const { decision } = await runProcedureGate(store, p, call)
-    assert.deepEqual(calls.map((c) => c.purpose), ['procedure-probe', 'procedure-probe', 'procedure-probe', 'procedure-probe', 'procedure-compose'])
+    assert.deepEqual(calls.map((c) => c.purpose), [...Array(6).fill('procedure-probe'), 'procedure-compose'])
     assert.equal(calls[0]!.system, before)
-    assert.match(calls[1]!.system, /## 我的念頭做法（第 2 版；[^]*開口之前，先想對方現在方不方便。/u)
-    assert.equal(calls[0]!.input, calls[1]!.input, 'the same real input for both versions')
-    assert.match(calls[4]!.input, /### 照現行做法的輸出\n現行 S1\n\n### 照提案做法的輸出\n提案 S1/u)
+    assert.equal(calls[1]!.system, before)
+    assert.match(calls[2]!.system, /## 我的念頭做法（第 2 版；[^]*開口之前，先想對方現在方不方便。/u)
+    assert.equal(calls[0]!.input, calls[2]!.input, 'the same real input for both versions')
+    assert.match(calls[6]!.input, /### 照現行做法的輸出（第 1 個）\n現行 S1 a\n\n### 照現行做法的輸出（第 2 個）\n現行 S1 b\n\n### 照提案做法的輸出\n提案 S1/u)
+    assert.match(calls[6]!.system, /兩個輸出之間的差異，就是隨機的變化/u)
     const d = decision.data as ProcedureDecisionData
-    assert.deepEqual([d.verdict, d.probes.length, d.gate, d.costChars], ['adopt', 2, 'contrast', NEW_THOUGHT.length - DEFAULT_PROCEDURES.thought.length])
+    assert.deepEqual([d.verdict, d.probes.length, d.gate, d.calls, d.reused, d.costChars], ['adopt', 2, 'noise', 7, 0, NEW_THOUGHT.length - DEFAULT_PROCEDURES.thought.length])
+    assert.equal(d.reasons[0]!.beyondNoise, true)
     const now = currentProcedure(store, 'thought')
     assert.deepEqual([now.version, now.text, now.id], [2, NEW_THOUGHT, d.adopted])
     assert.deepEqual((store.get(d.adopted!)!.data as ProcedureData).proposal, p.id)
+  }))
+
+test('procedure gate: adopt needs at least one difference beyond the noise; otherwise it is asked again (rule 2)', () =>
+  withStore(async (store) => {
+    pastThought(store, 1)
+    const p = proposeThought(store, NEW_THOUGHT)
+    const noisy = '{"verdict":"adopt","reasons":[{"situation":"S1","observation":"有一點不同","beyondNoise":false}],"revised":null}'
+    const { call, calls } = scriptedGate(['a', 'b', 'c', noisy, noisy])
+    const { decision } = await runProcedureGate(store, p, call)
+    const problem = 'verdict 是 adopt，但沒有一個理由的差異大於現行做法兩個輸出之間的差異'
+    assert.equal(calls[4]!.system, `${COMPOSE_SYSTEM}\n${composeRetryNote([problem])}`)
+    const d = decision.data as ProcedureDecisionData
+    assert.deepEqual([d.verdict, d.problems], ['reject', [`第 1 次：${problem}`, `第 2 次：${problem}`]])
+    assert.equal(currentProcedure(store, 'thought').version, 1, 'not adopted')
+    assert.equal(parseComposed('{"verdict":"reject","reasons":[{"situation":"S1","observation":"x"}]}', ['S1']).ok, false, 'beyondNoise is required on every reason')
+  }))
+
+test('procedure gate: outputs of the current procedure that already exist are reused, not run again (cost)', () =>
+  withStore(async (store) => {
+    seedProcedures(store)
+    // 那次真實呼叫的系統提示就是現行做法的系統提示、模型相同、只呼叫過一次：它的輸出就是一個樣本。
+    const system = systemWith(store, 'thought', currentProcedure(store, 'thought'))
+    const real = store.append({ kind: 'memory/aux', origin: 'self', model: 'test/double', data: { purpose: 'thought', procedures: { thought: 1 }, systemHash: promptHash(system), input: '## 懸著的事\n- [P1] 答應提醒他關火', output: '真實的輸出' } })
+    // 另一個模型的呼叫不算。
+    store.append({ kind: 'memory/aux', origin: 'self', model: 'other/model', data: { purpose: 'thought', procedures: { thought: 1 }, systemHash: promptHash(system), input: '## 懸著的事\n- [P1] 別的', output: '別的模型' } })
+    const p = proposeThought(store, NEW_THOUGHT)
+    const revise = JSON.stringify({ verdict: 'revise', reasons: [{ situation: 'S1', observation: '方向對，但寫得太死', beyondNoise: true }], revised: `${DEFAULT_PROCEDURES.thought}\n- 開口之前，想一想對方方不方便。` })
+    // 由新到舊：S1 是另一個模型的那次（跑兩次現行），S2 是真實呼叫（重用它的輸出，只再跑一次現行）。
+    const first = scriptedGate(['S1 現行 a', 'S1 現行 b', 'S1 提案', 'S2 現行 b', 'S2 提案', revise])
+    const { decision, next } = await runProcedureGate(store, p, first.call, 'test/double')
+    const d = decision.data as ProcedureDecisionData
+    assert.deepEqual([d.calls, d.reused], [6, 1])
+    assert.match(first.calls.at(-1)!.input, /## S2\n[^]*### 照現行做法的輸出（第 1 個）\n真實的輸出\n\n### 照現行做法的輸出（第 2 個）\nS2 現行 b/u)
+    assert.ok(store.all(PROCEDURE_KIND.probe).some((e) => (e.data as { aux: string }).aux === real.id))
+    // 第二輪：照現行做法的兩個輸出都已經有了，只跑修改後的版本。
+    const reject = '{"verdict":"reject","reasons":[{"situation":"S1","observation":"差不多","beyondNoise":false}],"revised":null}'
+    const second = scriptedGate(['S1 修改', 'S2 修改', reject])
+    const again = await runProcedureGate(store, next!, second.call, 'test/double')
+    assert.deepEqual(second.calls.map((c) => c.purpose), ['procedure-probe', 'procedure-probe', 'procedure-compose'])
+    assert.deepEqual([(again.decision.data as ProcedureDecisionData).calls, (again.decision.data as ProcedureDecisionData).reused], [3, 4])
+    assert.match(second.calls[2]!.input, /## S1\n[^]*照現行做法的輸出（第 1 個）\nS1 現行 a\n\n### 照現行做法的輸出（第 2 個）\nS1 現行 b[^]*## S2\n[^]*第 1 個）\n真實的輸出\n\n### 照現行做法的輸出（第 2 個）\nS2 現行 b/u)
+  }))
+
+test('procedure gate: the situations the proposal cites as evidence are probed first', () =>
+  withStore(async (store) => {
+    const deliberation = (session: string, n: number) =>
+      store.append({ kind: 'memory/aux', origin: 'self', session, data: { purpose: 'deliberate', procedures: { deliberate: 1, subtract: 1 }, input: `## 對方剛說的話\n第 ${n} 句`, output: '{}' } })
+    const old = deliberation('s1', 1)
+    const decision = store.append({ kind: DECISION_KIND, origin: 'self', session: 's1', data: {} })
+    const outcome = store.append({ kind: 'rd/outcome', origin: 'self', session: 's1', data: { decision: decision.id }, causes: [decision.id] })
+    for (let i = 2; i <= 5; i++) deliberation('s2', i)
+    const recent = probeSituations(store, 'deliberate')
+    assert.deepEqual(recent.map((s) => s.input.slice(-5)), ['第 5 句', '第 4 句', '第 3 句'])
+    const cited = probeSituations(store, 'deliberate', 3, [outcome.id])
+    assert.deepEqual(cited.map((s) => [s.aux.id === old.id, s.fromEvidence]), [[true, true], [false, false], [false, false]])
   }))
 
 test('procedure gate: an incomplete judgment is asked again once; still incomplete is recorded as reject with both problems', () =>
   withStore(async (store) => {
     pastThought(store, 1)
     const p = proposeThought(store, NEW_THOUGHT)
-    const { call, calls } = scriptedGate(['a', 'b', '{"verdict":"adopt","reasons":[]}', '{"verdict":"maybe","reasons":[{"situation":"S9","observation":"x"}]}'])
+    const { call, calls } = scriptedGate(['a', 'b', 'c', '{"verdict":"adopt","reasons":[]}', '{"verdict":"maybe","reasons":[{"situation":"S9","observation":"x","beyondNoise":true}]}'])
     const { decision } = await runProcedureGate(store, p, call)
-    assert.equal(calls[3]!.system, `${COMPOSE_SYSTEM}\n${composeRetryNote(['沒有理由'])}`)
+    assert.equal(calls[4]!.system, `${COMPOSE_SYSTEM}\n${composeRetryNote(['沒有理由'])}`)
     const d = decision.data as ProcedureDecisionData
     assert.equal(d.verdict, 'reject')
     assert.deepEqual(d.problems, ['第 1 次：沒有理由', '第 2 次：verdict 不是 adopt、revise 或 reject', '第 2 次：理由的處境「S9」不是列出的處境'])
@@ -165,8 +223,8 @@ test('procedure gate: revise writes the revised text as a new proposal to be com
   withStore(async (store) => {
     pastThought(store, 1)
     const p = proposeThought(store, NEW_THOUGHT)
-    const revise = JSON.stringify({ verdict: 'revise', reasons: [{ situation: 'S1', observation: '方向對，但寫得太死' }], revised: `${DEFAULT_PROCEDURES.thought}\n- 開口之前，想一想對方方不方便。` })
-    const first = scriptedGate(['a', 'b', revise])
+    const revise = JSON.stringify({ verdict: 'revise', reasons: [{ situation: 'S1', observation: '方向對，但寫得太死', beyondNoise: true }], revised: `${DEFAULT_PROCEDURES.thought}\n- 開口之前，想一想對方方不方便。` })
+    const first = scriptedGate(['a', 'b', 'c', revise])
     const { decision, next } = await runProcedureGate(store, p, first.call)
     assert.equal((decision.data as ProcedureDecisionData).verdict, 'revise')
     assert.ok(next)
@@ -207,8 +265,8 @@ test('integration: a procedure revision with both criteria goes through the gate
     const q = lived(store)
     const item = (name: string, text: string) => ({ name, text, reason: '半夜傳訊息吵醒了對方', evidence: [q], stability: holds([thoughtV1!]), adaptability: holds([q]) })
     const integration = JSON.stringify({ procedures: [item('thought', NEW_THOUGHT), item('outcome', `${DEFAULT_PROCEDURES.outcome}\n- x`)], change: '我開始想對方方不方便' })
-    const adopt = '{"verdict":"adopt","reasons":[{"situation":"S1","observation":"提案的版本沒有在半夜開口"}],"revised":null}'
-    const { call, systems } = scripted([integration, '現行', '提案', adopt])
+    const adopt = '{"verdict":"adopt","reasons":[{"situation":"S1","observation":"提案的版本沒有在半夜開口","beyondNoise":true}],"revised":null}'
+    const { call, systems } = scripted([integration, '現行 a', '現行 b', '提案', adopt])
     const result = await runIntegration({ life: store, call, logger: quiet }, { replay: false }, 'voluntary', false)
     assert.match(systems[0]!, /"procedures": \[\]/u, 'the integration contract offers procedure revisions')
     assert.match(result, /保留為提案 1 項（procedure：這次整合已經有一個做法的修訂進入對照）/u)
@@ -216,7 +274,8 @@ test('integration: a procedure revision with both criteria goes through the gate
     assert.equal(currentProcedure(store, 'thought').text, NEW_THOUGHT)
     assert.equal(currentProcedure(store, 'outcome').version, 1)
     assert.equal(store.all(PROCEDURE_KIND.proposal).length, 1)
-    assert.deepEqual(store.all('memory/aux').map((e) => (e.data as { purpose: string }).purpose), ['thought', 'integrate', 'procedure-probe', 'procedure-probe', 'procedure-compose'])
+    assert.deepEqual(store.all('memory/aux').map((e) => (e.data as { purpose: string }).purpose), ['thought', 'integrate', 'procedure-probe', 'procedure-probe', 'procedure-probe', 'procedure-compose'])
+    assert.ok(store.all('memory/aux').filter((e) => (e.data as { purpose: string }).purpose.startsWith('procedure')).every((e) => typeof (e.data as { systemHash?: string }).systemHash === 'string'))
   }))
 
 test('integration: a procedure revision without the criteria holding is kept as a proposal and never probed', () =>
@@ -236,8 +295,8 @@ test('integration: a proposal whose gate was interrupted (no decision) is compar
     seedProcedures(store)
     lived(store)
     const pending = proposeThought(store, NEW_THOUGHT)
-    const adopt = '{"verdict":"adopt","reasons":[{"situation":"S1","observation":"提案的版本先想了他方不方便"}],"revised":null}'
-    const { call } = scripted([JSON.stringify({ change: '' }), '現行', '提案', adopt])
+    const adopt = '{"verdict":"adopt","reasons":[{"situation":"S1","observation":"提案的版本先想了他方不方便","beyondNoise":true}],"revised":null}'
+    const { call } = scripted([JSON.stringify({ change: '' }), '現行 a', '現行 b', '提案', adopt])
     const result = await runIntegration({ life: store, call, logger: quiet }, { replay: false }, 'voluntary', false)
     assert.match(result, /念頭做法的修改採用（第 2 版）/u)
     assert.equal((store.all(PROCEDURE_KIND.decision)[0]!.data as ProcedureDecisionData).proposal, pending.id)

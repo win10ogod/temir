@@ -43,6 +43,8 @@ export type JudgePromptId =
   | 'pc-narrate-v2'
   /** v2：連續性的改變判定多一個 same（同一個選擇、只是寫法不同）；格式行也接受簡體的標籤。省略＝pc-change（v1，凍結）。 */
   | 'pc-change-v2'
+  /** procedures-v2：做法的修改來自和哪一種對象相處（盲測比對）。 */
+  | 'proc-match'
 
 export interface CategorySpec {
   readonly id: string

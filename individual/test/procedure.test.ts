@@ -17,9 +17,12 @@ import { DECISION_KIND, type DecisionData } from '../src/rd/memory.ts'
 import {
   DEFAULT_PROCEDURES,
   PROCEDURE_KIND,
+  PROCEDURE_NAMES,
   currentProcedure,
   procedurePrompt,
   seedProcedures,
+  sentences,
+  withoutLines,
   type ProcedureData,
   type ProcedureDecisionData,
 } from '../src/self/procedure.ts'
@@ -311,3 +314,24 @@ test('pending proposals: the ones the individual made at integration come first;
     store.append({ kind: PROCEDURE_KIND.decision, origin: 'self', data: { proposal: own.id, name: 'thought', verdict: 'reject', reasons: [], probes: [], costChars: 0, gate: 'none' } satisfies ProcedureDecisionData })
     assert.deepEqual(pendingProcedureProposals(store).map((e) => e.id), [composed.id])
   }))
+
+/** 以行過濾（s11 之前的做法），用來確認第一版的消融結果不變。 */
+const byLine = (text: string, words: readonly string[]) => text.split('\n').filter((line) => !words.some((w) => line.includes(w))).join('\n')
+
+test('ablation filter: on version 1 it removes exactly the lines the line filter removed, so earlier ablations stay comparable', () => {
+  for (const name of PROCEDURE_NAMES) {
+    for (const words of [['懸著的事'], ['逐一檢查對方自己'], ['懸著的事', '逐一檢查對方自己']]) {
+      const p = { name, version: 1, text: DEFAULT_PROCEDURES[name] }
+      assert.equal(withoutLines(p, words).text, byLine(p.text, words), `${name} ${words.join('、')}`)
+    }
+  }
+})
+
+test('ablation filter: when the individual merged items into one line or paragraph, only the sentences that mention the ablated mechanism go', () => {
+  const text = '- 先看清楚處境（例如「他累了。」這種話也要看）。想一想推動我的是什麼，以及懸著的事中被觸發的那幾件！再想出三個做法？最後預測後果。'
+  const out = withoutLines({ name: 'deliberate', version: 6, text }, ['懸著的事']).text
+  assert.equal(out, '- 先看清楚處境（例如「他累了。」這種話也要看）。再想出三個做法？最後預測後果。')
+  assert.deepEqual(sentences('甲。乙」。丙'), ['甲。', '乙」。', '丙'])
+  // 第一句就提到：整行是那一項，整行拿掉（連同後面解釋那一項的句子）。
+  assert.equal(withoutLines({ name: 'outcome', version: 2, text: '- 懸著的事：只有掛在心上的才算。例如答應的事。\n- 其他。' }, ['懸著的事']).text, '- 其他。')
+})

@@ -151,11 +151,63 @@ export function procedureVersions(procedures: readonly Pick<Procedure, 'name' | 
   return Object.fromEntries(procedures.map((p) => [p.name, p.version]))
 }
 
+/** 句末的標點（括號與引號之內的不算）。分號不算：第一版中分號之後的半句接著前半句說（例如「…；只是同一個話題…，不算」）。 */
+const SENTENCE_END = new Set(['。', '！', '？', '!', '?'])
+const OPEN = new Set(['「', '『', '（', '(', '【', '《', '“'])
+const CLOSE = new Set(['」', '』', '）', ')', '】', '》', '”'])
+
 /**
- * 消融用：從做法的文字中拿掉含有指定字詞的行（ADR-0008「不在這次範圍內的」：做法修訂之後只能盡力而為）。
+ * 一行文字切成句子（保留句末標點與之後緊接的收尾引號、括號；括號與引號之內不切）。
+ * 個體可能把做法寫成一整段（procedures-v1 的 C，第 6 版只剩一行），所以消融與分析都以句子為單位。
+ */
+export function sentences(line: string): string[] {
+  const out: string[] = []
+  let depth = 0
+  let start = 0
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i]!
+    if (OPEN.has(c)) depth++
+    else if (CLOSE.has(c)) depth = Math.max(0, depth - 1)
+    else if (depth === 0 && SENTENCE_END.has(c)) {
+      let end = i + 1
+      while (end < line.length && (SENTENCE_END.has(line[end]!) || CLOSE.has(line[end]!))) end++
+      out.push(line.slice(start, end))
+      start = end
+      i = end - 1
+    }
+  }
+  if (start < line.length) out.push(line.slice(start))
+  return out.filter((s) => s.trim())
+}
+
+/** 行首的條列記號（「- 」「1. 」等），拿掉句子時保留。 */
+const BULLET = /^\s*(?:[-*•‧・]|\d+[.、)）])\s*/u
+
+/** 整個做法的句子（去掉條列記號與前後空白）；分析做法的修改時用（experiments/eval/lib/procedures.ts）。 */
+export function procedureSentences(text: string): string[] {
+  return text.split('\n').flatMap((line) => sentences(line.replace(BULLET, ''))).map((s) => s.trim()).filter(Boolean)
+}
+
+/**
+ * 消融用：從做法的文字中拿掉提到被關掉的機制（含有指定字詞）的部分（ADR-0008「不在這次範圍內的」：做法修訂之後只能盡力而為）。
+ * - 一行的第一句就提到時，整行拿掉：一行是一項，第一句是這一項在說什麼（第一版的寫法，例如「懸著的事：…」）。
+ *   第一版的結果因此與以行過濾相同（單元測試），之前的消融實驗可以比較。
+ * - 只有後面的句子提到時，只拿掉那幾句：個體可能把幾項併成一行或一整段（procedures-v1 的 C，第 6 版只剩一行）。
  */
 export function withoutLines(p: Procedure, words: readonly string[]): Procedure {
-  return { ...p, text: p.text.split('\n').filter((line) => !words.some((w) => line.includes(w))).join('\n') }
+  const mentions = (s: string) => words.some((w) => s.includes(w))
+  const lines: string[] = []
+  for (const line of p.text.split('\n')) {
+    if (!mentions(line)) {
+      lines.push(line)
+      continue
+    }
+    const bullet = line.match(BULLET)?.[0] ?? ''
+    const parts = sentences(line.slice(bullet.length))
+    if (parts.length === 0 || mentions(parts[0]!)) continue
+    lines.push(`${bullet}${parts.filter((s) => !mentions(s)).join('').trim()}`)
+  }
+  return { ...p, text: lines.join('\n') }
 }
 
 export const PROCEDURE_VERDICTS = ['adopt', 'revise', 'reject', 'unprobed'] as const

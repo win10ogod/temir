@@ -80,6 +80,9 @@ export function buildCase(c: Case): { pair: PromptPair; parse: (raw: string) => 
       return { pair: recallPromptV2(c.input as unknown as RecallInput), parse: PARSERS.recallV2 }
     case 'pc-narrate-v2':
       return { pair: narratePromptV2(c.input as unknown as NarrateInput), parse: PARSERS.narrateV2 }
+    case 'proc-match':
+      // procedures-v2 的盲測比對沒有手寫用例（答案就是資料集，judge 看不到）。
+      throw new Error('proc-match 沒有手寫用例')
   }
 }
 

@@ -24,6 +24,17 @@ import { appraisalLabel, formatDay, formatTime, type AppraisalData } from '../se
 export const EXCLUDED_KIND_PREFIXES = ['memory/recall', 'memory/aux', 'memory/outdated', 'rd/', 'body/', 'life/', 'dsh/system/'] as const
 
 export const FACTS_KIND = 'memory/facts'
+
+/**
+ * 對話的訊息（對方說的與我說的）。閒置與沉默從最後一則算起：內部的簿記（body/start、事實擷取、輔助呼叫）不是有人在互動
+ * （think-v1 的試跑：每次啟動寫下的 body/start 讓沉默永遠不成立，念頭與暫時的比對都沒有發生）。
+ */
+export const INTERACTION_KINDS: readonly string[] = ['dsh/user/message', 'dsh/assistant/message']
+
+/** 最後一則對話的訊息；還沒有對話時是 undefined。 */
+export function lastInteraction(life: LifeStore): LifeEvent | undefined {
+  return life.recent(1, INTERACTION_KINDS)[0]
+}
 const HEARD = 'dsh/user/message'
 const SAID = 'dsh/assistant/message'
 /** ingest 為對方的話加上的前綴；其他來源的 user/message（DSH 注入的執行環境、時間）不是對方說的話。 */

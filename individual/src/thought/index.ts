@@ -24,7 +24,7 @@ import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type {} from '../life/index.ts'
 import { latestRoute } from '../integrate/index.ts'
 import { auxRecord, callModel, promptHash } from '../recall/aux.ts'
-import { clipKeepLines } from '../recall/retrieve.ts'
+import { clipKeepLines, lastInteraction } from '../recall/retrieve.ts'
 import type { ThoughtData } from '../self/energy.ts'
 import { currentProcedure, procedureVersions } from '../self/procedure.ts'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
@@ -192,7 +192,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
     try {
       if (running || !life.isOpen) return
       if (!newExperienceSince(life, quietAfter)) return
-      const last = life.recent(1)[0]
+      const last = lastInteraction(life)
       if (!last || Date.now() - last.ts < idleMs) return
       if (!hasPotential(life)) {
         quietAfter = life.lastSeq()

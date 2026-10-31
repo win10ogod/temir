@@ -27,7 +27,7 @@ import type { LifeEvent, LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { latestRoute } from '../integrate/index.ts'
 import { auxRecord, modelCaller, promptHash, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
-import { clip, clipEnds, clipKeepLines, replyOf, sessionSoFar } from '../recall/retrieve.ts'
+import { clip, clipEnds, clipKeepLines, lastInteraction, replyOf, sessionSoFar } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, appraisalText, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
 import { currentProcedure, procedureVersions, type Procedure, type ProcedureVariant } from '../self/procedure.ts'
@@ -371,7 +371,7 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
   function checkSilence(now = Date.now()): void {
     try {
       if (!life.isOpen) return
-      const last = life.recent(1)[0]
+      const last = lastInteraction(life)
       if (!last || now - last.ts < silenceMs) return
       const session = life.latest(DECISION_KIND)?.session
       const decision = session ? openDecision(life, session) : undefined

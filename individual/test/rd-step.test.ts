@@ -546,3 +546,17 @@ test('attribution (H-AT): a provisional comparison (the other has not replied) h
     const [o] = outcomesOf(store, old)
     assert.deepEqual([o!.provisional, o!.readings], [true, undefined])
   }))
+
+test('silence is counted from the last words, not from internal bookkeeping (think-v1 pilot: body/start reset it on every start)', () =>
+  withStore(async (store) => {
+    const old = lastTurn(store)
+    // 一天之後重新啟動：body/start 與補做的事實擷取是那時寫下的，但沒有人在說話。
+    const later = Date.now() + 24 * 3_600_000
+    store.append({ kind: 'body/start', origin: 'self', data: {}, ts: later })
+    store.append({ kind: 'memory/facts', origin: 'self', data: {}, text: '我答應週四晚上提醒她', ts: later + 5_000 })
+    const { call } = scripted({ outcome: [OUTCOME('對方到現在都沒有再說話')] })
+    const rd = createRd({ life: store, call, logger: recorder().logger }, { ...CONFIG, silenceMinutes: 10 })
+    rd.checkSilence(later + 60_000)
+    await rd.settle()
+    assert.deepEqual(outcomesOf(store, old).map((o) => o.provisional), [true])
+  }))

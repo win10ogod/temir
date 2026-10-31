@@ -20,7 +20,7 @@ import type {} from '../life/index.ts'
 import type { LifeEvent } from '../life/store.ts'
 import { latestRoute } from '../integrate/index.ts'
 import { auxRecord, callModel, type AuxRoute } from '../recall/aux.ts'
-import { clip, resolveIds } from '../recall/retrieve.ts'
+import { clip, lastInteraction, resolveIds } from '../recall/retrieve.ts'
 import {
   REVIEW_SYSTEM,
   SKILL_KIND,
@@ -151,7 +151,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
     const timer = setInterval(() => {
       try {
         if (running || !life.isOpen || life.lastSeq() === quietAfter) return
-        const last = life.recent(1)[0]
+        const last = lastInteraction(life)
         if (!last || Date.now() - last.ts < idleMs) return
         if (lessonsSinceReview(life) < minLessons && pendingProposals(life).length === 0) {
           quietAfter = life.lastSeq()

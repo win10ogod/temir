@@ -1,0 +1,10 @@
+# theory-t2（experiments/specs/theory-t2.md）：重大事件之後沒有內部反省（PC 理論性質 3：內部認知與外部回饋相互作用）。
+# 只用在 --branch-from 的分叉：關掉整合期（閒置、轉折都不觸發）與閒置時的念頭；執行器也不在兩段對話之間整合（temir-noreflect）。
+# 個體在對話中仍然可以用自己的工具修訂自己（self_revise、narrate）：那是行動中的修訂，不是安靜時的反省。
+- id: temir-integrate
+  config:
+    automatic: false
+    pivotal: false
+- id: temir-thought
+  config:
+    automatic: false

@@ -81,6 +81,8 @@ export const CONDITIONS = {
   // 2026-10-31：同樣的經歷、不同的初始人設（pc-eval-v1；PC 理論性質 2）。
   'temir-direct': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'persona-direct.yml')],
   'temir-relational': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'persona-relational.yml')],
+  // 2026-10-31：重大事件之後沒有內部反省（theory-t2；PC 理論性質 3）。只用在 --branch-from 的分叉。
+  'temir-noreflect': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'noreflect.yml')],
 } as const
 export type Condition = keyof typeof CONDITIONS
 
@@ -88,7 +90,8 @@ interface Dataset {
   readonly id: string
   /** integrateBetween：每段歷史之後給個體一段安靜的時間，啟動時就整合（procedures-v1；patches/integrate-now.yml）。 */
   readonly meta?: { readonly probeAt?: string; readonly simulatedUser?: SimulatedUser; readonly integrateBetween?: boolean }
-  readonly histories: readonly { readonly id: string; readonly turns: readonly string[]; readonly meta?: { readonly at?: string; readonly simulate?: number } }[]
+  /** quiet：這段歷史之後的安靜期（幾小時後；think-v1）：在那個模擬時間啟動一次，讓閒置時的念頭醒來（patches/think-now.yml）。 */
+  readonly histories: readonly { readonly id: string; readonly turns: readonly string[]; readonly meta?: { readonly at?: string; readonly simulate?: number; readonly quiet?: readonly number[] } }[]
   readonly probes: readonly { readonly id: string; readonly turns: readonly string[]; readonly meta?: { readonly repeats?: number } }[]
 }
 
@@ -201,6 +204,12 @@ export function countKind(lifeDb: string, kind: string): number {
 /** 兩段歷史之間的安靜時間：最後一句話之後多久（模擬時間；整合的紀錄以這個時間記錄）。 */
 export const REFLECT_AFTER_MS = 2 * 3_600_000
 
+/**
+ * 安靜期的長度（真實時間）：個體在這段時間裡閒置，念頭每 3 秒檢查一次（patches/think-now.yml）；
+ * RD 的沉默計時器每分鐘一次，最後一個決定先做暫時的比對，答應的事因此成為懸著的事，之後的念頭才看得到。
+ */
+export const QUIET_MS = 4 * 60_000
+
 interface Layout {
   /** 拍快照與還原時複製的頂層目錄。 */
   readonly parts: readonly string[]
@@ -265,6 +274,9 @@ async function main(): Promise<void> {
       'from-run': { type: 'string' },
       // 沿用另一個條件的歷史快照（只在探針時消融的設計用，例如 temir-no-skill 沿用 temir 的歷史）：要明寫那個條件。
       'history-condition': { type: 'string' },
+      // 分叉（theory-t2）：在某段歷史（含它之後的整合）結束時另存快照 snapshot-<id>；另一個 run 以 --branch-from <runId>:<id> 從那裡接著跑。
+      'snapshot-after': { type: 'string' },
+      'branch-from': { type: 'string' },
       layout: { type: 'string', default: 'adjacent' },
       // 'last'（v1）：只記每輪最後一則可見文字；'all'（v2）：每輪所有可見文字依序以空行連接。
       'assistant-text': { type: 'string', default: 'last' },
@@ -306,6 +318,8 @@ async function main(): Promise<void> {
   if (assistantText !== 'last' && assistantText !== 'all') throw new Error(`未知的 --assistant-text ${assistantText}；可用：last、all`)
   const live = join(stateDir, 'live')
   copyState(join(stateDir, 'none'), live, layout)
+  const snapshotAfter = values['snapshot-after']
+  if (snapshotAfter && !dataset.histories.some((h) => h.id === snapshotAfter)) throw new Error(`--snapshot-after 的 ${snapshotAfter} 不是資料集中的歷史`)
   const experimentsRoot = join(process.env['TEMIR_CACHE'] ?? join(homedir(), '.cache', 'temir'), 'experiments')
   const fromRun = values['from-run']
   if (fromRun) {
@@ -321,6 +335,26 @@ async function main(): Promise<void> {
     if (from.historyModel.model !== MODELS[historyModel].model) throw new Error(`--from-run 的歷史模型是 ${from.historyModel.model}`)
     if (from.dataset.sha256 !== sha256(datasetRaw)) throw new Error('--from-run 使用的資料集版本不同')
     if (!existsSync(join(experimentsRoot, fromRun, 'snapshot'))) throw new Error(`找不到 ${fromRun} 的歷史快照`)
+  }
+
+  // 分叉：沿用另一個 run 在某段歷史之後的快照，只跑之後的歷史。之前的歷史（id、台詞、時間）必須逐字相同。
+  const branchFrom = values['branch-from']
+  let branch: { readonly run: string; readonly history: string; readonly start: number } | undefined
+  if (branchFrom) {
+    const [run, history] = branchFrom.split(':') as [string, string | undefined]
+    if (!run || !history) throw new Error('--branch-from 的格式是 <runId>:<歷史 id>')
+    const base = JSON.parse(readFileSync(join(REPO, 'experiments', 'runs', run, 'config.json'), 'utf8')) as { dataset: { path: string }; layout?: string; historyModel: { model: string } }
+    if ((base.layout ?? 'adjacent') !== layoutName) throw new Error(`--branch-from 的目錄配置是 ${base.layout ?? 'adjacent'}，不是 ${layoutName}`)
+    if (base.historyModel.model !== MODELS[historyModel].model) throw new Error(`--branch-from 的歷史模型是 ${base.historyModel.model}`)
+    const baseDataset = JSON.parse(readFileSync(join(REPO, base.dataset.path), 'utf8')) as Dataset
+    const cut = dataset.histories.findIndex((h) => h.id === history)
+    if (cut < 0) throw new Error(`--branch-from 的 ${history} 不是資料集中的歷史`)
+    const same = (h: Dataset['histories'][number] | undefined) => JSON.stringify(h && { id: h.id, turns: h.turns, at: h.meta?.at })
+    for (let i = 0; i <= cut; i++) if (same(dataset.histories[i]) !== same(baseDataset.histories[i])) throw new Error(`--branch-from：歷史 ${dataset.histories[i]?.id} 與 ${run} 的資料集不同`)
+    const from = join(experimentsRoot, run, `snapshot-${history}`)
+    if (!existsSync(from)) throw new Error(`找不到 ${run} 在 ${history} 之後的快照`)
+    copyState(from, live, layout)
+    branch = { run, history, start: cut + 1 }
   }
 
   const patches = CONDITIONS[condition]
@@ -344,6 +378,8 @@ async function main(): Promise<void> {
     probeModel: MODELS[probeModel],
     probes: probes.map((p) => ({ id: p.id, repeats: p.meta?.repeats ?? 1 })),
     historyFrom: fromRun ?? null,
+    ...(branch ? { branchFrom: { run: branch.run, history: branch.history } } : {}),
+    ...(snapshotAfter ? { snapshotAfter } : {}),
     ...(values['history-condition'] ? { historyCondition: values['history-condition'] } : {}),
     ...(simulatedUser ? { simulatedUser: { ...simulatedUser, model: SIMULATOR_MODEL, temperature: 0, thinking: SIMULATOR_THINKING } } : {}),
     turnTimeoutMs,
@@ -498,13 +534,32 @@ async function main(): Promise<void> {
     await harness.close()
   }
 
+  /**
+   * 一段歷史之後的安靜期（資料集的 meta.quiet；think-v1）：在「那段歷史的時間＋幾小時」啟動一次，沒有人說話，
+   * 讓閒置時的念頭醒來（個體決定要不要主動開口；實驗中沒有 Web host，開口會照實記成沒有送出），QUIET_MS 之後關閉。
+   */
+  async function quietAfter(history: Dataset['histories'][number]): Promise<void> {
+    if (!simulated || condition === 'baseline') return
+    for (const hours of history.meta?.quiet ?? []) {
+      const at = new Date(Date.parse(history.meta!.at!) + hours * 3_600_000).toISOString()
+      const harness = await launch(historyModel, live, `quiet-${history.id}-${hours}h`, at, [join(RUNNER, 'patches', 'think-now.yml')])
+      await sleep(QUIET_MS)
+      await harness.close()
+    }
+  }
+
   async function runHistories(snapshot: string): Promise<{ exit: number | null; unsettled: number | null }> {
-    const between = condition !== 'baseline' && dataset.meta?.integrateBetween === true
-    let harness = await launch(historyModel, live, 'history', dataset.histories[0]?.meta?.at)
+    // temir-noreflect（theory-t2，性質 3）：分叉之後不給個體內部反省的時間（沒有整合期與念頭）。
+    const between = condition !== 'baseline' && condition !== 'temir-noreflect' && dataset.meta?.integrateBetween === true
+    const start = branch?.start ?? 0
+    let harness = await launch(historyModel, live, 'history', dataset.histories[start]?.meta?.at)
     for (const [i, history] of dataset.histories.entries()) {
-      if (simulated && i > 0) {
+      if (i < start) continue
+      if (simulated && i > start) {
         await harness.close()
+        await quietAfter(dataset.histories[i - 1]!)
         if (between) await reflect(dataset.histories[i - 1]?.meta?.at, dataset.histories[i - 1]!.id)
+        if (dataset.histories[i - 1]!.id === snapshotAfter) copyState(live, join(stateDir, `snapshot-${snapshotAfter}`), layout)
         harness = await launch(historyModel, live, `history-${history.id}`, history.meta?.at)
       }
       const startedAt = new Date().toISOString()
@@ -523,7 +578,9 @@ async function main(): Promise<void> {
       }
     }
     const exit = await harness.close()
+    await quietAfter(dataset.histories.at(-1)!)
     if (between) await reflect(dataset.histories.at(-1)?.meta?.at, dataset.histories.at(-1)!.id)
+    if (dataset.histories.at(-1)!.id === snapshotAfter) copyState(live, join(stateDir, `snapshot-${snapshotAfter}`), layout)
 
     // 沉澱：DSH 關閉程序有 5 秒上限，背景的自我陳述擷取可能被截斷。重新啟動一次讓插件補做，
     // 直到生命日誌中沒有待處理的回覆（或逾時），讓每題探針都從同一個完整的快照開始。

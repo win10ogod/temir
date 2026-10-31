@@ -1,0 +1,6 @@
+# think-v1（experiments/specs/think-v1.md）：安靜期。執行器在「一段歷史的時間＋幾小時」以這個 patch 啟動一次，沒有人說話；
+# 念頭每 3 秒檢查一次（預設 5 分鐘），模擬時間上已經閒置超過 idleMinutes，有懸著的事或目標時就給個體一段安靜的時間（temir-thought）。
+- id: temir-thought
+  config:
+    checkMinutes: 0.05
+    idleMinutes: 60

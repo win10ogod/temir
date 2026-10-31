@@ -51,6 +51,13 @@ export interface Health {
   declined: number
   leftItems: number
   forOther: number
+  /**
+   * context 模式（主 agent 以 deliberate 工具思考；context-v1 規格）：寫下的決定、寫下決定之前已經對對方說了話的、
+   * 沒有在回應之前思考的回合（rd/deliberation-failed 的「沒有在回應之前」）。
+   */
+  contextDecisions: number
+  repliedBefore: number
+  skipped: number
   /** 紀錄中沿用寫死類別的欄位（候選的 kind、比對的 didKind 與 significance、懸念的 type、感受的 significance）；dev15 起應為 0。 */
   legacyFields: number
   /** 輔助呼叫（全部目的）：次數、有 usage 的、finish 的分布、usage 有思考 token 的次數與合計、思考的字數（reasoningChars）合計。 */
@@ -67,7 +74,7 @@ export function emptyHealth(): Health {
     deliberateCalls: 0, deliberateErrors: 0, deliberateRetries: 0, deliberateRetryReasons: {}, decisions: 0, deliberationFailed: 0,
     outcomeCalls: 0, outcomeErrors: 0, outcomeRetries: 0, outcomeRetryReasons: {}, outcomes: 0, outcomeFailed: 0,
     withShown: 0, shown: 0, judgedNeighbors: 0, uncovered: 0, candidates: 0, sameAs: 0, sameExcluded: 0, supported: 0, reviewedDecisions: 0, reviewsRequired: 0,
-    feelings: 0, keptFeelings: 0, reconsider: 0, missed: 0, gapOnMind: 0, declined: 0, leftItems: 0, forOther: 0, legacyFields: 0,
+    feelings: 0, keptFeelings: 0, reconsider: 0, missed: 0, gapOnMind: 0, declined: 0, leftItems: 0, forOther: 0, contextDecisions: 0, repliedBefore: 0, skipped: 0, legacyFields: 0,
     auxCalls: 0, auxWithUsage: 0, finish: {}, withReasoningTokens: 0, reasoningTokens: 0, reasoningChars: 0,
   }
 }
@@ -87,6 +94,8 @@ interface DecisionLike {
   readonly neighbors?: readonly { readonly judged?: boolean }[]
   readonly candidates: readonly { readonly sameAs?: readonly string[]; readonly sameExcluded?: readonly string[]; readonly support?: number; readonly kind?: string }[]
   readonly review?: { readonly required: number }
+  readonly mode?: string
+  readonly repliedBefore?: boolean
 }
 
 interface OutcomeLike {
@@ -188,6 +197,10 @@ export function addHealth(h: Health, rows: readonly LifeRow[]): Health {
     } else if (row.kind === 'rd/decision') {
       const d = row.data as DecisionLike
       h.decisions++
+      if (d.mode === 'context') {
+        h.contextDecisions++
+        if (d.repliedBefore) h.repliedBefore++
+      }
       const labels = Object.keys(d.shown ?? {})
       classify(() => asLabels(labels))
       if (labels.length > 0) {
@@ -211,6 +224,7 @@ export function addHealth(h: Health, rows: readonly LifeRow[]): Health {
       }
     } else if (row.kind === 'rd/deliberation-failed') {
       h.deliberationFailed++
+      if ((row.data as { problems?: readonly string[] }).problems?.some((p) => p.startsWith('沒有在回應之前'))) h.skipped++
       classify((a) => listedLabels(a.input ?? ''))
       sinceDecision = []
     }

@@ -52,6 +52,9 @@ export function main(argv: readonly string[], root: string): string {
     `- 思考的 token：usage 有回報的呼叫 ${pct(total.withReasoningTokens, total.auxCalls)}，合計 ${total.reasoningTokens}；思考的字數（reasoningChars）合計 ${total.reasoningChars}。`,
     `- ADR-0008 的判斷（合計，描述性）：記下感受 ${pct(total.keptFeelings, total.feelings)}；要重新檢視自己 ${pct(total.reconsider, total.outcomes)}；預測落空時會掛心 ${pct(total.gapOnMind, total.missed)}；拒絕或不同意 ${pct(total.declined, total.outcomes)}；懸念推動我對對方做什麼 ${pct(total.forOther, total.leftItems)}。`,
     `- 扣除：候選的 sameExcluded 非空 ${pct(total.sameExcluded, total.candidates)}；需要強制判斷的決定 ${pct(total.reviewedDecisions, total.decisions)}，扣除 ${total.reviewsRequired} 個。`,
+    ...(total.contextDecisions + total.skipped > 0
+      ? [`- context 模式（context-v1 規格）：主 agent 寫下的決定 ${total.contextDecisions}；沒有在回應之前思考 ${pct(total.skipped, total.contextDecisions + total.skipped)}；寫下決定之前已經對對方說了話 ${pct(total.repliedBefore, total.contextDecisions)}。`]
+      : []),
     `- 沿用寫死類別的欄位（kind、didKind、significance、懸念的 type）：${total.legacyFields}${total.legacyFields === 0 ? '' : '（dev15 規格：應為 0）'}。`,
   ].join('\n')
   if (file) writeFileSync(file, `${text}\n`)

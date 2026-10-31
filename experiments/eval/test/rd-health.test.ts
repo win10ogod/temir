@@ -76,3 +76,14 @@ test('health (dev15): the ADR-0008 judgments are counted, and any field of the o
   assert.deepEqual([h.sameExcluded, h.reviewedDecisions, h.reviewsRequired], [1, 1, 2])
   assert.equal(h.legacyFields, 5)
 })
+
+test('context mode (context-v1): decisions written by the main agent, turns that skipped thinking, and replies before the decision are counted', async () => {
+  const row = (kind: string, data: unknown): LifeRow => ({ kind, data })
+  const h = addHealth(emptyHealth(), [
+    row('rd/decision', { mode: 'context', repliedBefore: false, candidates: [] }),
+    row('rd/decision', { mode: 'context', repliedBefore: true, candidates: [] }),
+    row('rd/deliberation-failed', { cue: 'x', problems: ['沒有在回應之前用 deliberate 思考'], mode: 'context' }),
+    row('rd/deliberation-failed', { cue: 'y', problems: ['第 1 次：不是 JSON 物件', '第 2 次：不是 JSON 物件'] }),
+  ])
+  assert.deepEqual([h.decisions, h.contextDecisions, h.repliedBefore, h.deliberationFailed, h.skipped], [2, 2, 1, 2, 1])
+})

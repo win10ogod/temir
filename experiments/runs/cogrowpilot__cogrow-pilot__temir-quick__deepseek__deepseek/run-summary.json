@@ -1,0 +1,22 @@
+{
+  "runId": "cogrowpilot__cogrow-pilot__temir-quick__deepseek__deepseek",
+  "endedAt": "2026-10-31T15:10:26.293Z",
+  "histories": 2,
+  "historyFrom": null,
+  "probes": 0,
+  "probeSessions": 0,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 48,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 0,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

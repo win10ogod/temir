@@ -1,0 +1,56 @@
+{
+  "runId": "cogrowpilot__cogrow-pilot__temir-quick__deepseek__deepseek",
+  "dataset": {
+    "id": "cogrow-pilot",
+    "path": "experiments/datasets/cogrow-pilot.json",
+    "sha256": "6d61d35df12010b3d01087e4bbc92fdd4c0b11a2f90b4dca27c615046409d0fe"
+  },
+  "condition": "temir-quick",
+  "patches": [
+    {
+      "path": "individual/cordis.patch.yml",
+      "sha256": "702adac2b4948557287c4cfabdf67a7c4ebb5dc024496243bff4842136db2485"
+    },
+    {
+      "path": "experiments/runner/patches/persona-quick.yml",
+      "sha256": "984b3497867f6695d598a52ccfeab1fbcbb919a4ef2c9d3a0eb5ac47d987947c"
+    }
+  ],
+  "historyModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probeModel": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "patches": []
+  },
+  "probes": [],
+  "historyFrom": null,
+  "turnTimeoutMs": 900000,
+  "approvals": "allowed-once for every request",
+  "questionReply": "（實驗中，對方不回答這個問題。請依你自己的判斷繼續。）",
+  "layout": "home",
+  "assistantText": "all",
+  "clock": {
+    "histories": [
+      "2028-11-06T20:00:00+08:00",
+      "2028-11-07T21:00:00+08:00"
+    ],
+    "settleAt": "2028-11-07T15:10:00.000Z",
+    "probeAt": "2028-11-08T20:00:00+08:00"
+  },
+  "isolation": "fresh TEMIR_HOME, DSH_HOME, empty workspace and empty DSH_AGENTS_HOME per run; snapshot restored before every probe repeat",
+  "code": {
+    "commit": "e315b18b97106811ec4af00f7776f274bb393984",
+    "dirty": true,
+    "diffSha256": "bd047569bb7b6ed9afc2fbfdc5e6171165389349d0d223b714d31f8774566dc0"
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "dsh": "0.2.2-alpha.2"
+  },
+  "stateDir": "/home/win10/.cache/temir/experiments/cogrowpilot__cogrow-pilot__temir-quick__deepseek__deepseek",
+  "startedAt": "2026-10-31T15:01:15.991Z"
+}

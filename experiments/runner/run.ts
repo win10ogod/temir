@@ -36,6 +36,7 @@ import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { HarnessProcess, INDIVIDUAL_PATCH, MODELS, REPO, textOf, type Block, type ModelName } from '../../cli/harness.ts'
 import { SIMULATOR_MODEL, SIMULATOR_THINKING, simulateNext, type SimulatedUser } from './simulator.ts'
+import { feedback, grade, type Task } from './grader.ts'
 
 const RUNNER = join(REPO, 'experiments', 'runner')
 const CLOCK = join(RUNNER, 'clock.ts')
@@ -83,6 +84,9 @@ export const CONDITIONS = {
   'temir-relational': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'persona-relational.yml')],
   // 2026-10-31：重大事件之後沒有內部反省（theory-t2；PC 理論性質 3）。只用在 --branch-from 的分叉。
   'temir-noreflect': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'noreflect.yml')],
+  // 2026-10-31：智能與人格共同演化（cogrow-v1）：重視正確、重視直覺與效率的兩個初始人設。
+  'temir-careful': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'persona-careful.yml')],
+  'temir-quick': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'persona-quick.yml')],
 } as const
 export type Condition = keyof typeof CONDITIONS
 
@@ -91,11 +95,14 @@ interface Dataset {
   /** integrateBetween：每段歷史之後給個體一段安靜的時間，啟動時就整合（procedures-v1；patches/integrate-now.yml）。 */
   readonly meta?: { readonly probeAt?: string; readonly simulatedUser?: SimulatedUser; readonly integrateBetween?: boolean }
   /** quiet：這段歷史之後的安靜期（幾小時後；think-v1）：在那個模擬時間啟動一次，讓閒置時的念頭醒來（patches/think-now.yml）。 */
-  readonly histories: readonly { readonly id: string; readonly turns: readonly string[]; readonly meta?: { readonly at?: string; readonly simulate?: number; readonly quiet?: readonly number[] } }[]
+  /** tasks：有對錯的任務（cogrow-v1；grader.ts）：依序問，每答一題就評分，回饋接在下一題之前。 */
+  readonly histories: readonly { readonly id: string; readonly turns: readonly string[]; readonly tasks?: readonly Task[]; readonly meta?: { readonly at?: string; readonly simulate?: number; readonly quiet?: readonly number[] } }[]
   readonly probes: readonly { readonly id: string; readonly turns: readonly string[]; readonly meta?: { readonly repeats?: number } }[]
 }
 
 export interface TurnRecord {
+  /** 這一回合是有對錯的任務：正確答案與個體答對了沒有（grader.ts）。 */
+  graded?: { answer: string; correct: boolean }
   /** 這句話由模擬使用者產生（simulator.ts），不是資料集的固定台詞。 */
   simulated?: boolean
   user: string
@@ -405,7 +412,7 @@ async function main(): Promise<void> {
   let errors = 0
 
   /** 在一個 DSH 執行期中跑一個 session（多輪），回傳逐輪紀錄。執行期出錯時丟出，由呼叫端重啟。 */
-  async function runSession(harness: HarnessProcess, turns: readonly string[], simulate = 0): Promise<{ sessionId: string; records: TurnRecord[] }> {
+  async function runSession(harness: HarnessProcess, turns: readonly string[], simulate = 0, tasks: readonly Task[] = []): Promise<{ sessionId: string; records: TurnRecord[] }> {
     const sessionId = `session-${randomUUID()}`
     const records: TurnRecord[] = []
     let current: TurnRecord | undefined
@@ -430,15 +437,25 @@ async function main(): Promise<void> {
     })
     try {
       // 固定台詞之後，由模擬使用者依個體實際的回應產生接下來的話（E-RD；資料集的 meta.simulatedUser）。
-      async function* utterances(): AsyncGenerator<{ readonly user: string; readonly simulated: boolean; readonly usage?: unknown }> {
+      async function* utterances(): AsyncGenerator<{ readonly user: string; readonly simulated: boolean; readonly usage?: unknown; readonly task?: Task }> {
         for (const user of turns) yield { user, simulated: false }
+        // 有對錯的任務：每題的回覆一出來就評分，回饋接在下一題之前；最後一題的回饋單獨一句。
+        for (const [i, task] of tasks.entries()) {
+          const previous = i > 0 ? records.at(-1) : undefined
+          const note = previous?.graded ? `${feedback(tasks[i - 1]!, previous.graded.correct)}\n\n` : ''
+          yield { user: `${note}${task.q}`, simulated: false, task }
+        }
+        if (tasks.length > 0) {
+          const last = records.at(-1)
+          if (last?.graded) yield { user: feedback(tasks.at(-1)!, last.graded.correct), simulated: false }
+        }
         for (let i = 0; i < simulate; i++) {
           if (!simulatedUser) throw new Error('資料集沒有 meta.simulatedUser')
           const next = await simulateNext(simulatedUser, records, { apiKey: process.env['DEEPSEEK_API_KEY'] ?? '', signal: AbortSignal.timeout(60_000) })
           yield { user: next.utterance, simulated: true, usage: next.usage }
         }
       }
-      for await (const { user, simulated: isSimulated, usage: simulatorUsage } of utterances()) {
+      for await (const { user, simulated: isSimulated, usage: simulatorUsage, task } of utterances()) {
         const turn: TurnRecord = {
           ...(isSimulated ? { simulated: true, simulatorUsage: simulatorUsage ?? null } : {}),
           user,
@@ -460,6 +477,7 @@ async function main(): Promise<void> {
           turn.ms = Date.now() - started
         }
         if (turn.error !== null) throw Object.assign(new Error(`turn failed: ${turn.error}`), { records, sessionId })
+        if (task) turn.graded = { answer: task.answer, correct: grade(task, turn.assistant) }
       }
       return { sessionId, records }
     } finally {
@@ -564,7 +582,7 @@ async function main(): Promise<void> {
       }
       const startedAt = new Date().toISOString()
       try {
-        const { sessionId, records } = await runSession(harness, history.turns, history.meta?.simulate ?? 0)
+        const { sessionId, records } = await runSession(harness, history.turns, history.meta?.simulate ?? 0, history.tasks ?? [])
         write('history', history.id, historyModel, sessionId, records, startedAt)
       } catch (error) {
         const failed = error as Error & { records?: TurnRecord[]; sessionId?: string }

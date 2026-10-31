@@ -8,7 +8,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { fileURLToPath } from 'node:url'
-import { PROCEDURE_LABEL } from '../../individual/src/self/procedure.ts'
+import { DEFAULT_PROCEDURES, PROCEDURE_LABEL, PROCEDURE_NAMES } from '../../individual/src/self/procedure.ts'
 import { PROCEDURE_KINDS, addedLines, divergence, evolution, verdicts, type Evolution } from './lib/procedures.ts'
 
 function rows(stateDir: string): { id: string; kind: string; data: unknown }[] {
@@ -31,6 +31,13 @@ export function render(individuals: readonly { readonly id: string; readonly e: 
     lines.push(
       `| ${id} | ${e.integrations}／${e.integrationEnds} | ${count(e.proposals)} | ${e.composed} | ${count(e.verdicts)} | ${e.beyondNoise}/${e.noiseDecisions} | ${e.gateCalls}／${e.gateReused} | ${e.adopted.map((a) => `${a.name} v${a.version}（${a.costChars >= 0 ? '+' : ''}${a.costChars} 字）`).join('、') || '—'} | ${e.undecided} |`,
     )
+  }
+  lines.push('', '| 個體 | 做法 | 版本 | 字數（第一版 → 最後） | 行數（第一版 → 最後） |', '|---|---|---|---|---|')
+  for (const { id, e } of individuals) {
+    for (const name of PROCEDURE_NAMES) {
+      const f = e.final[name]
+      if (f.version > 1) lines.push(`| ${id} | ${PROCEDURE_LABEL[name]} | ${f.version} | ${DEFAULT_PROCEDURES[name].length} → ${f.text.length} | ${DEFAULT_PROCEDURES[name].split('\n').length} → ${f.text.split('\n').length} |`)
+    }
   }
   const v = verdicts(individuals)
   lines.push('', `- 預先登記的判定：HP1（提出）${v.HP1}；HP2（對照看得出差異）${v.HP2}；HP3（分化）${v.HP3}。`)

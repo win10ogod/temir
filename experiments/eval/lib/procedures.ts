@@ -58,6 +58,7 @@ export function evolution(rows: readonly (LifeRow & { readonly id?: string })[])
   const fromIntegration = new Set<string>()
   const decided = new Set<string>()
   const costOf = new Map<string, number>()
+  const adoptedVersions: { name: ProcedureName; version: number; proposal?: string; delta: number }[] = []
   for (const row of rows) {
     if (row.kind === 'self/integration') e.integrations++
     else if (row.kind === 'self/integration-end') e.integrationEnds++
@@ -81,10 +82,13 @@ export function evolution(rows: readonly (LifeRow & { readonly id?: string })[])
       if (d.verdict === 'adopt') costOf.set(d.proposal, d.costChars ?? 0)
     } else if (row.kind === 'self/procedure') {
       const v = row.data as VersionLike
+      // 採用的版本與閘門的決定在同一個 transaction 中寫入，版本在前；字數增減等迴圈結束再從決定取。
+      const before = e.final[v.name].text.length
       e.final[v.name] = { version: v.version, text: v.text }
-      if (v.source === 'self') e.adopted.push({ name: v.name, version: v.version, costChars: v.proposal ? (costOf.get(v.proposal) ?? 0) : 0 })
+      if (v.source === 'self') adoptedVersions.push({ name: v.name, version: v.version, proposal: v.proposal, delta: v.text.length - before })
     }
   }
+  e.adopted.push(...adoptedVersions.map((a) => ({ name: a.name, version: a.version, costChars: (a.proposal ? costOf.get(a.proposal) : undefined) ?? a.delta })))
   e.undecided = [...fromIntegration].filter((id) => !decided.has(id)).length
   return e
 }

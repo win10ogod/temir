@@ -1,0 +1,22 @@
+{
+  "runId": "ctx1__personality-v3__temir-context__deepseek__deepseek",
+  "endedAt": "2026-10-31T02:29:05.248Z",
+  "histories": 10,
+  "historyFrom": null,
+  "probes": 33,
+  "probeSessions": 49,
+  "turnErrors": 0,
+  "historyRuntimeExitCode": 0,
+  "unsettledSelfStatements": 0,
+  "auxiliaryCalls": {
+    "history": {
+      "calls": 110,
+      "errors": 0
+    },
+    "probes": {
+      "calls": 138,
+      "errors": 0
+    }
+  },
+  "deepseekSpentUsd": null
+}

@@ -123,10 +123,18 @@
     - 念頭只在新的經歷之後（閘門的探測不再觸發念頭）；有打算時必答 replaces，同一個打算不再一件件累積。
     - 做法閘門第二版：每個處境有照現行做法的兩個輸出作為雜訊基準（beyondNoise 必答，adopt 至少一項）；照現行做法的輸出能重用就不重跑；
       提案依據的經歷優先，最多 3 個處境。單元測試；試跑中個體第一次採用了做法的修改。
-    - [~] procedures-v1（預先登記，[規格](experiments/specs/procedures-v1.md)）：三個不同歷史的個體，每段對話之後整合，看提案、採用與分化。
-- [~] 判斷放回主 agent 自己的脈絡（synthesis §3 第 3 點）：`temir-rd` 的 `mode: context`，主 agent 以 deliberate 工具思考，同樣的強制判斷。
+    - [x] procedures-v1（預先登記，[報告](experiments/results/procedures-v1-report.md)）：三個不同歷史的個體，每段對話之後整合。
+      - HP1（提出）、HP2（對照看得出差異）、HP3（沒有收斂成相同的文字）都 PASS。
+      - 三個個體都採用了思考做法的修改（A 1 次、B 1 次、C 5 次），內容分別落在各自的對方要的方向上（逐字描述，沒有檢定）。
+      - 閘門占輔助呼叫輸出 token 的 33–44%。
+    - e2e-43（e2e-40 的副本）：閘門對照 8 分鐘期間沒有念頭；新版本被採用之後念頭 1 次，之後不再重複。
+- [x] 判斷放回主 agent 自己的脈絡（synthesis §3 第 3 點；ADR-0009）：`temir-rd` 的 `mode: context`，主 agent 以 deliberate 工具思考，同樣的強制判斷。
   - e2e-42c（DeepSeek）：4 個回合都先呼叫 deliberate；只有通知、沒有處境描述時（e2e-42b）第二、三回合沒有呼叫。
-  - context-v1（預先登記，[規格](experiments/specs/context-v1.md)）：與輔助呼叫比較，同時是 dev16。
+  - context-v1（預先登記，[報告](experiments/results/context-v1-report.md)）：C1 不劣 FAIL（記憶 39/44 vs 42/44），C2 機制 PASS。**預設維持輔助呼叫**，context 模式留作條件。
+  - dev16（同一次的 `temir` 格）沒有退化：記憶 42/44、人格 38/39。
+  - 一次 MALFORMED_RESPONSE 讓整個回合沒有回覆，已加上重試（未以真實模型驗證）。
+- [ ] 做法的修改方向與經歷的關係：同一段歷史重複幾次，比較同一段歷史之內與不同歷史之間的差異（procedures-v1 的結論）。
+- [ ] context 模式的再比較：多次歷史（context-v1 只有一次）。
 - [~] 實驗方法：每個條件只有一次歷史，分不清歷史的變異與條件的效果（rd-v3 本機，dev11）。
   - rd-v4 起每個條件 3 次歷史，合併判定（`experiments/eval/pool-rd.ts`）。
   - rd-v4 顯示，3 次仍然不夠：同一條件內是 1/16～13/16。

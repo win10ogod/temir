@@ -11,8 +11,9 @@ test('procedures-v1: proposals, gate verdicts, adoptions and what stayed undecid
     row('self/procedure-proposal', { name: 'deliberate', source: 'integrate' }, 'p1'),
     row('self/procedure-decision', { proposal: 'p1', name: 'deliberate', verdict: 'revise', gate: 'noise', reasons: [{ beyondNoise: true }], calls: 7, reused: 3 }),
     row('self/procedure-proposal', { name: 'deliberate', source: 'compose' }, 'p2'),
-    row('self/procedure-decision', { proposal: 'p2', name: 'deliberate', verdict: 'adopt', gate: 'noise', reasons: [{ beyondNoise: true }], calls: 4, reused: 6, costChars: 30 }),
+    // 與 runProcedureGate 相同的順序：新版本先寫，決定在後。
     row('self/procedure', { name: 'deliberate', version: 2, text: `${DEFAULT_PROCEDURES.deliberate}\n- 先問對方要什麼。`, source: 'self', proposal: 'p2' }),
+    row('self/procedure-decision', { proposal: 'p2', name: 'deliberate', verdict: 'adopt', gate: 'noise', reasons: [{ beyondNoise: true }], calls: 4, reused: 6, costChars: 30 }),
     row('self/integration-end', {}),
     row('self/procedure-proposal', { name: 'outcome', source: 'integrate' }, 'p3'),
   ])

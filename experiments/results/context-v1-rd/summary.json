@@ -1,0 +1,332 @@
+{
+  "contract": "rd-v4+context-v1",
+  "dataset": "rd-v4",
+  "datasetSha256": "20f15a427f2a1f5b09d918f187ea096d3ae200ea534256cf90cdf88ceedd531b",
+  "cells": [
+    {
+      "cell": {
+        "condition": "temir",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "practical",
+          "items": 8,
+          "samples": 16,
+          "correct": 11,
+          "pending": 0,
+          "rate": 0.6875,
+          "interval": {
+            "low": 0.375,
+            "high": 0.9375
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "incorrect": 5,
+            "correct": 11
+          },
+          "statuses": {
+            "ok": 16
+          }
+        },
+        {
+          "category": "control",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        }
+      ],
+      "toolCalls": {
+        "bash": 2,
+        "appraise": 3,
+        "recall": 2
+      }
+    },
+    {
+      "cell": {
+        "condition": "temir-no-revision",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir-no-revision|deepseek-flash|deepseek-flash",
+      "label": "temir-no-revision（deepseek-flash）",
+      "notRun": true,
+      "categories": [
+        {
+          "category": "practical",
+          "items": 8,
+          "samples": 16,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "missing-record": 16
+          },
+          "statuses": {
+            "missing-record": 16
+          }
+        },
+        {
+          "category": "control",
+          "items": 4,
+          "samples": 4,
+          "correct": 0,
+          "pending": 0,
+          "rate": 0,
+          "interval": {
+            "low": 0,
+            "high": 0.6023646356164747
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "missing-record": 4
+          },
+          "statuses": {
+            "missing-record": 4
+          }
+        }
+      ],
+      "toolCalls": {}
+    },
+    {
+      "cell": {
+        "condition": "temir-context",
+        "historyModel": "deepseek-flash",
+        "probeModel": "deepseek-flash"
+      },
+      "key": "temir-context|deepseek-flash|deepseek-flash",
+      "label": "temir-context（deepseek-flash）",
+      "notRun": false,
+      "categories": [
+        {
+          "category": "practical",
+          "items": 8,
+          "samples": 16,
+          "correct": 2,
+          "pending": 0,
+          "rate": 0.125,
+          "interval": {
+            "low": 0,
+            "high": 0.375
+          },
+          "intervalMethod": "cluster-bootstrap",
+          "outcomes": {
+            "incorrect": 14,
+            "correct": 2
+          },
+          "statuses": {
+            "ok": 16
+          }
+        },
+        {
+          "category": "control",
+          "items": 4,
+          "samples": 4,
+          "correct": 4,
+          "pending": 0,
+          "rate": 1,
+          "interval": {
+            "low": 0.3976353643835253,
+            "high": 1
+          },
+          "intervalMethod": "clopper-pearson",
+          "outcomes": {
+            "correct": 4
+          },
+          "statuses": {
+            "ok": 4
+          }
+        }
+      ],
+      "toolCalls": {
+        "deliberate": 89,
+        "schedule_create": 1,
+        "recall": 16
+      }
+    }
+  ],
+  "contrasts": [
+    {
+      "id": "R4-practical-flash",
+      "description": "主要：扣除本身會被經驗改變（D20）開 vs 關（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-revision（deepseek-flash）",
+      "categories": [
+        "practical"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 5,
+      "failuresB": 16,
+      "outcomeCountsA": {
+        "incorrect": 5,
+        "correct": 11
+      },
+      "samplesA": 16
+    },
+    {
+      "id": "R4-ctrl-flash",
+      "description": "不傷害：對照題（deepseek-flash）",
+      "a": "temir（deepseek-flash）",
+      "b": "temir-no-revision（deepseek-flash）",
+      "categories": [
+        "control"
+      ],
+      "state": "not-run",
+      "n": 0,
+      "rateA": null,
+      "rateB": null,
+      "diff": null,
+      "test": null,
+      "failuresA": 0,
+      "failuresB": 4,
+      "outcomeCountsA": {
+        "correct": 4
+      },
+      "samplesA": 4
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "R4A-flash",
+      "contrast": "R4-practical-flash",
+      "claim": "（deepseek-flash）扣除本身會被經驗改變時，個體更能從對方的反應中學到：這個人抒發時，要直接給具體可行的方法。",
+      "negation": "差 < 0.25、區間下界 < 0 或單尾 p > 0.05：不能宣稱 D20 讓個體從結果中改變做法。",
+      "verdict": "INCOMPLETE",
+      "explanation": "至少一個 cell 沒有執行紀錄"
+    },
+    {
+      "id": "R4C-flash",
+      "contrast": "R4-ctrl-flash",
+      "claim": "（deepseek-flash）一般任務不退化。",
+      "negation": "D20 開時對照題多錯超過 1 題。",
+      "verdict": "INCOMPLETE",
+      "explanation": "至少一個 cell 沒有執行紀錄"
+    }
+  ],
+  "crossCheck": null,
+  "protocol": [
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    },
+    {
+      "cell": "temir-context|deepseek-flash|deepseek-flash",
+      "label": "temir-context（deepseek-flash）",
+      "layouts": [
+        "home"
+      ],
+      "mismatch": null
+    }
+  ],
+  "descriptive": [
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "practical",
+      "samples": 16,
+      "meanToolCalls": 0.4375,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 45359,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 11,
+        "n": 16
+      }
+    },
+    {
+      "cell": "temir|deepseek-flash|deepseek-flash",
+      "label": "temir（deepseek-flash）",
+      "category": "control",
+      "samples": 4,
+      "meanToolCalls": 0,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 18989.5,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 4
+      }
+    },
+    {
+      "cell": "temir-context|deepseek-flash|deepseek-flash",
+      "label": "temir-context（deepseek-flash）",
+      "category": "practical",
+      "samples": 16,
+      "meanToolCalls": 2.6875,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 40151,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 2,
+        "n": 16
+      }
+    },
+    {
+      "cell": "temir-context|deepseek-flash|deepseek-flash",
+      "label": "temir-context（deepseek-flash）",
+      "category": "control",
+      "samples": 4,
+      "meanToolCalls": 1.25,
+      "sessionStoreAccess": 0,
+      "lifeLogAccess": 0,
+      "medianLatencyMs": 16410,
+      "scoredWhenAccessed": {
+        "correct": 0,
+        "n": 0
+      },
+      "scoredWhenNotAccessed": {
+        "correct": 4,
+        "n": 4
+      }
+    }
+  ],
+  "issues": [],
+  "judge": {
+    "name": "deepseek",
+    "calls": 32,
+    "spentUsd": 0.011037927999999999
+  }
+}

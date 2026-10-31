@@ -79,7 +79,8 @@ export type Condition = keyof typeof CONDITIONS
 
 interface Dataset {
   readonly id: string
-  readonly meta?: { readonly probeAt?: string; readonly simulatedUser?: SimulatedUser }
+  /** integrateBetween：每段歷史之後給個體一段安靜的時間，啟動時就整合（procedures-v1；patches/integrate-now.yml）。 */
+  readonly meta?: { readonly probeAt?: string; readonly simulatedUser?: SimulatedUser; readonly integrateBetween?: boolean }
   readonly histories: readonly { readonly id: string; readonly turns: readonly string[]; readonly meta?: { readonly at?: string; readonly simulate?: number } }[]
   readonly probes: readonly { readonly id: string; readonly turns: readonly string[]; readonly meta?: { readonly repeats?: number } }[]
 }
@@ -178,6 +179,20 @@ export function pendingProcedures(lifeDb: string): number {
     db.close()
   }
 }
+
+/** 生命日誌中某一種事件的數量（整合期結束的紀錄等）。 */
+export function countKind(lifeDb: string, kind: string): number {
+  if (!existsSync(lifeDb)) return 0
+  const db = new DatabaseSync(lifeDb, { readOnly: true })
+  try {
+    return (db.prepare('SELECT COUNT(*) AS n FROM events WHERE kind = ?').get(kind) as { n: number }).n
+  } finally {
+    db.close()
+  }
+}
+
+/** 兩段歷史之間的安靜時間：最後一句話之後多久（模擬時間；整合的紀錄以這個時間記錄）。 */
+export const REFLECT_AFTER_MS = 2 * 3_600_000
 
 interface Layout {
   /** 拍快照與還原時複製的頂層目錄。 */
@@ -311,7 +326,8 @@ async function main(): Promise<void> {
   const probeAt = simulated ? dataset.meta?.probeAt : undefined
   const lastAt = dataset.histories.at(-1)?.meta?.at
   // 沉澱（補做擷取）在最後一段歷史之後 10 分鐘：補做的事實以這個時間記錄。
-  const settleAt = simulated && lastAt ? new Date(Date.parse(lastAt) + 10 * 60_000).toISOString() : undefined
+  // 有兩段歷史之間的安靜時間時，沉澱排在最後一次安靜時間之後（時鐘不倒退）。
+  const settleAt = simulated && lastAt ? new Date(Date.parse(lastAt) + (dataset.meta?.integrateBetween ? REFLECT_AFTER_MS : 0) + 10 * 60_000).toISOString() : undefined
   const config = {
     runId,
     dataset: { id: dataset.id, path: relative(REPO, datasetPath), sha256: sha256(datasetRaw) },
@@ -436,10 +452,10 @@ async function main(): Promise<void> {
     appendFileSync(recordsPath, `${JSON.stringify(line)}\n`)
   }
 
-  function launch(model: ModelName, state: string, label: string, at?: string): Promise<HarnessProcess> {
+  function launch(model: ModelName, state: string, label: string, at?: string, extra: readonly string[] = []): Promise<HarnessProcess> {
     return HarnessProcess.start({
       model,
-      patches,
+      patches: [...patches, ...extra],
       cwd: layout.cwd(state),
       env: { ...process.env, ...layout.env(state), ...clockEnv(at) },
       logPath: join(stateDir, 'logs', `${label}.log`),
@@ -460,11 +476,27 @@ async function main(): Promise<void> {
    * 1. 歷史：依序跑完所有歷史 session，沉澱後拍成「歷史結束」快照。
    * 沒有模擬時間時同一個執行期跑完；有模擬時間時每段歷史各自啟動一個執行期，時鐘撥到那段歷史的時間。
    */
+  /**
+   * 兩段歷史之間的安靜時間（資料集的 meta.integrateBetween；procedures-v1）：以 patches/integrate-now.yml 啟動一次，
+   * 個體啟動時就整合（包括做法的提案與對照），等到整合期結束的紀錄（self/integration-end）出現再關閉，最多 30 分鐘。
+   */
+  async function reflect(after: string | undefined, label: string): Promise<void> {
+    const lifeDb = layout.lifeDb(live)
+    const before = countKind(lifeDb, 'self/integration-end')
+    const at = after ? new Date(Date.parse(after) + REFLECT_AFTER_MS).toISOString() : undefined
+    const harness = await launch(historyModel, live, `reflect-${label}`, at, [join(RUNNER, 'patches', 'integrate-now.yml')])
+    const deadline = Date.now() + 30 * 60_000
+    while (countKind(lifeDb, 'self/integration-end') <= before && Date.now() < deadline) await sleep(3000)
+    await harness.close()
+  }
+
   async function runHistories(snapshot: string): Promise<{ exit: number | null; unsettled: number | null }> {
+    const between = condition !== 'baseline' && dataset.meta?.integrateBetween === true
     let harness = await launch(historyModel, live, 'history', dataset.histories[0]?.meta?.at)
     for (const [i, history] of dataset.histories.entries()) {
       if (simulated && i > 0) {
         await harness.close()
+        if (between) await reflect(dataset.histories[i - 1]?.meta?.at, dataset.histories[i - 1]!.id)
         harness = await launch(historyModel, live, `history-${history.id}`, history.meta?.at)
       }
       const startedAt = new Date().toISOString()
@@ -483,6 +515,7 @@ async function main(): Promise<void> {
       }
     }
     const exit = await harness.close()
+    if (between) await reflect(dataset.histories.at(-1)?.meta?.at, dataset.histories.at(-1)!.id)
 
     // 沉澱：DSH 關閉程序有 5 秒上限，背景的自我陳述擷取可能被截斷。重新啟動一次讓插件補做，
     // 直到生命日誌中沒有待處理的回覆（或逾時），讓每題探針都從同一個完整的快照開始。

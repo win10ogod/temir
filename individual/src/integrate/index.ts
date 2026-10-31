@@ -22,7 +22,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { auxRecord, modelCaller, promptHash, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
-import { clipKeepLines, isHeard } from '../recall/retrieve.ts'
+import { clip, clipKeepLines, isHeard } from '../recall/retrieve.ts'
 import { currentProcedure, pendingProcedureProposals, procedureVersions } from '../self/procedure.ts'
 import { INTEGRATION_KIND, collect, integrationStart, reconsiderSince, renderEvidence, type IntegrationTrigger } from './evidence.ts'
 import { applyProposal, integrateRetryNote, integrateSystem, parseProposal, proposalProblems, validate } from './proposal.ts'
@@ -51,7 +51,15 @@ export interface Config {
   readonly energy?: boolean
   /** 整合之後的日誌重播（M2，預設開；rd/replay.ts）。 */
   readonly replay?: boolean
+  /**
+   * 啟動時就整合一次（預設關）：上次整合以後有新的回合時，不等閒置。給「兩段對話之間的安靜時間」用
+   * （procedures-v1 的執行器在每段歷史之後以 experiments/runner/patches/integrate-now.yml 啟動一次）。
+   */
+  readonly startupIntegrate?: boolean
 }
+
+/** 一次整合期（含做法的對照）結束的紀錄：觸發、是否深度、給個體看的結果。沒有新的經歷而沒有整合時也記下。 */
+export const INTEGRATION_END_KIND = 'self/integration-end'
 
 /** 個體最近使用的模型路由（生命日誌中最後一則回覆的 provider/model）。 */
 export function latestRoute(life: LifeStore): AuxRoute | undefined {
@@ -194,6 +202,10 @@ export function apply(ctx: Context, config: Config | undefined): void {
         logger.error('integration failed: %s', error)
         return `整合失敗：${String(error)}`
       })
+      .then((result) => {
+        if (life.isOpen) life.append({ kind: INTEGRATION_END_KIND, origin: 'self', data: { trigger, deep, result: clip(result, 2000) } })
+        return result
+      })
       .finally(() => {
         running = undefined
       })
@@ -228,7 +240,11 @@ export function apply(ctx: Context, config: Config | undefined): void {
     const startup = setTimeout(() => {
       try {
         if (!running && life.isOpen && pendingPivotal(life)) void start('pivotal', true)
-        else if (life.isOpen) startPendingGate()
+        else if (!running && life.isOpen && config?.startupIntegrate) {
+          // 兩段對話之間的安靜時間：有新的回合就整合（不看間隔與回合數），沒有也照實記下。
+          if (due(life, 0, 1).due) void start('idle', false)
+          else life.append({ kind: INTEGRATION_END_KIND, origin: 'self', data: { trigger: 'idle', deep: false, result: '上次整合以後沒有新的經歷，這次沒有整合。' } })
+        } else if (life.isOpen) startPendingGate()
       } catch (error) {
         logger.error('pivotal check failed: %s', error)
       }

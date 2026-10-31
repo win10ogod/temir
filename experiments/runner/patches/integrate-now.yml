@@ -1,0 +1,6 @@
+# 兩段對話之間的安靜時間（procedures-v1）：執行器在每段歷史之後以這個 patch 啟動一次，個體啟動時就整合，
+# 包括做法的提案與對照（temir-integrate 的 startupIntegrate）。整合期結束時寫下 self/integration-end。
+- id: temir-integrate
+  config:
+    startupIntegrate: true
+    pivotalDelaySeconds: 3

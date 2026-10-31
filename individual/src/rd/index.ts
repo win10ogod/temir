@@ -79,6 +79,9 @@ declare module '@deepseek-ai/dsh-llm' {
   }
 }
 
+/** context 模式：主 agent 的回應格式錯誤（例如工具參數不是合法的 JSON）時重試的紀錄。 */
+export const REQUEST_RETRY_KIND = 'rd/request-retry'
+
 /** context 模式的處境（系統提示的一段）：只陳述這個身體怎麼運作，不規定怎麼想。 */
 export const CONTEXT_SITUATION = `關於回應之前的思考：對方說話之後，系統會給你一則「回應之前先思考」的通知。你要先呼叫 ${DELIBERATE_TOOL} 工具，照你自己的思考與扣除做法思考（只在心裡想，不算），得到準備之後再對對方說話；需要的話可以先用 recall 查記憶。沒有思考就回應的回合，會照實記在你的生命紀錄裡。`
 
@@ -730,6 +733,18 @@ export function apply(ctx: Context, config: Config | undefined): void {
       } catch (error) {
         logger.error('rd turn end failed: %s', error)
       }
+    })
+    // 主 agent 寫 deliberate 的參數時 JSON 不合法，DSH 以 MALFORMED_RESPONSE 結束那一步，整個回合就沒有回覆
+    // （context-v1 的 memory-v3 歷史 h05）。輔助呼叫的輸出不合格只會重問；這裡對等待思考中的那一步重試一次，照實記下。
+    const retried = new Set<string>()
+    ctx.on('agent/request-error', async (payload, next) => {
+      const action = await next()
+      const session = payload.agent.session.id
+      const key = `${session}#${payload.turn}#${payload.step}`
+      if (action || payload.signal.aborted || payload.failure.code !== 'MALFORMED_RESPONSE' || !rd.awaiting(session) || retried.has(key)) return action
+      retried.add(key)
+      if (ctx.life.isOpen) ctx.life.append({ kind: REQUEST_RETRY_KIND, origin: 'self', session, data: { turn: payload.turn, step: payload.step, code: payload.failure.code, message: clip(payload.failure.message, 300) } })
+      return { kind: 'retry' }
     })
   }
 

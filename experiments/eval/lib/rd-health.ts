@@ -58,6 +58,8 @@ export interface Health {
   contextDecisions: number
   repliedBefore: number
   skipped: number
+  /** context 模式：回應格式錯誤（例如 deliberate 的參數不是合法的 JSON）而重試的步驟（rd/request-retry）。 */
+  requestRetries: number
   /** 紀錄中沿用寫死類別的欄位（候選的 kind、比對的 didKind 與 significance、懸念的 type、感受的 significance）；dev15 起應為 0。 */
   legacyFields: number
   /** 輔助呼叫（全部目的）：次數、有 usage 的、finish 的分布、usage 有思考 token 的次數與合計、思考的字數（reasoningChars）合計。 */
@@ -74,7 +76,7 @@ export function emptyHealth(): Health {
     deliberateCalls: 0, deliberateErrors: 0, deliberateRetries: 0, deliberateRetryReasons: {}, decisions: 0, deliberationFailed: 0,
     outcomeCalls: 0, outcomeErrors: 0, outcomeRetries: 0, outcomeRetryReasons: {}, outcomes: 0, outcomeFailed: 0,
     withShown: 0, shown: 0, judgedNeighbors: 0, uncovered: 0, candidates: 0, sameAs: 0, sameExcluded: 0, supported: 0, reviewedDecisions: 0, reviewsRequired: 0,
-    feelings: 0, keptFeelings: 0, reconsider: 0, missed: 0, gapOnMind: 0, declined: 0, leftItems: 0, forOther: 0, contextDecisions: 0, repliedBefore: 0, skipped: 0, legacyFields: 0,
+    feelings: 0, keptFeelings: 0, reconsider: 0, missed: 0, gapOnMind: 0, declined: 0, leftItems: 0, forOther: 0, contextDecisions: 0, repliedBefore: 0, skipped: 0, requestRetries: 0, legacyFields: 0,
     auxCalls: 0, auxWithUsage: 0, finish: {}, withReasoningTokens: 0, reasoningTokens: 0, reasoningChars: 0,
   }
 }
@@ -250,6 +252,7 @@ export function addHealth(h: Health, rows: readonly LifeRow[]): Health {
       if (o.significance !== undefined) h.legacyFields++
     } else if (row.kind === 'appraisal' && (row.data as { significance?: string }).significance !== undefined) h.legacyFields++
     else if (row.kind === 'rd/outcome-failed') h.outcomeFailed++
+    else if (row.kind === 'rd/request-retry') h.requestRetries++
   }
   classify((a) => listedLabels(a.input ?? ''))
   return h
@@ -267,7 +270,7 @@ function experiencesIn(output: string): Set<string> {
   }
 }
 
-export const HEALTH_KINDS = ['memory/aux', 'rd/decision', 'rd/deliberation-failed', 'rd/outcome', 'rd/outcome-failed', 'appraisal'] as const
+export const HEALTH_KINDS = ['memory/aux', 'rd/decision', 'rd/deliberation-failed', 'rd/outcome', 'rd/outcome-failed', 'appraisal', 'rd/request-retry'] as const
 
 /** 預先登記的機制門檻（dev14 規格）：沒有結果的思考與事後比對，各不超過 5%。 */
 export function healthVerdict(h: Health): { readonly deliberation: boolean; readonly outcome: boolean; readonly coverage: boolean } {

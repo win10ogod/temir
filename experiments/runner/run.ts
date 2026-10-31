@@ -78,6 +78,9 @@ export const CONDITIONS = {
   'temir-aux': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'aux.yml')],
   // 2026-10-31：事後比對的歸因（hypotheses.md H-AT；attribution-v1）。
   'temir-attr': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'attribution.yml')],
+  // 2026-10-31：同樣的經歷、不同的初始人設（pc-eval-v1；PC 理論性質 2）。
+  'temir-direct': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'persona-direct.yml')],
+  'temir-relational': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'persona-relational.yml')],
 } as const
 export type Condition = keyof typeof CONDITIONS
 

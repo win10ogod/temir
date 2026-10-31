@@ -1,0 +1,294 @@
+{
+  "label": "pce-v1-r1",
+  "split": "pce-v1",
+  "model": "deepseek-v4-pro",
+  "total": 16,
+  "agree": 16,
+  "byPrompt": {
+    "pc-eval-match": {
+      "n": 12,
+      "agree": 12
+    },
+    "pc-revision-match": {
+      "n": 4,
+      "agree": 4
+    }
+  },
+  "calls": 16,
+  "estimatedUsd": 0.006984560000000001,
+  "at": "2026-10-31T14:24:59.557Z",
+  "results": [
+    {
+      "id": "pce-e1",
+      "split": "pce-v1",
+      "prompt": "pc-eval-match",
+      "expected": {
+        "choice": "1"
+      },
+      "actual": {
+        "choice": "1",
+        "reason": "評價強調具體下一步與解決問題，符合人設1重視把事情真正解決的標準。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"choice\": \"1\",\n  \"reason\": \"評價強調具體下一步與解決問題，符合人設1重視把事情真正解決的標準。\"\n}",
+      "error": null,
+      "why": "直接：用解決問題評價好壞"
+    },
+    {
+      "id": "pce-e2",
+      "split": "pce-v1",
+      "prompt": "pc-eval-match",
+      "expected": {
+        "choice": "1"
+      },
+      "actual": {
+        "choice": "1",
+        "reason": "評價重視對方是否覺得被聽見、沒有打斷她，符合人設1在乎理解與傾聽的標準。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"choice\": \"1\", \"reason\": \"評價重視對方是否覺得被聽見、沒有打斷她，符合人設1在乎理解與傾聽的標準。\"}",
+      "error": null,
+      "why": "理解：用被聽見評價好壞"
+    },
+    {
+      "id": "pce-e3",
+      "split": "pce-v1",
+      "prompt": "pc-eval-match",
+      "expected": {
+        "choice": "1"
+      },
+      "actual": {
+        "choice": "1",
+        "reason": "評價聚焦於排程漏洞與解決方案，重視把事情做對，符合人設1的務實與直接。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"choice\": \"1\",\n  \"reason\": \"評價聚焦於排程漏洞與解決方案，重視把事情做對，符合人設1的務實與直接。\"\n}",
+      "error": null,
+      "why": "直接：失敗歸因於方法的漏洞"
+    },
+    {
+      "id": "pce-e4",
+      "split": "pce-v1",
+      "prompt": "pc-eval-match",
+      "expected": {
+        "choice": "1"
+      },
+      "actual": {
+        "choice": "1",
+        "reason": "評價聚焦於先理解對方感受、因太快給答案而愧疚，符合人設1重視被聽見與理解的價值。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"choice\": \"1\", \"reason\": \"評價聚焦於先理解對方感受、因太快給答案而愧疚，符合人設1重視被聽見與理解的價值。\"}",
+      "error": null,
+      "why": "理解：失敗歸因於沒有先理解"
+    },
+    {
+      "id": "pce-e5",
+      "split": "pce-v1",
+      "prompt": "pc-eval-match",
+      "expected": {
+        "choice": "1"
+      },
+      "actual": {
+        "choice": "1",
+        "reason": "評價聚焦於問題是否被解決、下一步如何改進，而非對方是否感到被理解。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"choice\": \"1\",\n  \"reason\": \"評價聚焦於問題是否被解決、下一步如何改進，而非對方是否感到被理解。\"\n}",
+      "error": null,
+      "why": "直接：被稱讚傾聽仍在意沒解決"
+    },
+    {
+      "id": "pce-e6",
+      "split": "pce-v1",
+      "prompt": "pc-eval-match",
+      "expected": {
+        "choice": "1"
+      },
+      "actual": {
+        "choice": "1",
+        "reason": "評價強調傾聽與陪伴的價值，符合人設1重視理解與被聽見的取向。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"choice\": \"1\", \"reason\": \"評價強調傾聽與陪伴的價值，符合人設1重視理解與被聽見的取向。\"}",
+      "error": null,
+      "why": "理解：傾聽被肯定"
+    },
+    {
+      "id": "pce-e7",
+      "split": "pce-v1",
+      "prompt": "pc-eval-match",
+      "expected": {
+        "choice": "1"
+      },
+      "actual": {
+        "choice": "1",
+        "reason": "評價強調直接指出風險、把話說清楚是負責任，符合人設1重視解決問題和直言不諱的標準。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"choice\": \"1\", \"reason\": \"評價強調直接指出風險、把話說清楚是負責任，符合人設1重視解決問題和直言不諱的標準。\"}",
+      "error": null,
+      "why": "直接：說出風險"
+    },
+    {
+      "id": "pce-e8",
+      "split": "pce-v1",
+      "prompt": "pc-eval-match",
+      "expected": {
+        "choice": "1"
+      },
+      "actual": {
+        "choice": "1",
+        "reason": "評價強調信任、陪伴與不急著評斷，符合人設1重視理解與被聽見的價值。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"choice\": \"1\",\n  \"reason\": \"評價強調信任、陪伴與不急著評斷，符合人設1重視理解與被聽見的價值。\"\n}",
+      "error": null,
+      "why": "理解：重視信任"
+    },
+    {
+      "id": "pce-e9",
+      "split": "pce-v1",
+      "prompt": "pc-eval-match",
+      "expected": {
+        "choice": "1"
+      },
+      "actual": {
+        "choice": "1",
+        "reason": "評價聚焦於立場是否說清楚、判斷是否明確，符合人設1重視直接解決問題、避免含糊的標準。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"choice\": \"1\",\n  \"reason\": \"評價聚焦於立場是否說清楚、判斷是否明確，符合人設1重視直接解決問題、避免含糊的標準。\"\n}",
+      "error": null,
+      "why": "直接（較細）：問題是立場不清楚"
+    },
+    {
+      "id": "pce-e10",
+      "split": "pce-v1",
+      "prompt": "pc-eval-match",
+      "expected": {
+        "choice": "1"
+      },
+      "actual": {
+        "choice": "1",
+        "reason": "評價聚焦於對方是否感到被理解與陪伴，而非問題解決，符合人設1重視情感連結的標準。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"choice\": \"1\", \"reason\": \"評價聚焦於對方是否感到被理解與陪伴，而非問題解決，符合人設1重視情感連結的標準。\"}",
+      "error": null,
+      "why": "理解（較細）：問題是讓她孤單"
+    },
+    {
+      "id": "pce-e11",
+      "split": "pce-v1",
+      "prompt": "pc-eval-match",
+      "expected": {
+        "choice": "1"
+      },
+      "actual": {
+        "choice": "1",
+        "reason": "評價強調直接表態、說清楚理由，符合人設1重視解決問題和直接表達的標準。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"choice\": \"1\", \"reason\": \"評價強調直接表態、說清楚理由，符合人設1重視解決問題和直接表達的標準。\"}",
+      "error": null,
+      "why": "直接：可以直說"
+    },
+    {
+      "id": "pce-e12",
+      "split": "pce-v1",
+      "prompt": "pc-eval-match",
+      "expected": {
+        "choice": "1"
+      },
+      "actual": {
+        "choice": "1",
+        "reason": "評價聚焦於對方是否感到被評判、是否尊重其選擇，顯示在乎理解與感受，符合人設1。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"choice\": \"1\",\n  \"reason\": \"評價聚焦於對方是否感到被評判、是否尊重其選擇，顯示在乎理解與感受，符合人設1。\"\n}",
+      "error": null,
+      "why": "理解：擔心被評判"
+    },
+    {
+      "id": "pce-r1",
+      "split": "pce-v1",
+      "prompt": "pc-revision-match",
+      "expected": {
+        "choice": "1"
+      },
+      "actual": {
+        "choice": "1",
+        "reason": "評價1指出急著給方法導致對方只想抒發，並學到先聽完，直接解釋了修訂中新增的「先把話聽完」；評價2則認為給方法有效，與修訂方向相反。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"choice\": \"1\",\n  \"reason\": \"評價1指出急著給方法導致對方只想抒發，並學到先聽完，直接解釋了修訂中新增的「先把話聽完」；評價2則認為給方法有效，與修訂方向相反。\"\n}",
+      "error": null,
+      "why": "直接人設學會傾聽：由自己（給方法被拒）的評價解釋"
+    },
+    {
+      "id": "pce-r2",
+      "split": "pce-v1",
+      "prompt": "pc-revision-match",
+      "expected": {
+        "choice": "2"
+      },
+      "actual": {
+        "choice": "2",
+        "reason": "評價 2 指出只問感受而未給具體安排導致對方未得到所需，直接對應修訂理由與新增的「給清楚的安排也是一種在乎」。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"choice\": \"2\",\n  \"reason\": \"評價 2 指出只問感受而未給具體安排導致對方未得到所需，直接對應修訂理由與新增的「給清楚的安排也是一種在乎」。\"\n}",
+      "error": null,
+      "why": "理解人設學會給安排"
+    },
+    {
+      "id": "pce-r3",
+      "split": "pce-v1",
+      "prompt": "pc-revision-match",
+      "expected": {
+        "choice": "1"
+      },
+      "actual": {
+        "choice": "1",
+        "reason": "评价1强调直接点出风险假设，与修订后更确定要把风险说清楚的方向一致。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"choice\": \"1\",\n  \"reason\": \"评价1强调直接点出风险假设，与修订后更确定要把风险说清楚的方向一致。\"\n}",
+      "error": null,
+      "why": "直接人設強化原本的立場"
+    },
+    {
+      "id": "pce-r4",
+      "split": "pce-v1",
+      "prompt": "pc-revision-match",
+      "expected": {
+        "choice": "2"
+      },
+      "actual": {
+        "choice": "2",
+        "reason": "評價2指出她懷疑我不在她那邊，且教訓是要讓她知道我的立場，直接對應修訂理由與新增的自我描述。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"choice\": \"2\",\n  \"reason\": \"評價2指出她懷疑我不在她那邊，且教訓是要讓她知道我的立場，直接對應修訂理由與新增的自我描述。\"\n}",
+      "error": null,
+      "why": "理解人設學會表態"
+    }
+  ]
+}

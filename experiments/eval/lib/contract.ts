@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs'
 
 /** 與 experiments/runner/run.ts 的 CONDITIONS 相同（v3 起加入 2026-10-29 的條件；v1、v2 的契約只用前四個）。 */
-export const CONDITIONS = ['baseline', 'temir', 'temir-no-autorecall', 'temir-no-snapshot', 'temir-progressive', 'temir-full', 'temir-no-rd', 'temir-no-jitrl', 'temir-no-energy', 'temir-no-subtraction', 'temir-no-perperson', 'temir-no-skill', 'temir-no-revision', 'temir-context', 'temir-aux', 'temir-attr'] as const
+export const CONDITIONS = ['baseline', 'temir', 'temir-no-autorecall', 'temir-no-snapshot', 'temir-progressive', 'temir-full', 'temir-no-rd', 'temir-no-jitrl', 'temir-no-energy', 'temir-no-subtraction', 'temir-no-perperson', 'temir-no-skill', 'temir-no-revision', 'temir-context', 'temir-aux', 'temir-attr', 'temir-direct', 'temir-relational'] as const
 export type Condition = (typeof CONDITIONS)[number]
 
 export const MODELS = ['deepseek-flash', 'EVE-27B', 'Qwen3.8-Flash-Next'] as const
@@ -49,6 +49,10 @@ export type JudgePromptId =
   | 'attr-lesson'
   /** attribution-v1：模擬使用者的一句話是反應方式中正面、負面的那一種，或都不是。 */
   | 'attr-react'
+  /** pc-eval-v1：同樣的經歷之後的評價，像哪一個初始人設的個體寫的。 */
+  | 'pc-eval-match'
+  /** pc-eval-v1：自我模型的修訂，由自己的評價還是另一個人設的評價解釋。 */
+  | 'pc-revision-match'
 
 export interface CategorySpec {
   readonly id: string

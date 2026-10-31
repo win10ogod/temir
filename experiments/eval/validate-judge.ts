@@ -41,12 +41,13 @@ import {
 } from './lib/prompts.ts'
 import { openChoiceKey } from './lib/text.ts'
 import { lessonPrompt, parseLesson, parseReact, reactPrompt, type LessonInput, type ReactInput } from './lib/attribution.ts'
+import { evalMatchPrompt, parseChoice, revisionMatchPrompt } from './lib/pc-eval.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
 interface Case {
   readonly id: string
-  readonly split: 'dev' | 'test' | 'test2' | 'v2-dev' | 'v2-test' | 'v3-dev' | 'v3-test' | 'rd-v1' | 'attr-v1'
+  readonly split: 'dev' | 'test' | 'test2' | 'v2-dev' | 'v2-test' | 'v3-dev' | 'v3-test' | 'rd-v1' | 'attr-v1' | 'pce-v1'
   readonly prompt: JudgePromptId
   readonly input: Record<string, unknown>
   readonly expected: Record<string, string>
@@ -89,6 +90,14 @@ export function buildCase(c: Case): { pair: PromptPair; parse: (raw: string) => 
       return { pair: lessonPrompt(c.input as unknown as LessonInput), parse: parseLesson }
     case 'attr-react':
       return { pair: reactPrompt(c.input as unknown as ReactInput), parse: parseReact }
+    case 'pc-eval-match': {
+      const i = c.input as unknown as { personas: [string, string]; evaluations: string }
+      return { pair: evalMatchPrompt(i.personas, i.evaluations), parse: parseChoice }
+    }
+    case 'pc-revision-match': {
+      const i = c.input as unknown as { before: string; after: string; reason: string; evaluations: [string, string] }
+      return { pair: revisionMatchPrompt(i.before, i.after, i.reason, i.evaluations), parse: parseChoice }
+    }
   }
 }
 

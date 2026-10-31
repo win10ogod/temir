@@ -72,6 +72,8 @@ export const CONDITIONS = {
   'temir-no-subtraction': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-subtraction.yml')],
   'temir-no-perperson': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-perperson.yml')],
   'temir-no-skill': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'no-skill.yml')],
+  // 2026-10-31：判斷放回主 agent 自己的脈絡（temir-rd mode: context）。
+  'temir-context': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'context.yml')],
 } as const
 export type Condition = keyof typeof CONDITIONS
 

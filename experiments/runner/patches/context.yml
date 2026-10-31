@@ -1,0 +1,5 @@
+# 條件：判斷放回個體自己的脈絡（synthesis §3 第 3 點）：主 agent 在自己的回合中以 deliberate 工具思考，
+# 不另外做輔助呼叫（temir-rd 的 mode: context）。其他個體功能照舊。
+- id: temir-rd
+  config:
+    mode: context

@@ -20,17 +20,35 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-agent'
+import type {} from '@deepseek-ai/dsh-system-prompt'
 import { createUserMessage, type ContextFormed } from '@deepseek-ai/dsh-llm'
+import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { latestRoute } from '../integrate/index.ts'
 import { auxRecord, modelCaller, promptHash, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
-import { clip, clipEnds, clipKeepLines, sessionSoFar } from '../recall/retrieve.ts'
+import { clip, clipEnds, clipKeepLines, replyOf, sessionSoFar } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
 import { KIND, appraisalText, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
 import { currentProcedure, procedureVersions, type Procedure, type ProcedureVariant } from '../self/procedure.ts'
-import { ALL_EXCLUDED_NOTE, deliberateSystem, deliberationRetryNote, outcomeRetryNote, outcomeSystem, parseDeliberation, parseOutcome, mapDeliberationText, revisionRetryNote, revisionSystem, withoutExclusions } from './aux.ts'
-import { DEFAULT_PARAMS, allExcluded, correct, neighbors, uncorrected, type Params } from './jitrl.ts'
+import {
+  ALL_EXCLUDED_NOTE,
+  DELIBERATE_TOOL,
+  deliberateNotice,
+  deliberateSystem,
+  deliberationRetryNote,
+  outcomeRetryNote,
+  outcomeSystem,
+  parseDeliberation,
+  parseOutcome,
+  mapDeliberationText,
+  revisionNotice,
+  revisionRetryNote,
+  revisionSystem,
+  withoutExclusions,
+  type Deliberation,
+} from './aux.ts'
+import { DEFAULT_PARAMS, allExcluded, correct, neighbors, uncorrected, type Candidate, type Params } from './jitrl.ts'
 import { adoptedParamsOf } from './replay.ts'
 import {
   DECISION_KIND,
@@ -61,11 +79,14 @@ declare module '@deepseek-ai/dsh-llm' {
   }
 }
 
+/** context 模式的處境（系統提示的一段）：只陳述這個身體怎麼運作，不規定怎麼想。 */
+export const CONTEXT_SITUATION = `關於回應之前的思考：對方說話之後，系統會給你一則「回應之前先思考」的通知。你要先呼叫 ${DELIBERATE_TOOL} 工具，照你自己的思考與扣除做法思考（只在心裡想，不算），得到準備之後再對對方說話；需要的話可以先用 recall 查記憶。沒有思考就回應的回合，會照實記在你的生命紀錄裡。`
+
 /** 暫時的比對中「對方接著說了什麼」。 */
 const SILENT_OTHER = '（對方到現在都沒有再說話。）'
 
 export const name = 'temir-rd'
-export const inject = ['life', 'llm', 'tools']
+export const inject = ['life', 'llm', 'tools', 'systemPrompt']
 
 export interface Config {
   /** RD 階段（預設開）。 */
@@ -95,6 +116,13 @@ export interface Config {
    * 被扣除的做法在類似處境中做過或扣除過相同的做法時，強制個體逐一判斷維持或解除（revisionSystem）。消融（patches/no-revision.yml）時回到 D19。
    */
   readonly revision?: boolean
+  /**
+   * 誰在思考（synthesis §3 第 3 點：判斷放回個體自己的脈絡，先做成可切換的條件，用實驗比較）：
+   * - aux（預設）：另外的輔助呼叫思考，主 agent 收到準備訊息；
+   * - context：主 agent 在自己的回合中、帶著全部的脈絡，以 deliberate 工具思考；程式驗證同樣的強制判斷，
+   *   思考完成之前只能用 recall（guard），沒有思考就結束回合的照實記下（rd/deliberation-failed，mode＝context）。
+   */
+  readonly mode?: 'aux' | 'context'
 }
 
 function textOf(content: readonly { readonly type: string; readonly text?: string }[]): string {
@@ -137,6 +165,14 @@ export interface Rd {
   evaluate(decision: LifeEvent, heard: string, route: AuxRoute, provisional?: boolean): void
   /** pre-step：先比對上一個決定（背景），再思考與準備；沒有準備時（思考失敗、輸出不合格）回傳 undefined。 */
   step(input: StepInput): Promise<Preparation | undefined>
+  /** context 模式的 pre-step：先比對上一個決定（背景），回傳要放進主 agent 脈絡的思考通知。 */
+  begin(input: StepInput): string
+  /** context 模式的 deliberate 工具（session＝呼叫它的那段對話）：回傳工具結果的文字。 */
+  deliberateTool(session: string | undefined, args: Record<string, unknown>): string
+  /** context 模式：回合要結束時，照實記下還在等的思考。 */
+  endTurn(session: string): void
+  /** context 模式：這段對話是否還在等思考。 */
+  awaiting(session: string): boolean
   /** 對方沉默時的暫時比對（計時器每次觸發時呼叫）。 */
   checkSilence(now?: number): void
   /** 等背景的事後比對完成。 */
@@ -324,152 +360,316 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
     }
   }
 
-  async function step({ session, route, cue, recalled, tools, signal }: StepInput): Promise<Preparation | undefined> {
-    try {
-      const previous = openDecision(life, session)
-      if (previous) evaluate(previous, cue, route)
+  /** 思考需要的一切（輔助呼叫與 context 模式共用）：列出的經驗與編號、懸著的事與編號、做法、輔助呼叫格式的輸入。 */
+  function prepare({ session, route, cue, recalled, tools }: StepInput) {
+    const params = paramsNow()
+    const memory = jitrl ? experiences(life, params.gamma) : []
+    // 這一步的自動回憶（temir-recall 在同一步之中先寫下）帶進來的經歷：當時做過的決定與結果排在前面。
+    const recall = life.allInSession(session, 'memory/recall').at(-1)
+    const recallData = recall?.data as { mode?: string; cue?: string } | undefined
+    const recalledIds = recall && recallData?.mode === 'automatic' && recallData.cue === clip(cue, 500) ? recall.causes : []
+    const shown = shownExperiences(experiencesOfRecalled(life, memory, recalledIds), relevantExperiences(cue, memory, 5), 5)
+    const labels = new Map(shown.map((e, i) => [`E${i + 1}`, e.id]))
+    // 列出了當時扣除的做法的經驗（renderExperiences 在 revision 開時才列）：思考要逐筆判斷哪個做法與那次扣除的相同（ADR-0008 §2）。
+    const withExcluded = new Set(revision ? shown.flatMap((e, i) => ((e.excludedThen ?? []).length > 0 ? [`E${i + 1}`] : [])) : [])
+    const shownIds = new Set(shown.map((e) => e.id))
+    // 懸著的事加上編號，思考才能指名被觸發的是哪一件（self/energy.ts）。
+    const potentialView = energy ? presentPotential(life, { labels: true }) : undefined
+    const heldNow = potentialView?.shown ?? []
+    const potentialLabels = potentialView?.labels ?? new Map<string, string>()
+    const goalIds = new Set(goals(life).filter((g) => g.status === 'active' || g.status === 'paused').map((g) => g.id))
+    const soFar = sessionSoFar(life, session, cue)
+    const experienceText = renderExperiences(shown, revision)
+    const input = [
+      '## 你目前的自我狀態',
+      renderSelfSnapshot(life, potentialView?.lines ?? []),
+      '',
+      // ST 想像得到的行動要包括真的能做的事：e2e-15 中思考不知道有 integrate 工具，準備了「告知沒有這個工具」。
+      '## 你現在可以使用的工具',
+      tools.length > 0 ? tools.join('、') : '（沒有）',
+      '',
+      '## 自動回憶',
+      recalled ? clipEnds(recalled, 5000) : '（沒有）',
+      '',
+      '## 這段對話到目前為止（不含對方剛說的話）',
+      soFar.length > 0 ? soFar.join('\n') : '（這段對話剛開始）',
+      '',
+      '## 過去類似處境的經驗',
+      experienceText,
+      '',
+      '## 對方剛說的話',
+      clip(cue, 3000),
+    ].join('\n')
+    const procedures = { deliberate: currentProcedure(life, 'deliberate'), subtract: currentProcedure(life, 'subtract') }
+    const used = subtraction ? [procedures.deliberate, procedures.subtract] : [procedures.deliberate]
+    return {
+      session,
+      route,
+      cue,
+      params,
+      memory,
+      shown,
+      labels,
+      withExcluded,
+      shownIds,
+      heldNow,
+      potentialLabels,
+      heldLines: potentialView?.lines ?? [],
+      goalIds,
+      experienceText,
+      input,
+      procedures,
+      used,
+      system: deliberateSystem({ procedures, energy, subtraction, perPerson }),
+    }
+  }
+  type Prepared = ReturnType<typeof prepare>
 
-      const params = paramsNow()
-      const memory = jitrl ? experiences(life, params.gamma) : []
-      // 這一步的自動回憶（temir-recall 在同一步之中先寫下）帶進來的經歷：當時做過的決定與結果排在前面。
-      const recall = life.allInSession(session, 'memory/recall').at(-1)
-      const recallData = recall?.data as { mode?: string; cue?: string } | undefined
-      const recalledIds = recall && recallData?.mode === 'automatic' && recallData.cue === clip(cue, 500) ? recall.causes : []
-      const shown = shownExperiences(experiencesOfRecalled(life, memory, recalledIds), relevantExperiences(cue, memory, 5), 5)
-      const labels = new Map(shown.map((e, i) => [`E${i + 1}`, e.id]))
-      // 列出了當時扣除的做法的經驗（renderExperiences 在 revision 開時才列）：思考要逐筆判斷哪個做法與那次扣除的相同（ADR-0008 §2）。
-      const withExcluded = new Set(revision ? shown.flatMap((e, i) => ((e.excludedThen ?? []).length > 0 ? [`E${i + 1}`] : [])) : [])
-      const shownIds = new Set(shown.map((e) => e.id))
-      // 懸著的事加上編號，思考才能指名被觸發的是哪一件（self/energy.ts）。
-      const potentialView = energy ? presentPotential(life, { labels: true }) : undefined
-      const heldNow = potentialView?.shown ?? []
-      const potentialLabels = potentialView?.labels ?? new Map<string, string>()
-      const goalIds = new Set(goals(life).filter((g) => g.status === 'active' || g.status === 'paused').map((g) => g.id))
-      const soFar = sessionSoFar(life, session, cue)
-      const input = [
-        '## 你目前的自我狀態',
-        renderSelfSnapshot(life, potentialView?.lines ?? []),
-        '',
-        // ST 想像得到的行動要包括真的能做的事：e2e-15 中思考不知道有 integrate 工具，準備了「告知沒有這個工具」。
-        '## 你現在可以使用的工具',
-        tools.length > 0 ? tools.join('、') : '（沒有）',
-        '',
-        '## 自動回憶',
-        recalled ? clipEnds(recalled, 5000) : '（沒有）',
-        '',
-        '## 這段對話到目前為止（不含對方剛說的話）',
-        soFar.length > 0 ? soFar.join('\n') : '（這段對話剛開始）',
-        '',
-        '## 過去類似處境的經驗',
-        renderExperiences(shown, revision),
-        '',
-        '## 對方剛說的話',
-        clip(cue, 3000),
-      ].join('\n')
-      const procedures = { deliberate: currentProcedure(life, 'deliberate'), subtract: currentProcedure(life, 'subtract') }
-      const used = subtraction ? [procedures.deliberate, procedures.subtract] : [procedures.deliberate]
-      const system = deliberateSystem({ procedures, energy, subtraction, perPerson })
-      const output = await call('deliberate', route, system, input, session, [], used, signal)
-      const first = output === undefined ? undefined : parseDeliberation(output, labels, withExcluded)
-      let parsed = first?.ok ? first.deliberation : undefined
-      // 輸出不合格時附上問題重試一次（e2e-37：本機模型有一次只寫了處境與 people，沒有 candidates；
-      // 列出的經驗沒有逐筆判斷也是不合格，D23）。呼叫失敗時不重試。
-      if (first && !first.ok && !signal.aborted) {
-        const problems = first.problems.map((p) => `第 1 次：${p}`)
-        const again = await call('deliberate', route, `${system}\n${deliberationRetryNote(first.problems)}`, input, session, [], used, signal)
-        const second = again === undefined ? undefined : parseDeliberation(again, labels, withExcluded)
-        if (second?.ok) parsed = second.deliberation
-        else {
-          // 仍不合格就照實記下，不做準備，由主模型直接回應。
-          problems.push(...(second ? second.problems.map((p) => `第 2 次：${p}`) : ['第 2 次：思考的呼叫失敗']))
-          if (life.isOpen && !signal.aborted) {
-            const failed: DeliberationFailedData = { cue: clip(cue, 500), problems }
-            life.append({ kind: DELIBERATION_FAILED_KIND, origin: 'self', session, data: failed, text: `思考沒有結果：${problems.join('；')}` })
-          }
-          return undefined
-        }
+  /**
+   * 思考之後的步驟（輔助呼叫與 context 模式共用）：每次餵進一個思考或判斷的輸出（呼叫失敗時是 undefined），回傳下一步要什麼。
+   * 與原本的流程相同：思考不合格重問一次，仍不合格就照實記下失敗；全部扣除時重問一次；需要判斷的扣除強制判斷（不合格重問一次）；
+   * 最後以 JitRL 經驗修正選出做法，寫下 rd/decision。
+   */
+  function deliberating(prep: Prepared & { readonly cueSeq: number }, mode: 'aux' | 'context') {
+    type Next =
+      | { readonly kind: 'retry'; readonly note: string }
+      | { readonly kind: 'review'; readonly text: string; readonly note?: string }
+      | { readonly kind: 'done'; readonly preparation: Preparation }
+      | { readonly kind: 'failed'; readonly problems: readonly string[] }
+    let phase: 'deliberate' | 'excluded' | 'review' | 'over' = 'deliberate'
+    let attempts = 0
+    const problems: string[] = []
+    let first: Deliberation | undefined
+    let deliberation: Deliberation | undefined
+    let near: ReturnType<typeof neighbors> = []
+    let reviews: ReturnType<typeof exclusionReviews> = []
+    let refLabels = new Map<string, string>()
+    let reviewAttempts = 0
+    const reviewProblems: string[] = []
+
+    function fail(): Next {
+      phase = 'over'
+      if (life.isOpen) {
+        const failed: DeliberationFailedData = { cue: clip(prep.cue, 500), problems, ...(mode === 'context' ? { mode } : {}) }
+        life.append({ kind: DELIBERATION_FAILED_KIND, origin: 'self', session: prep.session, data: failed, text: `思考沒有結果：${problems.join('；')}` })
       }
-      if (!parsed) return undefined
-      // 全部的做法都被扣除時，附上說明重問一次（程式不替個體改選）；重問的輸出不合格時保留第一次的。
-      // 仍全部扣除，就照實記下：沒有準備好的做法（chosen＝-1），由主模型在回應時決定。
-      if (subtraction && allExcluded(parsed.candidates) && !signal.aborted) {
-        const again = await call('deliberate', route, `${system}\n${ALL_EXCLUDED_NOTE}`, input, session, [], used, signal)
-        const retried = again === undefined ? undefined : parseDeliberation(again, labels, withExcluded)
-        if (retried?.ok) parsed = retried.deliberation
-      }
+      return { kind: 'failed', problems }
+    }
+
+    function proceed(parsed: Deliberation): Next {
       // 處境、drive、候選與扣除理由都會進入準備訊息與紀錄：把編號換成那件事的描述（編號只在這次思考的輸入中有意義）。
       // dev5：處境寫著「她欠我回覆的：…（P1」，主模型的推理跟著寫「不該再讓 P1、P2 無限懸著」。
-      const deliberation = mapDeliberationText(subtraction ? parsed : withoutExclusions(parsed), (s) => unlabel(s, potentialLabels, heldNow))
-
-      const near = jitrl ? neighbors(deliberation.situation, memory, params, deliberation.similar) : []
+      deliberation = mapDeliberationText(subtraction ? parsed : withoutExclusions(parsed), (s) => unlabel(s, prep.potentialLabels, prep.heldNow))
+      near = jitrl ? neighbors(deliberation.situation, prep.memory, prep.params, deliberation.similar) : []
       // D20 第三版：扣除本身會被經驗改變，由個體判斷，但強制判斷（memory.ts 的 exclusionReviews）。
       // 類似處境的經驗：思考時列出的（回憶帶進來的＋詞彙相近的），加上 JitRL 依處境找到的鄰居。
-      const reviews = revision ? exclusionReviews(deliberation.candidates, [...shown, ...near.map((n) => n.experience)], params, shownIds) : []
-      let candidates = deliberation.candidates
-      let review: DecisionData['review']
-      if (reviews.length > 0) {
-        const { text, labels: refLabels } = renderExclusionReview(deliberation.situation, deliberation.candidates, reviews)
-        const revising = revisionSystem(procedures.subtract)
-        const answer = await call('revise', route, revising, text, session, [], [procedures.subtract], signal)
-        let judged = answer === undefined ? undefined : parseJudgments(answer, reviews, refLabels)
-        // 判斷不合格時，附上缺少的部分重問一次；仍不合格就照實記下（兩次的問題都留著），維持原本的扣除。
-        const problems: string[] = []
-        if (!judged) problems.push('判斷的呼叫失敗')
-        else if (!judged.ok) {
-          problems.push(...judged.problems.map((p) => `第 1 次：${p}`))
-          if (!signal.aborted) {
-            const again = await call('revise', route, `${revising}\n${revisionRetryNote(judged.problems)}`, text, session, [], [procedures.subtract], signal)
-            judged = again === undefined ? undefined : parseJudgments(again, reviews, refLabels)
-            if (!judged) problems.push('第 2 次：判斷的呼叫失敗')
-            else if (!judged.ok) problems.push(...judged.problems.map((p) => `第 2 次：${p}`))
-          }
-        }
-        if (judged?.ok) candidates = applyJudgments(candidates, judged.judgments)
-        review = { required: reviews.length, ...(judged?.ok ? {} : { failed: problems.join('；') }) }
-      }
-      const correction = jitrl ? correct(candidates, near, params, Math.random, shownIds) : uncorrected(candidates)
+      reviews = revision ? exclusionReviews(deliberation.candidates, [...prep.shown, ...near.map((n) => n.experience)], prep.params, prep.shownIds) : []
+      if (reviews.length === 0) return finish(deliberation.candidates, undefined)
+      const rendered = renderExclusionReview(deliberation.situation, deliberation.candidates, reviews)
+      refLabels = rendered.labels
+      phase = 'review'
+      return { kind: 'review', text: rendered.text }
+    }
+
+    function finish(candidates: readonly Candidate[], review: DecisionData['review']): Next {
+      phase = 'over'
+      const d = deliberation!
+      const correction = jitrl ? correct(candidates, near, prep.params, Math.random, prep.shownIds) : uncorrected(candidates)
       const chosen = correction.scored[correction.chosen]
+      const repliedBefore = mode === 'context' && life.allInSession(prep.session, 'dsh/assistant/message').some((e) => e.seq > prep.cueSeq && replyOf(e) !== '')
       const data: DecisionData = {
-        cue: clip(cue, 500),
-        situation: deliberation.situation,
-        ...(deliberation.drive ? { drive: deliberation.drive } : {}),
-        ...(deliberation.people.length > 0 ? { people: deliberation.people } : {}),
+        cue: clip(prep.cue, 500),
+        situation: d.situation,
+        ...(d.drive ? { drive: d.drive } : {}),
+        ...(d.people.length > 0 ? { people: d.people } : {}),
         ...(review ? { review } : {}),
         ...(() => {
-          const activated = resolvePotential(deliberation.activated, potentialLabels, goalIds)
+          const activated = resolvePotential(d.activated, prep.potentialLabels, prep.goalIds)
           return activated.length > 0 ? { activated } : {}
         })(),
         candidates: correction.scored,
         chosen: correction.chosen,
         value: correction.value,
         neighbors: near.map((n) => ({ id: n.experience.id, similarity: n.similarity, judged: n.judged, ret: n.experience.ret })),
-        shown: Object.fromEntries(labels),
+        shown: Object.fromEntries(prep.labels),
         jitrl,
-        params,
+        params: prep.params,
         selfVersion: currentSelfModel(life)?.version ?? 0,
         narrativeVersion: currentNarrative(life)?.version ?? 0,
-        procedures: procedureVersions(used),
+        procedures: procedureVersions(prep.used),
+        ...(mode === 'context' ? { mode, repliedBefore } : {}),
       }
       life.append({
         kind: DECISION_KIND,
         origin: 'self',
-        session,
-        model: `${route.provider}/${route.model}`,
+        session: prep.session,
+        model: `${prep.route.provider}/${prep.route.model}`,
         data,
-        text: `處境：${deliberation.situation}\n我準備：${chosen?.action ?? ''}\n我預期：${chosen?.prediction ?? ''}`,
+        text: `處境：${d.situation}\n我準備：${chosen?.action ?? ''}\n我預期：${chosen?.prediction ?? ''}`,
         causes: near.map((n) => n.experience.id),
       })
-      return { text: renderPreparation(deliberation, correction, near, subtraction), action: chosen?.action ?? '' }
+      return { kind: 'done', preparation: { text: renderPreparation(d, correction, near, subtraction), action: chosen?.action ?? '' } }
+    }
+
+    return {
+      get phase() {
+        return phase
+      },
+      /** 思考的輸出（呼叫失敗時是 undefined）。 */
+      answer(output: string | undefined): Next {
+        if (phase === 'excluded') {
+          // 全部扣除時的重問：輸出不合格就保留第一次的（程式不替個體改選）。
+          const retried = output === undefined ? undefined : parseDeliberation(output, prep.labels, prep.withExcluded)
+          return proceed(retried?.ok ? retried.deliberation : first!)
+        }
+        attempts++
+        if (output === undefined) {
+          // 呼叫失敗：第一次不重問（與原本相同），第二次照實記下。
+          if (attempts === 1) {
+            phase = 'over'
+            return { kind: 'failed', problems: ['思考的呼叫失敗'] }
+          }
+          problems.push('第 2 次：思考的呼叫失敗')
+          return fail()
+        }
+        const parsed = parseDeliberation(output, prep.labels, prep.withExcluded)
+        if (!parsed.ok) {
+          problems.push(...parsed.problems.map((p) => `第 ${attempts} 次：${p}`))
+          // 輸出不合格時附上問題重試一次（e2e-37；列出的經驗沒有逐筆判斷也是不合格，D23）；仍不合格就不做準備。
+          return attempts === 1 ? { kind: 'retry', note: deliberationRetryNote(parsed.problems) } : fail()
+        }
+        // 全部的做法都被扣除時，附上說明重問一次；仍全部扣除，就照實記下：沒有準備好的做法（chosen＝-1）。
+        if (subtraction && allExcluded(parsed.deliberation.candidates)) {
+          first = parsed.deliberation
+          phase = 'excluded'
+          return { kind: 'retry', note: ALL_EXCLUDED_NOTE }
+        }
+        return proceed(parsed.deliberation)
+      },
+      /** 扣除的判斷的輸出（呼叫失敗時是 undefined）。判斷不合格時重問一次；仍不合格就照實記下，維持原本的扣除。 */
+      review(output: string | undefined): Next {
+        reviewAttempts++
+        const judged = output === undefined ? undefined : parseJudgments(output, reviews, refLabels)
+        if (judged?.ok) return finish(applyJudgments(deliberation!.candidates, judged.judgments), { required: reviews.length })
+        if (!judged) reviewProblems.push(reviewAttempts === 1 ? '判斷的呼叫失敗' : '第 2 次：判斷的呼叫失敗')
+        else reviewProblems.push(...judged.problems.map((p) => `第 ${reviewAttempts} 次：${p}`))
+        if (judged && reviewAttempts === 1) return { kind: 'review', text: renderExclusionReview(deliberation!.situation, deliberation!.candidates, reviews).text, note: revisionRetryNote(judged.problems) }
+        return finish(deliberation!.candidates, { required: reviews.length, failed: reviewProblems.join('；') })
+      },
+      /** context 模式：主 agent 沒有完成就結束了這一回合（或對方又說了話）。 */
+      abandon(): void {
+        if (phase === 'deliberate') {
+          problems.push(`沒有在回應之前用 ${DELIBERATE_TOOL} 思考`)
+          fail()
+        } else if (phase === 'excluded') proceed(first!)
+        if (phase === 'review') finish(deliberation!.candidates, { required: reviews.length, failed: [...reviewProblems, '沒有作答'].join('；') })
+        phase = 'over'
+      },
+    }
+  }
+
+  async function step(stepInput: StepInput): Promise<Preparation | undefined> {
+    const { session, route, cue, signal } = stepInput
+    try {
+      const previous = openDecision(life, session)
+      if (previous) evaluate(previous, cue, route)
+      const prep = { ...prepare(stepInput), cueSeq: life.lastSeq() }
+      const machine = deliberating(prep, 'aux')
+      const revising = revisionSystem(prep.procedures.subtract)
+      let next = machine.answer(await call('deliberate', route, prep.system, prep.input, session, [], prep.used, signal))
+      // 最多：思考兩次（或全部扣除時重問一次）、判斷兩次。中途被取消就不再呼叫，也不記失敗。
+      for (let round = 0; round < 4; round++) {
+        if (next.kind === 'done') return next.preparation
+        if (next.kind === 'failed' || signal.aborted || !life.isOpen) return undefined
+        const output =
+          next.kind === 'retry'
+            ? await call('deliberate', route, `${prep.system}\n${next.note}`, prep.input, session, [], prep.used, signal)
+            : await call('revise', route, next.note ? `${revising}\n${next.note}` : revising, next.text, session, [], [prep.procedures.subtract], signal)
+        if (signal.aborted || !life.isOpen) return undefined
+        next = next.kind === 'retry' ? machine.answer(output) : machine.review(output)
+      }
+      return next.kind === 'done' ? next.preparation : undefined
     } catch (error) {
       logger.error('rd stage failed: %s', error)
       return undefined
     }
   }
 
+  /** context 模式（synthesis §3 第 3 點）：每段對話中等主 agent 以 deliberate 工具思考的那一個（對方說話之後）。 */
+  const pending = new Map<string, { readonly prep: Prepared & { readonly cueSeq: number }; readonly machine: ReturnType<typeof deliberating> }>()
+
+  /** context 模式的 pre-step：先比對上一個決定（背景），準備思考需要的東西，回傳給主 agent 的通知。 */
+  function begin(stepInput: StepInput): string {
+    const { session, route, cue } = stepInput
+    pending.get(session)?.machine.abandon()
+    pending.delete(session)
+    const previous = openDecision(life, session)
+    if (previous) evaluate(previous, cue, route)
+    // 上一次在這段對話中沒有先思考就回應了：照實告訴它（dsh-memory-evolve 的置頂提醒，直到做到為止）。
+    const lastRd = life.inSession(session, DECISION_KIND, 'desc', 1)[0]
+    const skipped = life.inSession(session, DELIBERATION_FAILED_KIND, 'desc', 1)[0]
+    const reminder =
+      skipped && (!lastRd || skipped.seq > lastRd.seq) && (skipped.data as DeliberationFailedData).problems.some((p) => p.startsWith('沒有在回應之前'))
+        ? `上一次對方說話之後，你沒有先用 ${DELIBERATE_TOOL} 思考就回應了。`
+        : undefined
+    const prep = { ...prepare(stepInput), cueSeq: life.lastSeq() }
+    pending.set(session, { prep, machine: deliberating(prep, 'context') })
+    return deliberateNotice({ procedures: prep.procedures, energy, subtraction, perPerson, held: prep.heldLines, experiences: prep.experienceText, ...(reminder ? { reminder } : {}) })
+  }
+
+  /**
+   * context 模式的 deliberate 工具：驗證主 agent 的思考（與輔助呼叫相同的強制判斷），回傳下一步：重寫、判斷扣除，或準備。
+   * 每次的參數照輔助呼叫的格式記進 memory/aux（purpose＝deliberate、mode＝context），做法的閘門可以拿這些輸入重跑（近似）。
+   */
+  function deliberateTool(session: string | undefined, args: Record<string, unknown>): string {
+    const entry = session ? pending.get(session) : undefined
+    if (!entry || entry.machine.phase === 'over') return '現在沒有需要思考的事：對方說話之後、回應之前才需要。'
+    const { prep, machine } = entry
+    const reviewing = machine.phase === 'review'
+    const output = JSON.stringify(reviewing ? { judgments: args['judgments'] } : args)
+    const model = `${prep.route.provider}/${prep.route.model}`
+    life.append({
+      kind: 'memory/aux',
+      origin: 'self',
+      session: prep.session,
+      model,
+      data: { purpose: reviewing ? 'revise' : 'deliberate', mode: 'context', procedures: procedureVersions(reviewing ? [prep.procedures.subtract] : prep.used), input: clipKeepLines(prep.input, 20_000), output },
+    })
+    const next = reviewing ? machine.review(output) : machine.answer(output)
+    if (next.kind === 'done' || next.kind === 'failed') pending.delete(prep.session)
+    switch (next.kind) {
+      case 'retry':
+        return `思考還沒有完成，再呼叫一次 ${DELIBERATE_TOOL}：${next.note}`
+      case 'review':
+        return `${revisionNotice(prep.procedures.subtract, next.text)}${next.note ? `\n${next.note}` : ''}`
+      case 'done':
+        return `${next.preparation.text}\n\n（這是你自己的準備。接著回應對方；實際怎麼做由你決定。）`
+      case 'failed':
+        return `思考沒有結果（${next.problems.join('；')}）。直接回應對方。`
+    }
+  }
+
+  /** context 模式：回合要結束時，還在等思考的就照實記下（沒有思考，或判斷沒有作答）。 */
+  function endTurn(session: string): void {
+    const entry = pending.get(session)
+    if (!entry) return
+    pending.delete(session)
+    if (life.isOpen) entry.machine.abandon()
+  }
+
+  /** context 模式：這段對話是否還在等思考（guard 用：思考之前只能用 recall）。 */
+  function awaiting(session: string): boolean {
+    return pending.has(session)
+  }
+
   return {
     silenceMs,
     evaluate,
     step,
+    begin,
+    deliberateTool,
+    endTurn,
+    awaiting,
     checkSilence,
     settle: async () => {
       await Promise.allSettled([...background])
@@ -490,6 +690,49 @@ export function apply(ctx: Context, config: Config | undefined): void {
     ctx.effect(() => () => clearInterval(timer), 'temir-rd: stop silence check')
   }
 
+  const context = config?.mode === 'context'
+  if (context) {
+    // 處境的事實：這個身體在 context 模式下怎麼運作（e2e-42b：只有通知時，第二、三回合在推理中照做法想過，卻沒有呼叫工具）。
+    ctx.systemPrompt.section({ name: 'temir:deliberate', order: 2, text: CONTEXT_SITUATION })
+    // context 模式：deliberate 工具一直註冊（工具清單不隨步驟變動，前綴快取才不會失效），沒有要思考的事時回覆說明。
+    ctx.tools.register(
+      defineTool({
+        name: DELIBERATE_TOOL,
+        description:
+          '對方說話之後、回應之前，照你自己的思考與扣除做法思考與準備：描述處境、想出幾個做法並預測後果、扣除不該做的，並逐一判斷列出的過去經驗。參數的格式寫在思考的通知中。思考完成後會得到你的準備。',
+        parameters: {
+          situation: { type: 'string', description: '眼前的處境' },
+          drive: { type: 'string', description: '此刻推動你行動的是什麼' },
+          activated: { type: 'array', items: { type: 'string' }, description: '被觸發的懸著的事的編號或目標 id' },
+          people: { type: 'array', items: { type: 'json' }, description: '這次涉及的人與相關事實' },
+          candidates: { type: 'array', items: { type: 'json' }, description: '2 到 4 個做法' },
+          experiences: { type: 'array', items: { type: 'json' }, description: '對列出的每一個過去經驗的判斷' },
+          judgments: { type: 'array', items: { type: 'json' }, description: '扣除的判斷（只在被要求判斷扣除時給）' },
+        },
+        output: {
+          schema: { type: 'string' },
+          render: (_args, value) => [{ type: 'text', text: value }],
+        },
+        async execute(args, exec) {
+          return rd.deliberateTool(exec.agent?.session.id, args as Record<string, unknown>)
+        },
+      }),
+    )
+    // 思考完成之前只能用 recall 查記憶（dsh-memory-evolve 的「weak followers cannot skip a review silently」：由程式強制）。
+    ctx.tools.guard((execution) => {
+      const session = execution.agent?.session.id
+      if (!session || !rd.awaiting(session) || execution.name === DELIBERATE_TOOL || execution.name === 'recall') return undefined
+      return `回應之前先用 ${DELIBERATE_TOOL} 思考（需要的話可以先用 recall 查記憶）。`
+    })
+    ctx.on('agent/turn-stopping', ({ agent }) => {
+      try {
+        rd.endTurn(agent.session.id)
+      } catch (error) {
+        logger.error('rd turn end failed: %s', error)
+      }
+    })
+  }
+
   ctx.on(
     'agent/pre-step',
     async (payload, next) => {
@@ -502,7 +745,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
         .trim()
       if (!cue) return decision
       try {
-        const prepared = await rd.step({
+        const stepInput: StepInput = {
           session: payload.agent.session.id,
           route: { provider: payload.modelSelection.provider, model: payload.modelSelection.model },
           cue,
@@ -512,7 +755,15 @@ export function apply(ctx: Context, config: Config | undefined): void {
             .join('\n'),
           tools: ctx.tools.definitions(payload.agent).map((t) => t.name),
           signal: payload.signal,
-        })
+        }
+        if (context) {
+          const notice = createUserMessage({
+            content: [{ type: 'text', text: rd.begin(stepInput) }],
+            source: { kind: 'temir-rd', form: 'notice', summary: '回應之前先思考' },
+          })
+          return { ...decision, messages: [...decision.messages, notice] }
+        }
+        const prepared = await rd.step(stepInput)
         if (!prepared) return decision
         const preparation = createUserMessage({
           content: [{ type: 'text', text: prepared.text }],

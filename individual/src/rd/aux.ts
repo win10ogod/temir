@@ -42,7 +42,10 @@ function withoutFields(contract: string, fields: readonly string[]): string {
   return out
 }
 
-const DELIBERATE_CONTRACT = `只輸出一個 JSON 物件，不要任何其他文字：
+/** 輸出段的開頭：輔助呼叫只輸出 JSON；context 模式（主 agent 自己思考）以工具的參數作答。 */
+const JSON_ONLY = '只輸出一個 JSON 物件，不要任何其他文字：'
+
+const DELIBERATE_CONTRACT = `${JSON_ONLY}
 {"situation": "...", "drive": "...", "activated": [], "people": [], "candidates": [{"action": "...", "prediction": "...", "confidence": 50, "excluded": false, "reason": ""}], "experiences": [{"id": "E1", "sameSituation": false, "sameAction": [], "sameExcluded": []}]}
 - situation：眼前的處境。
 - drive：此刻推動你行動的是什麼，一句話；寫動機，不是做法；用文字說明是哪一件，不寫編號（編號寫在 activated）。
@@ -60,21 +63,45 @@ const DELIBERATE_CONTRACT = `只輸出一個 JSON 物件，不要任何其他文
   - sameAction：candidates 中，做法與那次「我當時」的做法相同的那幾個的編號（依 candidates 的順序：1、2、3）；沒有就給空陣列。
   - sameExcluded：那筆經驗寫了「當時扣除」時必答：candidates 中，做法與那次扣除的做法相同的那幾個的編號；沒有就給空陣列。經驗沒有寫「當時扣除」時可以省略。`
 
-/** 思考的系統提示（框架＋思考做法＋扣除做法＋輸出）。 */
-export function deliberateSystem(options: DeliberateOptions = {}): string {
+/** 思考的做法（消融時拿掉提到被關掉的機制的行）與輸出段。 */
+function deliberateParts(options: DeliberateOptions): { readonly procedures: Procedure[]; readonly contract: string } {
   const energy = options.energy ?? true
   const subtraction = options.subtraction ?? true
   const perPerson = options.perPerson ?? true
   let deliberate = options.procedures?.deliberate ?? DEFAULT('deliberate')
   if (!energy) deliberate = withoutLines(deliberate, ENERGY_WORDS)
   if (!perPerson) deliberate = withoutLines(deliberate, PER_PERSON_WORDS)
-  // 這一步沒有工具（dev15 q17：模型兩次都寫出 recall 的工具呼叫，而不是 JSON）；輸入列出的工具是回應時才能用的。
-  const frame = `你是一個人工個體。對方剛說了話，你在回應之前先思考與準備：理解眼前的處境，想出幾個可能的做法，預測各自的後果${subtraction ? '；再扣除不該做的做法，剩下的才會成為行動' : '，再決定傾向哪一個'}。這一步只思考，不能呼叫工具；「你現在可以使用的工具」是你回應時可以用的，例如要先查記憶，就把它寫成一個做法。照下面你自己的做法思考，輸出照最後一段的格式。`
   let contract = DELIBERATE_CONTRACT
   if (!energy) contract = withoutFields(contract, ['drive', 'activated'])
   if (!perPerson) contract = withoutFields(contract, ['people'])
   if (!subtraction) contract = withoutFields(contract, ['excluded', 'reason', 'sameExcluded'])
-  return procedurePrompt(frame, subtraction ? [deliberate, options.procedures?.subtract ?? DEFAULT('subtract')] : [deliberate], contract)
+  return { procedures: subtraction ? [deliberate, options.procedures?.subtract ?? DEFAULT('subtract')] : [deliberate], contract }
+}
+
+const purposeOf = (subtraction: boolean) =>
+  `理解眼前的處境，想出幾個可能的做法，預測各自的後果${subtraction ? '；再扣除不該做的做法，剩下的才會成為行動' : '，再決定傾向哪一個'}`
+
+/** 思考的系統提示（框架＋思考做法＋扣除做法＋輸出）。 */
+export function deliberateSystem(options: DeliberateOptions = {}): string {
+  const { procedures, contract } = deliberateParts(options)
+  // 這一步沒有工具（dev15 q17：模型兩次都寫出 recall 的工具呼叫，而不是 JSON）；輸入列出的工具是回應時才能用的。
+  const frame = `你是一個人工個體。對方剛說了話，你在回應之前先思考與準備：${purposeOf(options.subtraction ?? true)}。這一步只思考，不能呼叫工具；「你現在可以使用的工具」是你回應時可以用的，例如要先查記憶，就把它寫成一個做法。照下面你自己的做法思考，輸出照最後一段的格式。`
+  return procedurePrompt(frame, procedures, contract)
+}
+
+/** context 模式的工具名稱：主 agent 在自己的回合中思考（synthesis §3 第 3 點）。 */
+export const DELIBERATE_TOOL = 'deliberate'
+
+/**
+ * context 模式的思考通知（主 agent 自己的脈絡；synthesis §3 第 3 點）：放在對方的話與回憶之後。
+ * 主 agent 已經看得到處境描述、自我狀態、這段對話與回憶，通知只補上它看不到的：自己的做法、有編號的懸著的事、
+ * 過去類似處境的經驗，以及 deliberate 工具的參數（與輔助呼叫的輸出段相同，只有開頭不同）。
+ */
+export function deliberateNotice(options: DeliberateOptions & { readonly held: readonly string[]; readonly experiences: string; readonly reminder?: string }): string {
+  const { procedures, contract } = deliberateParts(options)
+  const frame = `（這不是對方說的話。）${options.reminder ? `${options.reminder}` : ''}對方剛說了話。回應之前，先呼叫 ${DELIBERATE_TOOL} 工具思考與準備（只在心裡想，不算）：${purposeOf(options.subtraction ?? true)}。需要查記憶的話，可以先用 recall。呼叫之前不要對對方說話；拿到準備之後再回應對方，實際怎麼做仍由你決定。照下面你自己的做法思考。`
+  const context = [...(options.held.length > 0 ? [options.held.join('\n').trim()] : []), `## 過去類似處境的經驗\n${options.experiences}`]
+  return [procedurePrompt(frame, procedures, contract.replace(JSON_ONLY, `呼叫 ${DELIBERATE_TOOL} 工具，參數就是下面這個物件的各個欄位：`)), ...context].join('\n\n')
 }
 
 /** 消融：關閉扣除時丟掉模型仍可能寫出的扣除，選擇回到全部候選中分數最高的。 */
@@ -112,7 +139,7 @@ export function outcomeSystem(options: { readonly procedure?: Procedure; readonl
 
 export const OUTCOME_SYSTEM = outcomeSystem()
 
-const REVISION_CONTRACT = `只輸出一個 JSON 物件，不要任何其他文字：
+const REVISION_CONTRACT = `${JSON_ONLY}
 {"judgments": [{"candidate": 1, "decision": "keep", "why": "一句話", "refs": ["X1"]}]}
 - candidate：做法的編號（列表中的數字）。每一個列出的做法剛好一筆。
 - decision：keep 或 lift。
@@ -131,6 +158,12 @@ export function revisionSystem(procedure: Procedure = DEFAULT('subtract')): stri
 }
 
 export const REVISION_SYSTEM = revisionSystem()
+
+/** context 模式：扣除的強制判斷以 deliberate 工具的 judgments 參數作答（框架＋扣除做法＋參數）。 */
+export function revisionNotice(procedure: Procedure, review: string): string {
+  const frame = `你剛才扣除了一些做法。下面列出每一個被扣除的做法，以及類似處境中與它相同的做法的經驗。照你自己的扣除做法，對每一個列出的做法都明確判斷：維持扣除（keep），或依經驗解除扣除（lift）。兩種答案都可以，但不能不判斷。判斷完才會得到準備。`
+  return [procedurePrompt(frame, [procedure], REVISION_CONTRACT.replace(JSON_ONLY, `再呼叫一次 ${DELIBERATE_TOOL} 工具，只給 judgments 參數：`)), review].join('\n\n')
+}
 
 /** 判斷不合格時重問一次所附的說明，列出缺少或不合格的部分。 */
 export function revisionRetryNote(problems: readonly string[]): string {

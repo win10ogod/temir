@@ -400,3 +400,83 @@ test('outcome (item 2): a failed call is not asked again and is recorded; a fail
     await rd2.settle()
     assert.deepEqual(outcomesOf(store, old).map((o) => o.provisional ?? false), [false])
   }))
+
+/** context 模式（synthesis §3 第 3 點）：主 agent 以 deliberate 工具思考；同樣的強制判斷，由工具結果要求重寫或判斷。 */
+const CONTEXT: Config = { silenceMinutes: 0, mode: 'context' }
+
+/** 通知中列出的經驗編號。 */
+const noticeExperiences = (notice: string) => [...notice.matchAll(/(?:^|\s)(E\d+)｜/gmu)].map((m) => m[1]!)
+
+test('context mode: the main agent gets a notice with its own procedures and the listed experiences; a valid deliberate call returns the preparation', () =>
+  withStore(async (store) => {
+    pastAdvice(store)
+    const { call, calls } = scripted({})
+    const rd = createRd({ life: store, call, logger: recorder().logger }, CONTEXT)
+    assert.equal(rd.deliberateTool('s1', {}), '現在沒有需要思考的事：對方說話之後、回應之前才需要。')
+    const notice = rd.begin(input('主管又念我了'))
+    assert.match(notice, /^（這不是對方說的話。）[^\n]*先呼叫 deliberate 工具思考與準備（只在心裡想，不算）/u)
+    assert.match(notice, /## 我的思考做法（第 1 版；[^]*## 我的扣除做法（第 1 版；/u)
+    assert.match(notice, /呼叫 deliberate 工具，參數就是下面這個物件的各個欄位：/u)
+    assert.match(notice, /## 過去類似處境的經驗\n[^]*E1｜/u)
+    assert.equal(rd.awaiting('s1'), true)
+    const ids = noticeExperiences(notice)
+    const missing = rd.deliberateTool('s1', { ...DELIBERATION_BODY })
+    assert.match(missing, /^思考還沒有完成，再呼叫一次 deliberate：（重寫一次[^]*沒有 experiences/u)
+    const done = rd.deliberateTool('s1', { ...DELIBERATION_BODY, experiences: ids.map((id) => ({ id, sameSituation: false, sameAction: [], sameExcluded: [] })) })
+    assert.match(done, /（這是你自己的準備。接著回應對方；實際怎麼做由你決定。）$/u)
+    assert.equal(rd.awaiting('s1'), false)
+    assert.equal(calls.length, 0, 'no auxiliary call: the main agent did the thinking')
+    const data = decisions(store)[0]!.data as DecisionData
+    assert.deepEqual([data.mode, data.repliedBefore, data.procedures], ['context', false, { deliberate: 1, subtract: 1 }])
+    const aux = store.all('memory/aux').map((e) => e.data as { purpose: string; mode?: string; input: string })
+    assert.deepEqual(aux.map((a) => [a.purpose, a.mode]), [['deliberate', 'context'], ['deliberate', 'context']])
+    assert.match(aux[0]!.input, /## 對方剛說的話\n主管又念我了$/u, 'recorded in the auxiliary format so the gate can probe it')
+  }))
+
+test('context mode: an exclusion that needs a judgment is asked through the tool result; the judgment is validated the same way', () =>
+  withStore(async (store) => {
+    pastAdvice(store)
+    const rd = createRd({ life: store, call: scripted({}).call, logger: recorder().logger }, CONTEXT)
+    const ids = noticeExperiences(rd.begin(input('主管又念我了')))
+    const asked = rd.deliberateTool('s1', { ...DELIBERATION_BODY, experiences: ids.map((id) => ({ id, sameSituation: true, sameAction: [1], sameExcluded: [] })) })
+    assert.match(asked, /再呼叫一次 deliberate 工具，只給 judgments 參數：[^]*1\. 直接給兩個具體的方法｜你扣除的理由：她在抒發，不是求助/u)
+    const again = rd.deliberateTool('s1', { judgments: [] })
+    assert.match(again, /（重寫一次：上一次的判斷不完整。[^]*做法 1 沒有判斷/u)
+    const done = rd.deliberateTool('s1', { judgments: [{ candidate: 1, decision: 'keep', why: 'X1 有幫助，但她現在只想抒發', refs: ['X1'] }] })
+    assert.match(done, /這是你自己的準備/u)
+    const data = decisions(store)[0]!.data as DecisionData
+    assert.deepEqual(data.review, { required: 1 })
+    assert.equal(data.candidates[0]!.excluded, true)
+  }))
+
+test('context mode: ending the turn without deliberating is recorded as a failure; a reply before the decision is recorded', () =>
+  withStore(async (store) => {
+    const rd = createRd({ life: store, call: scripted({}).call, logger: recorder().logger }, CONTEXT)
+    assert.doesNotMatch(rd.begin(input('你好')), /你沒有先用 deliberate 思考就回應了/u)
+    rd.endTurn('s1')
+    const [failed] = store.all(DELIBERATION_FAILED_KIND).map((e) => e.data as DeliberationFailedData)
+    assert.deepEqual(failed, { cue: '你好', problems: ['沒有在回應之前用 deliberate 思考'], mode: 'context' })
+    assert.equal(rd.awaiting('s1'), false)
+    // 下一次的通知照實提醒（直到做到為止）。
+    assert.match(rd.begin(input('在嗎')), /^（這不是對方說的話。）上一次對方說話之後，你沒有先用 deliberate 思考就回應了。/u)
+    store.append({ kind: 'dsh/assistant/message', origin: 'session', session: 's1', data: { data: { message: { content: [{ type: 'text', text: '在喔' }] } } }, text: '我說：在喔' })
+    rd.deliberateTool('s1', { ...DELIBERATION_BODY, experiences: [] })
+    const data = decisions(store)[0]!.data as DecisionData
+    assert.deepEqual([data.mode, data.repliedBefore], ['context', true], 'it spoke before it thought')
+  }))
+
+test('context mode: the decision is written after the words it answers; the next turn still compares it with what was said and heard', () =>
+  withStore(async (store) => {
+    const { call, calls } = scripted({ outcome: [OUTCOME('對方說他明天會試試看', 0.5)] })
+    const rd = createRd({ life: store, call, logger: recorder().logger }, CONTEXT)
+    rd.begin(input('明天要跟主管談，我很緊張'))
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 's1', data: {}, text: '對方說：明天要跟主管談，我很緊張' })
+    rd.deliberateTool('s1', { ...DELIBERATION_BODY, experiences: [] })
+    store.append({ kind: 'dsh/assistant/message', origin: 'session', session: 's1', model: 'test/double', data: { data: { message: { content: [{ type: 'text', text: '先寫下你想說的三句話' }] } } }, text: '我說：先寫下你想說的三句話' })
+    rd.begin(input('好，我明天試試看'))
+    await rd.settle()
+    assert.deepEqual(calls.map((c) => c.purpose), ['outcome'])
+    assert.match(calls[0]!.input, /## 你實際說了什麼\n先寫下你想說的三句話\n\n## 對方接著說了什麼\n好，我明天試試看/u)
+    const [decision] = decisions(store)
+    assert.equal(outcomesOf(store, decision!.id).length, 1)
+  }))

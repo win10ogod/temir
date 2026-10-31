@@ -48,6 +48,13 @@ export interface DecisionData {
   readonly review?: { readonly required: number; readonly failed?: string }
   /** 這次思考用了哪幾個做法的哪一版（self/procedure.ts；ADR-0008）。2026-10-30 之前的紀錄沒有這個欄位。 */
   readonly procedures?: Readonly<Record<string, number>>
+  /**
+   * 誰在思考：aux＝另外的輔助呼叫（預設）；context＝主 agent 在自己的回合中以 deliberate 工具思考（synthesis §3 第 3 點）。
+   * 2026-10-31 之前的紀錄沒有這個欄位（都是 aux）。
+   */
+  readonly mode?: 'aux' | 'context'
+  /** context 模式：寫下這個決定之前，主 agent 在這一回合是否已經對對方說了話（思考晚於行動）。 */
+  readonly repliedBefore?: boolean
 }
 
 /** 舊紀錄的懸念種類（H-E 第三版，ADR-0008 之前）：答應的事、在等的事、還沒解開的不安。新紀錄改寫 forOther。 */
@@ -118,6 +125,8 @@ export interface DeliberationFailedData {
   /** 對方剛說的話（截斷）。 */
   readonly cue: string
   readonly problems: readonly string[]
+  /** context 模式（主 agent 自己思考）的失敗，包括沒有在回應之前思考；舊紀錄沒有這個欄位（aux）。 */
+  readonly mode?: 'context'
 }
 
 export interface RevaluationData {
@@ -226,29 +235,35 @@ export function experiences(life: LifeStore, gamma: number): Experience[] {
   return out
 }
 
+/** context 模式的決定（主 agent 以 deliberate 工具思考）寫在它所回應的那句話之後；輔助呼叫的寫在之前。 */
+const inContext = (decision: LifeEvent) => (decision.data as DecisionData | null)?.mode === 'context'
+
 /**
  * 本 session 最近一個還沒有事後比對、而且就是上一回合的決定。
- * 決定之後只該有它所回應的那一句對方的話；若已經隔了更多回合（例如中間的思考失敗），
- * 現在這句話不是它的結果，就不比對。
+ * 決定所回應的那句話之後，只該再有（還沒寫進日誌的）這一句；若已經隔了更多回合（例如中間的思考失敗），
+ * 現在這句話不是它的結果，就不比對。輔助呼叫的決定寫在它回應的那句話之前，所以之後有一句；context 模式的寫在之後，所以沒有。
  */
 export function openDecision(life: LifeStore, session: string): LifeEvent | undefined {
   const last = life.inSession(session, DECISION_KIND, 'desc', 1)[0]
   // 只有暫時的比對時，對方回話後仍要正式比對一次。
   if (!last || life.referencing(last.id, OUTCOME_KIND).some((o) => !(o.data as OutcomeData).provisional)) return undefined
   const heard = life.following(session, ['dsh/user/message'], last.seq, 10).filter(isHeard)
-  return heard.length === 1 ? last : undefined
+  return heard.length === (inContext(last) ? 0 : 1) ? last : undefined
 }
 
 /**
- * 決定所在的那一回合：決定之後對方的第一句話（決定在它被寫進日誌之前就做出），
- * 以及到對方下一句話之前我最後說出口的回覆。
+ * 決定所在的那一回合：決定回應的那句對方的話（輔助呼叫：決定之後的第一句，決定在它被寫進日誌之前就做出；
+ * context 模式：決定之前的最後一句），以及到對方下一句話之前我最後說出口的回覆。
  */
 export function decisionTurn(life: LifeStore, decision: LifeEvent): { heard?: LifeEvent; reply?: LifeEvent; replyText: string } {
   if (!decision.session) return { replyText: '' }
-  let heard: LifeEvent | undefined
+  let heard: LifeEvent | undefined = inContext(decision)
+    ? life.allInSession(decision.session, 'dsh/user/message').filter((e) => e.seq < decision.seq && isHeard(e)).at(-1)
+    : undefined
   let reply: LifeEvent | undefined
   let replyText = ''
-  for (const event of life.following(decision.session, ['dsh/user/message', 'dsh/assistant/message'], decision.seq, 200)) {
+  const from = heard?.seq ?? decision.seq
+  for (const event of life.following(decision.session, ['dsh/user/message', 'dsh/assistant/message'], from, 200)) {
     if (isHeard(event)) {
       if (heard) break
       heard = event

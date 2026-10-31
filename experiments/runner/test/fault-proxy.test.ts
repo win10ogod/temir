@@ -14,14 +14,14 @@ const delta = (index: number, partial: string) => frame({ type: 'content_block_d
 const partialOf = (f: string) => (JSON.parse(f.split('\n')[1]!.slice(5)) as { delta: { partial_json: string } }).delta.partial_json
 
 test('only the first input delta of the target tool block is corrupted, and only as many times as allowed', () => {
-  const state: FaultState = { target: 'deliberate', remaining: 1 }
+  const state: FaultState = { target: 'deliberate', shared: { remaining: 1 } }
   assert.equal(corruptFrame(start(0, 'recall'), state), start(0, 'recall'), 'another tool is left alone')
   assert.equal(partialOf(corruptFrame(delta(0, '{"q":'), state)), '{"q":')
   corruptFrame(start(1, 'deliberate'), state)
   assert.equal(partialOf(corruptFrame(delta(1, '{"situation":'), state)), '#{"situation":', 'the tool input is no longer valid JSON')
   assert.equal(partialOf(corruptFrame(delta(1, '"x"}'), state)), '"x"}', 'later deltas of the same block are untouched')
-  assert.equal(state.remaining, 0)
-  const next: FaultState = { target: 'deliberate', remaining: state.remaining }
+  assert.equal(state.shared.remaining, 0)
+  const next: FaultState = { target: 'deliberate', shared: state.shared }
   corruptFrame(start(1, 'deliberate'), next)
   assert.equal(partialOf(corruptFrame(delta(1, '{"situation":'), next)), '{"situation":', 'no budget left: the retried response passes through')
 })
@@ -53,4 +53,15 @@ test('the proxy corrupts one streamed tool call, then serves the next response u
     proxy.close()
     upstream.close()
   }
+})
+
+test('two responses streaming at the same time share the budget: only one tool call is corrupted', () => {
+  const shared = { remaining: 1 }
+  const a: FaultState = { target: 'deliberate', shared }
+  const b: FaultState = { target: 'deliberate', shared }
+  corruptFrame(start(0, 'deliberate'), a)
+  corruptFrame(start(0, 'deliberate'), b)
+  assert.equal(partialOf(corruptFrame(delta(0, '{"x":'), a)), '#{"x":')
+  assert.equal(partialOf(corruptFrame(delta(0, '{"x":'), b)), '{"x":', 'the budget was spent by the other response')
+  assert.deepEqual([shared.remaining, a.done, b.done], [0, true, undefined])
 })

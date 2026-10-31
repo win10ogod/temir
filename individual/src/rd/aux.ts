@@ -408,10 +408,11 @@ export interface Reading {
 const QUOTE_IGNORED = /[\s，。！？、；：「」『』（）《》〈〉…～—,.!?;:'"()[\]~-]/gu
 const normalizeQuote = (s: string) => s.replace(QUOTE_IGNORED, '')
 
-/** quote 是不是對方原話的逐字摘錄（不計空白與標點；至少兩個字）。 */
+/** quote 是不是對方原話的逐字摘錄（不計空白與標點；至少兩個字，對方的話本身只有一個字時一個字）。 */
 export function quotedFrom(quote: string, heard: string): boolean {
   const q = normalizeQuote(quote)
-  return q.length >= 2 && normalizeQuote(heard).includes(q)
+  const h = normalizeQuote(heard)
+  return q.length >= Math.min(2, h.length) && q.length > 0 && h.includes(q)
 }
 
 /** readings 與 basis 的強制判斷（H-AT）：至少兩種彼此不同的解讀、引用出自對方的話、教訓依據有原話支持的解讀。 */

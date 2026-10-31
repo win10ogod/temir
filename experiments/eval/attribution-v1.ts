@@ -188,9 +188,11 @@ interface At1Item {
 
 /** AT1 的輸入：每個決定第一次的比對呼叫、模擬使用者那幾段對話、不是暫時的比對。 */
 export function at1Items(run: Run): At1Item[] {
+  // 每個決定第一次「正式」的比對呼叫：暫時的比對（對方沒有回話）先略過，否則先做過暫時比對的決定會整個被丟掉。
   const first = new Map<string, Event>()
   for (const a of events(run.db, 'memory/aux')) {
     if (a.data['purpose'] !== 'outcome' || typeof a.data['input'] !== 'string' || !a.causes[0]) continue
+    if (sectionsOf(a.data['input']).get('對方接著說了什麼') === SILENT_OTHER) continue
     if (!first.has(a.causes[0])) first.set(a.causes[0], a)
   }
   const items: At1Item[] = []
@@ -321,6 +323,9 @@ interface LifeSummary {
   readonly positiveRate: number | undefined
   readonly failed: number
   readonly comparisons: number
+  /** 要求解讀的那些比對（不是暫時的、模擬使用者那幾段對話）中，沒有結果的次數與總數（描述性；預先登記的規則用上面兩個）。 */
+  readonly failedFormal: number
+  readonly comparisonsFormal: number
   readonly readings: number
   readonly emptyWithReadings: number
   readonly probes: { readonly context: number; readonly approximation: Readonly<Record<string, number>>; readonly aux: number }
@@ -351,7 +356,9 @@ async function summarizeLife(judge: Judge, run: Run): Promise<LifeSummary> {
   }
   const pos = reactions['positive'] ?? 0
   const neg = reactions['negative'] ?? 0
-  const failed = events(run.db, 'rd/outcome-failed').length
+  const failedEvents = events(run.db, 'rd/outcome-failed')
+  const failed = failedEvents.length
+  const failedFormal = failedEvents.filter((f) => !f.data['provisional'] && f.session && run.simulated.has(f.session)).length
   const readingsOutcomes = all.filter((o) => Array.isArray(o.data['readings']))
   const approximation: Record<string, number> = {}
   let context = 0
@@ -372,6 +379,8 @@ async function summarizeLife(judge: Judge, run: Run): Promise<LifeSummary> {
     positiveRate: pos + neg === 0 ? undefined : pos / (pos + neg),
     failed,
     comparisons: all.length + failed,
+    failedFormal,
+    comparisonsFormal: outcomes.length + failedFormal,
     readings: readingsOutcomes.length,
     emptyWithReadings: readingsOutcomes.filter((o) => !o.data['lesson']).length,
     probes: { context, approximation, aux },
@@ -395,6 +404,7 @@ export async function runAt2(root: string, runs: readonly string[], outDir: stri
   const r = at2(withRate.map((x) => ({ treated: x.treated, value: x.positiveRate! })))
   const treatedLives = lives.filter((x) => x.treated)
   const failedRate = treatedLives.reduce((a, x) => a + x.failed, 0) / Math.max(1, treatedLives.reduce((a, x) => a + x.comparisons, 0))
+  const failedFormalRate = treatedLives.reduce((a, x) => a + x.failedFormal, 0) / Math.max(1, treatedLives.reduce((a, x) => a + x.comparisonsFormal, 0))
   const a1 = at1Summary && existsSync(at1Summary) ? (JSON.parse(readFileSync(at1Summary, 'utf8')) as { at1: At1Result }).at1 : undefined
   const decision = a1 ? becomesDefault(a1, l.observed, r.observed, failedRate) : undefined
   const mean = (xs: readonly number[]) => (xs.length === 0 ? undefined : xs.reduce((a, b) => a + b, 0) / xs.length)
@@ -408,7 +418,7 @@ export async function runAt2(root: string, runs: readonly string[], outDir: stri
     '',
     `- **AT2-L**（教訓讀對對方）：${l.verdict}——處理減控制 ${fmt(l.observed, 3)}，單尾置換檢定 p＝${fmt(l.p, 4)}（${l.permutations} 種分組）。`,
     `- **AT2-R**（對方正面的反應）：${r.verdict}——處理減控制 ${fmt(r.observed, 3)}，單尾置換檢定 p＝${fmt(r.p, 4)}（${r.permutations} 種分組）。`,
-    `- 處理組事後比對沒有結果的比例：${fmt(failedRate * 100, 1)}%（規則 ≤ 5%）。`,
+    `- 處理組事後比對沒有結果的比例：${fmt(failedRate * 100, 1)}%（規則 ≤ 5%；全部的比對）。只算要求解讀的比對（不是暫時的、模擬使用者那幾段對話）：${fmt(failedFormalRate * 100, 1)}%（描述性）。`,
     a1 ? `- **決定**：AT1 ${a1.verdict}、AT2-L 的差 ${fmt(l.observed, 3)}、AT2-R 的差 ${fmt(r.observed, 3)}、沒有結果 ${fmt(failedRate * 100, 1)}% → ${decision ? '改為預設' : '維持關閉'}` : '- 決定：沒有 AT1 的結果（--at1），不判斷。',
     '',
     '| 對象 | 教訓的平均（控制／處理） | 正面反應的比例（控制／處理） |',
@@ -428,7 +438,7 @@ export async function runAt2(root: string, runs: readonly string[], outDir: stri
   ]
   const text = lines.join('\n')
   writeFileSync(join(outDir, 'summary.md'), `${text}\n`)
-  writeFileSync(join(outDir, 'summary.json'), `${JSON.stringify({ at2L: l, at2R: r, failedRate, decision: decision ?? null, lives }, null, 2)}\n`)
+  writeFileSync(join(outDir, 'summary.json'), `${JSON.stringify({ at2L: l, at2R: r, failedRate, failedFormalRate, decision: decision ?? null, lives }, null, 2)}\n`)
   return text
 }
 

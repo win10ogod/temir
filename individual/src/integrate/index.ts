@@ -99,9 +99,9 @@ export async function gateProcedures(deps: IntegrateDeps, timeoutMs: number, rou
   }
   // context 模式的思考在主 agent 的脈絡中重跑（rd/context-replay.ts）：模型與推理等級照那一步的快照。
   const gateReplay: GateReplay | undefined = deps.replay
-    ? async (request) => {
+    ? async (request, snapshot) => {
         const call = await deps.replay!(request, AbortSignal.timeout(timeoutMs))
-        if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model: `${request.provider}/${request.model}`, data: { purpose: 'procedure-probe', mode: 'context', ...auxRecord(call), output: call.output } })
+        if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model: `${request.provider}/${request.model}`, data: { purpose: 'procedure-probe', replay: 'context', context: snapshot, ...auxRecord(call), output: call.output } })
         return call.output
       }
     : undefined

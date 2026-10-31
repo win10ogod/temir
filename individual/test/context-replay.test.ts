@@ -78,10 +78,14 @@ test('swap: only the last notice is changed; a section that is not there means n
   assert.deepEqual(swapped.messages.slice(0, 3), req.messages.slice(0, 3))
   assert.equal(swapNotice(req, [['## 不存在的段落', 'x']]), undefined)
   assert.equal(swapNotice({ ...req, messages: req.messages.slice(0, 1) }, [[old[0]!, 'x']]), undefined, 'no notice')
+  // 通知有幾個區塊時，只改含有那段文字的區塊，其他區塊與邊界不動。
+  const blocks = { ...req, messages: [...req.messages.slice(0, 3), { ...req.messages[3]!, content: [{ type: 'text', text: '前言' }, { type: 'text', text: old.join('\n\n') }, { type: 'image', ref: 'x' }] }] }
+  const multi = swapNotice(blocks, [[old[0]!, 'NEW']])!
+  assert.deepEqual(multi.messages[3]!['content'], [{ type: 'text', text: '前言' }, { type: 'text', text: `NEW\n\n${old[1]}` }, { type: 'image', ref: 'x' }])
 })
 
 test('replay output: the deliberate arguments; otherwise what the agent did instead', () => {
-  assert.equal(replayOutput([{ type: 'reasoning', text: '想' }, { type: 'tool-call', name: 'deliberate', arguments: '{"situation":"s"}' }]), '{"situation":"s"}')
+  assert.equal(replayOutput([{ type: 'reasoning', text: '想' }, { type: 'tool-call', name: 'deliberate', arguments: '{"situation": "s",\n "drive": "d"}' }]), '{"situation":"s","drive":"d"}', 'the same format as the recorded answer (JSON.stringify of the arguments)')
   assert.equal(replayOutput([{ type: 'tool-call', name: 'recall', arguments: '{}' }]), '（沒有呼叫 deliberate，呼叫了 recall）')
   assert.equal(replayOutput([{ type: 'text', text: '辛苦了' }]), '（沒有呼叫 deliberate，直接說：辛苦了）')
 })
@@ -194,4 +198,18 @@ test('procedure gate: without a snapshot (or without the replay) a context-mode 
     await runProcedureGate(store, proposeDeliberate(store), second.call, 'test/double')
     const approximations = store.all(PROCEDURE_KIND.probe).slice(1).map((e) => (e.data as { approximation?: string }).approximation)
     assert.deepEqual(approximations, ['這次的閘門沒有重跑主 agent 請求的能力', '這次的閘門沒有重跑主 agent 請求的能力'])
+  }))
+
+test('procedure gate: when a context-mode deliberation was rewritten, the first answer (the one with the snapshot) is the situation', () =>
+  withStore(async (store) => {
+    seedProcedures(store)
+    const id = saveSnapshot(store, request(sectionsNow(store)))!
+    const first = contextCall(store, id)
+    // 重寫的那一筆：同一個輸入、沒有快照，而且比較新（recent 先看到它）。
+    store.append({ kind: 'memory/aux', origin: 'self', session: 'old', model: 'test/double', data: { purpose: 'deliberate', mode: 'context', procedures: { deliberate: 1, subtract: 1 }, input: (first.data as { input: string }).input, output: '{"situation":"重寫"}' } })
+    const { call, replay, requests } = scripted([REJECT], ['a', 'b', 'c'])
+    await runProcedureGate(store, proposeDeliberate(store), call, 'test/double', replay)
+    const probe = store.all(PROCEDURE_KIND.probe)[0]!.data as { replay?: string; aux: string; reused: number }
+    assert.deepEqual([probe.replay, probe.aux, probe.reused], ['context', first.id, 0], 'rerun in context; the first answer is not a sample because it was rewritten')
+    assert.equal(requests.length, 3)
   }))

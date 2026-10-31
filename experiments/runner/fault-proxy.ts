@@ -21,12 +21,14 @@ const HOP_BY_HOP = new Set(['host', 'connection', 'content-length', 'accept-enco
 /** 一個回應串流的狀態：哪一個區塊是要弄壞的工具呼叫、是否已經弄壞。 */
 export interface FaultState {
   readonly target: string
-  /** 還可以弄壞幾次（整個代理共用）。 */
-  remaining: number
+  /** 還可以弄壞幾次（整個代理共用；弄壞的當下就減，同時進行的回應不會各弄壞一次）。 */
+  readonly shared: { remaining: number }
   /** 這個回應中要弄壞的區塊編號。 */
   index?: number
-  /** 這個回應中弄壞了的工具呼叫 id。 */
+  /** 這個回應中要弄壞的工具呼叫 id。 */
   corrupted?: string
+  /** 這個回應已經弄壞了。 */
+  done?: boolean
 }
 
 /**
@@ -43,7 +45,7 @@ export function corruptFrame(frame: string, state: FaultState): string {
   } catch {
     return frame
   }
-  if (event['type'] === 'content_block_start' && state.index === undefined && state.remaining > 0) {
+  if (event['type'] === 'content_block_start' && state.index === undefined && state.shared.remaining > 0) {
     const block = event['content_block'] as Record<string, unknown> | undefined
     if (block?.['type'] === 'tool_use' && block['name'] === state.target) {
       state.index = event['index'] as number
@@ -51,10 +53,11 @@ export function corruptFrame(frame: string, state: FaultState): string {
     }
     return frame
   }
-  if (event['type'] === 'content_block_delta' && state.index !== undefined && event['index'] === state.index && state.remaining > 0) {
+  if (event['type'] === 'content_block_delta' && state.index !== undefined && event['index'] === state.index && state.corrupted !== undefined && !state.done && state.shared.remaining > 0) {
     const delta = event['delta'] as Record<string, unknown> | undefined
     if (delta?.['type'] === 'input_json_delta' && typeof delta['partial_json'] === 'string') {
-      state.remaining--
+      state.shared.remaining--
+      state.done = true
       lines[at] = `data: ${JSON.stringify({ ...event, delta: { ...delta, partial_json: `#${delta['partial_json']}` } })}`
       return lines.join('\n')
     }
@@ -92,7 +95,7 @@ export function createFaultProxy(upstream: string, target: string, shared: { rem
       })
       res.writeHead(response.status, outHeaders)
       const sse = (response.headers.get('content-type') ?? '').includes('text/event-stream')
-      const state: FaultState = { target, remaining: shared.remaining }
+      const state: FaultState = { target, shared }
       if (response.body) {
         const decoder = new TextDecoder()
         let buffer = ''
@@ -109,9 +112,7 @@ export function createFaultProxy(upstream: string, target: string, shared: { rem
         if (sse && buffer) res.write(buffer)
       }
       res.end()
-      const used = shared.remaining - state.remaining
-      shared.remaining = state.remaining
-      log({ ts: new Date().toISOString(), method: req.method, path, status: response.status, ...(used > 0 ? { corrupted: state.corrupted, target } : {}) })
+      log({ ts: new Date().toISOString(), method: req.method, path, status: response.status, ...(state.done ? { corrupted: state.corrupted, target } : {}) })
     } catch (error) {
       log({ ts: new Date().toISOString(), method: req.method, path, error: String(error) })
       if (!res.headersSent) res.writeHead(502, { 'content-type': 'text/plain' })

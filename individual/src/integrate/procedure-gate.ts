@@ -42,7 +42,7 @@ import { integrateSystem, type ProcedureProposalData } from './proposal.ts'
 export type GateCall = (system: string, input: string, purpose: 'procedure-probe' | 'procedure-compose') => Promise<string>
 
 /** 注入的重跑（context 模式的思考）：換好做法段落的主 agent 請求 → deliberate 的參數（rd/context-replay.ts 的 ContextCall 加上紀錄）。 */
-export type GateReplay = (request: ReplayRequest) => Promise<string>
+export type GateReplay = (request: ReplayRequest, snapshot: string) => Promise<string>
 
 /** 每個提案最多探測幾個處境（本專案的選擇；第一版是 2，與技能的閘門相同）。 */
 export const PROBES = 3
@@ -139,15 +139,31 @@ function evidenceAux(life: LifeStore, name: ProcedureName, id: string): LifeEven
 }
 
 /**
+ * context 模式中同一次思考重寫過時，重寫的那筆紀錄沒有快照（那一步的請求裡已經有第一次的作答）：
+ * 同一個輸入、有快照的那一筆（第一次作答）才在主 agent 的脈絡中重跑得了。
+ */
+function preferSnapshot(life: LifeStore, aux: LifeEvent): LifeEvent {
+  const d = aux.data as AuxData
+  if (d.mode !== 'context' || d.context || !aux.session) return aux
+  return (
+    life.allInSession(aux.session, 'memory/aux').find((a) => {
+      const x = a.data as AuxData
+      return x.mode === 'context' && x.purpose === d.purpose && x.input === d.input && Boolean(x.context)
+    }) ?? aux
+  )
+}
+
+/**
  * 探測的處境：先取提案依據的經歷（evidence）所在的那幾次真實呼叫，再取最近的，最多 k 個；同一個輸入只取一次
  * （重問的呼叫輸入相同）。
  */
 export function probeSituations(life: LifeStore, name: ProcedureName, k = PROBES, evidence: readonly string[] = []): ProbeSituation[] {
   const out: ProbeSituation[] = []
   const seen = new Set<string>()
-  const add = (aux: LifeEvent, fromEvidence: boolean) => {
+  const add = (found: LifeEvent, fromEvidence: boolean) => {
+    if (out.length >= k || seen.has((found.data as AuxData).input!)) return
+    const aux = preferSnapshot(life, found)
     const d = aux.data as AuxData
-    if (out.length >= k || seen.has(d.input!)) return
     seen.add(d.input!)
     out.push({
       aux,
@@ -352,9 +368,9 @@ export async function runProcedureGate(
     calls++
     return call(system, input, purpose)
   }
-  const countedReplay = async (request: ReplayRequest) => {
+  const countedReplay = async (request: ReplayRequest, snapshot: string) => {
     calls++
-    return replay!(request)
+    return replay!(request, snapshot)
   }
   const decide = (data: Omit<ProcedureDecisionData, 'proposal' | 'name' | 'costChars'>): LifeEvent =>
     life.append({
@@ -380,8 +396,8 @@ export async function runProcedureGate(
       const known = knownContextReferences(life, s, contextual.referenceHash, contextual.recordedIsSample).slice(0, REFERENCES)
       reused += known.length
       const references = [...known]
-      while (references.length < REFERENCES) references.push(await countedReplay(contextual.reference))
-      const candidate = await countedReplay(contextual.candidate)
+      while (references.length < REFERENCES) references.push(await countedReplay(contextual.reference, s.context!))
+      const candidate = await countedReplay(contextual.candidate, s.context!)
       const data: ProbeData = { proposal: proposal.id, aux: s.aux.id, label, references, candidate, inputHash: promptHash(s.input), referenceHash: contextual.referenceHash, candidateHash: contextual.candidateHash, reused: known.length, replay: 'context' }
       probes.push(life.append({ kind: PROCEDURE_KIND.probe, origin: 'self', data, causes: [proposal.id, s.aux.id] }).id)
       results.push({ label, s, references, candidate, replay: 'context' })

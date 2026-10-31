@@ -528,6 +528,10 @@ test('attribution (H-AT): a quote that is not the other’s words, or a lesson r
   // 預測成真時不需要解讀；attribution 關閉時與之前完全相同。
   assert.equal(parseOutcome(MISREAD({ matched: 'yes' }), { energy: false, attribution: heard }).ok, true)
   assert.equal(parseOutcome(MISREAD({}), { energy: false }).ok, true)
+  // 對方只回一個字時，一個字的引用也算原話（否則只能空著引用、教訓也只能空著）。
+  const one = parseOutcome(MISREAD({ readings: [{ reading: '她不想多說', quote: '嗯' }, { reading: '她在忙', quote: '' }], basis: 1 }), { energy: false, attribution: { heard: '嗯。' } })
+  assert.equal(one.ok, true)
+  assert.equal(parseOutcome(MISREAD({ readings: [{ reading: 'a', quote: '好' }, { reading: 'b', quote: '' }], basis: 1 }), { energy: false, attribution: heard }).ok, false, 'one character is not enough when the reply is longer')
   assert.equal(outcomeSystem({ attribution: false }), OUTCOME_SYSTEM)
   assert.doesNotMatch(outcomeRetryNote(['x']), /readings/u)
 })

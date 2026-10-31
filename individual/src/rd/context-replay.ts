@@ -11,7 +11,7 @@
  * 快照的格式是 DSH 的請求（GenerateOptions，去掉 signal 與 sessionId）；DSH 改了請求的格式時，舊的快照可能不能用，同樣退回近似。
  */
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, utimesSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { gunzipSync, gzipSync } from 'node:zlib'
 import type { Context } from '@deepseek-ai/cordis'
@@ -50,6 +50,10 @@ export function saveSnapshot(life: LifeStore, request: Record<string, unknown>):
     if (!existsSync(file)) {
       writeFileSync(file, gzipSync(json))
       prune(dir)
+    } else {
+      // 同一個請求再被引用：更新時間，舊的才是先被刪掉的（prune 依修改時間）。
+      const now = new Date()
+      utimesSync(file, now, now)
     }
     return id
   } catch {
@@ -78,17 +82,20 @@ const isNotice = (m: Record<string, unknown>) => m['role'] === 'user' && (m['sou
 
 /**
  * 把請求中最後一則思考通知（temir-rd）裡的段落換掉：swaps 是 [原本的文字, 換成的文字]。
- * 之前回合的通知不動（那是當時的歷史）。任何一段原本的文字找不到，就回傳 undefined（不猜）。
+ * 只改含有那段文字的文字區塊，其他區塊與區塊的邊界不動；之前回合的通知也不動（那是當時的歷史）。
+ * 任何一段原本的文字找不到，就回傳 undefined（不猜）。
  */
 export function swapNotice(request: ReplayRequest, swaps: readonly (readonly [string, string])[]): ReplayRequest | undefined {
   const at = request.messages.findLastIndex(isNotice)
   if (at < 0) return undefined
   const notice = request.messages[at]!
-  const content = (notice['content'] as { type: string; text?: string }[] | undefined) ?? []
-  let text = content.filter((b) => b.type === 'text').map((b) => b.text ?? '').join('')
-  if (swaps.some(([from]) => !text.includes(from))) return undefined
-  for (const [from, to] of swaps) if (from !== to) text = text.replace(from, () => to)
-  const swapped = { ...notice, content: [{ type: 'text', text }] }
+  const content = [...((notice['content'] as Record<string, unknown>[] | undefined) ?? [])]
+  for (const [from, to] of swaps) {
+    const i = content.findIndex((b) => b['type'] === 'text' && typeof b['text'] === 'string' && b['text'].includes(from))
+    if (i < 0) return undefined
+    if (from !== to) content[i] = { ...content[i], text: (content[i]!['text'] as string).replace(from, () => to) }
+  }
+  const swapped = { ...notice, content }
   return { ...request, messages: request.messages.map((m, i) => (i === at ? swapped : m)) }
 }
 
@@ -101,7 +108,14 @@ export type ContextCall = (request: ReplayRequest, signal: AbortSignal) => Promi
  */
 export function replayOutput(blocks: readonly { readonly type: string; readonly name?: string; readonly arguments?: string; readonly text?: string }[]): string {
   const call = blocks.find((b) => b.type === 'tool-call' && b.name === DELIBERATE_TOOL)
-  if (call) return call.arguments ?? ''
+  // 與真實作答的紀錄同一個格式（rd/index.ts 記的是 JSON.stringify(參數)），閘門的合成才不會把格式的差異看成做法的差異。
+  if (call) {
+    try {
+      return JSON.stringify(JSON.parse(call.arguments ?? ''))
+    } catch {
+      return call.arguments ?? ''
+    }
+  }
   const tools = blocks.filter((b) => b.type === 'tool-call').map((b) => b.name)
   const said = blocks
     .filter((b) => b.type === 'text')

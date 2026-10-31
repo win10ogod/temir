@@ -102,6 +102,13 @@ export function currentProcedure(life: LifeStore, name: ProcedureName): Procedur
   return PROCEDURES.of(life).get(name) ?? { name, version: 1, text: DEFAULT_PROCEDURES[name] }
 }
 
+/** 某個做法的某一版（紀錄中的 procedures 只記版本）；生命日誌中沒有時，第一版是預設文字，其他是 undefined。 */
+export function procedureAt(life: LifeStore, name: ProcedureName, version: number): Procedure | undefined {
+  const event = life.all(PROCEDURE_KIND.version).findLast((e) => (e.data as ProcedureData).name === name && (e.data as ProcedureData).version === version)
+  if (event) return { name, version, text: (event.data as ProcedureData).text, id: event.id }
+  return version === 1 ? { name, version: 1, text: DEFAULT_PROCEDURES[name] } : undefined
+}
+
 /** 五個做法目前的版本（紀錄與狀態檢視用）。 */
 export function currentProcedures(life: LifeStore): Procedure[] {
   return PROCEDURE_NAMES.map((name) => currentProcedure(life, name))

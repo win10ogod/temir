@@ -26,7 +26,8 @@ import { clip, clipKeepLines, isHeard } from '../recall/retrieve.ts'
 import { currentProcedure, pendingProcedureProposals, procedureVersions } from '../self/procedure.ts'
 import { INTEGRATION_KIND, collect, integrationStart, reconsiderSince, renderEvidence, type IntegrationTrigger } from './evidence.ts'
 import { applyProposal, integrateRetryNote, integrateSystem, parseProposal, proposalProblems, validate } from './proposal.ts'
-import { describeGate, runProcedureGate, type GateCall } from './procedure-gate.ts'
+import { contextCaller, type ContextCall } from '../rd/context-replay.ts'
+import { describeGate, runProcedureGate, type GateCall, type GateReplay } from './procedure-gate.ts'
 import { DEFAULT_PARAMS } from '../rd/jitrl.ts'
 import { replayCases } from '../rd/memory.ts'
 import { REPLAY_KIND, adoptedParamsOf, replay } from '../rd/replay.ts'
@@ -96,11 +97,19 @@ export async function gateProcedures(deps: IntegrateDeps, timeoutMs: number, rou
     if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose, ...auxRecord(call), input: clipKeepLines(probeInput, 20_000), systemHash: promptHash(prompt), output: call.output } })
     return call.output
   }
+  // context 模式的思考在主 agent 的脈絡中重跑（rd/context-replay.ts）：模型與推理等級照那一步的快照。
+  const gateReplay: GateReplay | undefined = deps.replay
+    ? async (request) => {
+        const call = await deps.replay!(request, AbortSignal.timeout(timeoutMs))
+        if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model: `${request.provider}/${request.model}`, data: { purpose: 'procedure-probe', mode: 'context', ...auxRecord(call), output: call.output } })
+        return call.output
+      }
+    : undefined
   for (const id of ids) {
     try {
       let proposalEvent = life.get(id)
       for (let round = 0; proposalEvent && round < 2 && life.isOpen; round++) {
-        const { decision, next } = await runProcedureGate(life, proposalEvent, gateCall, model)
+        const { decision, next } = await runProcedureGate(life, proposalEvent, gateCall, model, gateReplay)
         gated.push(describeGate(life, decision))
         proposalEvent = next
       }
@@ -117,6 +126,8 @@ export interface IntegrateDeps {
   readonly life: LifeStore
   readonly call: CallModel
   readonly logger: Log
+  /** context 模式的思考在主 agent 的脈絡中重跑（正式執行是 contextCaller(ctx)）；沒有時閘門退回輔助呼叫的近似。 */
+  readonly replay?: ContextCall
 }
 
 /**
@@ -192,7 +203,7 @@ export async function runIntegration(deps: IntegrateDeps, config: Config | undef
 export function apply(ctx: Context, config: Config | undefined): void {
   const life = ctx.life
   const logger = ctx.logger('temir-integrate')
-  const deps: IntegrateDeps = { life, call: modelCaller(ctx), logger }
+  const deps: IntegrateDeps = { life, call: modelCaller(ctx), replay: contextCaller(ctx), logger }
   let running: Promise<string> | undefined
 
   function start(trigger: IntegrationTrigger, deep: boolean): Promise<string> {

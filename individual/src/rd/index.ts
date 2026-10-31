@@ -21,7 +21,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-system-prompt'
-import { createUserMessage, type ContextFormed } from '@deepseek-ai/dsh-llm'
+import { createUserMessage, isAgentLoopRequest, type ContextFormed } from '@deepseek-ai/dsh-llm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
@@ -48,6 +48,7 @@ import {
   withoutExclusions,
   type Deliberation,
 } from './aux.ts'
+import { saveSnapshot } from './context-replay.ts'
 import { DEFAULT_PARAMS, allExcluded, correct, neighbors, uncorrected, type Candidate, type Params } from './jitrl.ts'
 import { adoptedParamsOf } from './replay.ts'
 import {
@@ -141,6 +142,11 @@ export interface RdDeps {
   readonly life: LifeStore
   readonly call: CallModel
   readonly logger: Log
+  /**
+   * context 模式：存下這段對話中主 agent 最近一次的請求（rd/context-replay.ts 的快照），回傳快照的 id。
+   * 做法的閘門以它在主 agent 的脈絡中重跑這次思考；沒有（單元測試、存不了）時閘門退回輔助呼叫的近似。
+   */
+  readonly snapshot?: (session: string) => string | undefined
 }
 
 /** 一個含有對方新訊息的步驟中，思考需要的輸入（由 apply 從 DSH 的 pre-step 取出）。 */
@@ -519,6 +525,10 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
       get phase() {
         return phase
       },
+      /** 還沒有作答過的思考（這次的請求就是照現行做法的那一次；重寫時請求裡已經有上一次的作答）。 */
+      get fresh() {
+        return phase === 'deliberate' && attempts === 0
+      },
       /** 思考的輸出（呼叫失敗時是 undefined）。 */
       answer(output: string | undefined): Next {
         if (phase === 'excluded') {
@@ -632,12 +642,22 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
     const reviewing = machine.phase === 'review'
     const output = JSON.stringify(reviewing ? { judgments: args['judgments'] } : args)
     const model = `${prep.route.provider}/${prep.route.model}`
+    // 第一次作答時存下主 agent 這一步的請求：做法的閘門在同一個脈絡中只換做法的段落重跑（rd/context-replay.ts）。
+    const snapshotId = machine.fresh ? deps.snapshot?.(prep.session) : undefined
     life.append({
       kind: 'memory/aux',
       origin: 'self',
       session: prep.session,
       model,
-      data: { purpose: reviewing ? 'revise' : 'deliberate', mode: 'context', procedures: procedureVersions(reviewing ? [prep.procedures.subtract] : prep.used), input: clipKeepLines(prep.input, 20_000), output },
+      data: {
+        purpose: reviewing ? 'revise' : 'deliberate',
+        mode: 'context',
+        procedures: procedureVersions(reviewing ? [prep.procedures.subtract] : prep.used),
+        input: clipKeepLines(prep.input, 20_000),
+        output,
+        ...(snapshotId ? { context: snapshotId } : {}),
+        ...(Object.keys(variant).length > 0 ? { variant } : {}),
+      },
     })
     const next = reviewing ? machine.review(output) : machine.answer(output)
     if (next.kind === 'done' || next.kind === 'failed') pending.delete(prep.session)
@@ -684,7 +704,14 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
 export function apply(ctx: Context, config: Config | undefined): void {
   if (config?.enabled === false) return
   const logger = ctx.logger('temir-rd')
-  const rd = createRd({ life: ctx.life, call: modelCaller(ctx), logger }, config)
+  const context = (config?.mode ?? 'context') === 'context'
+  // context 模式：每段對話中主 agent 最近一次的請求（等思考的那幾步），deliberate 第一次作答時存成快照。
+  const requests = new Map<string, Record<string, unknown>>()
+  const snapshot = (session: string) => {
+    const request = requests.get(session)
+    return request ? saveSnapshot(ctx.life, request) : undefined
+  }
+  const rd = createRd({ life: ctx.life, call: modelCaller(ctx), logger, ...(context ? { snapshot } : {}) }, config)
   ctx.effect(() => () => rd.settle(), 'temir-rd: finish outcome evaluation')
 
   // 對方沉默：最後一個決定先做暫時的比對（計時器不讓程序多留，一次性的執行與實驗不會觸發）。
@@ -694,8 +721,16 @@ export function apply(ctx: Context, config: Config | undefined): void {
     ctx.effect(() => () => clearInterval(timer), 'temir-rd: stop silence check')
   }
 
-  const context = (config?.mode ?? 'context') === 'context'
   if (context) {
+    ctx.on('llm/stream', (options, next) => {
+      try {
+        const session = options.sessionId
+        if (session && isAgentLoopRequest(options) && rd.awaiting(session)) requests.set(session, options as unknown as Record<string, unknown>)
+      } catch (error) {
+        logger.warn('rd request capture failed: %s', error)
+      }
+      return next()
+    })
     // 處境的事實：這個身體在 context 模式下怎麼運作（e2e-42b：只有通知時，第二、三回合在推理中照做法想過，卻沒有呼叫工具）。
     ctx.systemPrompt.section({ name: 'temir:deliberate', order: 2, text: CONTEXT_SITUATION })
     // context 模式：deliberate 工具一直註冊（工具清單不隨步驟變動，前綴快取才不會失效），沒有要思考的事時回覆說明。
@@ -729,6 +764,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
       return `回應之前先用 ${DELIBERATE_TOOL} 思考（需要的話可以先用 recall 查記憶）。`
     })
     ctx.on('agent/turn-stopping', ({ agent }) => {
+      requests.delete(agent.session.id)
       try {
         rd.endTurn(agent.session.id)
       } catch (error) {

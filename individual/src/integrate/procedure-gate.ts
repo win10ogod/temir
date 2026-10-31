@@ -13,18 +13,22 @@
  *   現行做法的一個樣本），以及之前的探測照同一個現行做法跑過的輸出（同一個提案的第二輪、或之後的提案用到同一個處境）。
  * - 合成由個體自己判斷（強制判斷：verdict、每個理由指出處境與是否大於雜訊；不合格重問一次）。
  * - revise 時，修改後的版本當作新的提案，由呼叫端決定要不要再跑一輪（每次整合最多一輪，RRSI 的編輯預算）。
+ * - context 模式（ADR-0009）的思考：那一步有主 agent 請求的快照（rd/context-replay.ts）時，在同一個脈絡中只換做法的段落重跑
+ *   （replay＝context）；沒有快照、或換不了段落時，退回輔助呼叫格式的近似，探測紀錄寫下原因（approximation）。
  * 依賴 LifeStore 與注入的模型呼叫（不依賴 DSH），可單獨測試。
  */
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import { extractJson, promptHash } from '../recall/aux.ts'
 import { clip, clipEnds } from '../recall/retrieve.ts'
-import { deliberateSystem, outcomeSystem } from '../rd/aux.ts'
+import { deliberateSystem, outcomeSystem, procedureSections } from '../rd/aux.ts'
+import { loadSnapshot, swapNotice, type ReplayRequest } from '../rd/context-replay.ts'
 import { DECISION_KIND, OUTCOME_KIND, type OutcomeData } from '../rd/memory.ts'
 import {
   PROCEDURE_KIND,
   PROCEDURE_LABEL,
   PROCEDURE_VERDICT_LABEL,
   currentProcedure,
+  procedureAt,
   type Procedure,
   type ProcedureData,
   type ProcedureDecisionData,
@@ -37,6 +41,9 @@ import { integrateSystem, type ProcedureProposalData } from './proposal.ts'
 /** 注入的模型呼叫：系統提示、輸入、用途（memory/aux 的 purpose）→ 輸出文字。 */
 export type GateCall = (system: string, input: string, purpose: 'procedure-probe' | 'procedure-compose') => Promise<string>
 
+/** 注入的重跑（context 模式的思考）：換好做法段落的主 agent 請求 → deliberate 的參數（rd/context-replay.ts 的 ContextCall 加上紀錄）。 */
+export type GateReplay = (request: ReplayRequest) => Promise<string>
+
 /** 每個提案最多探測幾個處境（本專案的選擇；第一版是 2，與技能的閘門相同）。 */
 export const PROBES = 3
 
@@ -46,9 +53,14 @@ export const REFERENCES = 2
 /** 每個做法在 memory/aux 中的用途（思考與扣除都用思考的呼叫）。 */
 const PURPOSE: Readonly<Record<ProcedureName, string>> = { deliberate: 'deliberate', subtract: 'deliberate', outcome: 'outcome', integrate: 'integrate', thought: 'thought' }
 
+/** 那次呼叫被消融關掉的機制（memory/aux 的 variant）→ 組系統提示與通知的選項。 */
+function flagsOf(variant: ProcedureVariant) {
+  return { ...(variant.energy === false ? { energy: false } : {}), ...(variant.subtraction === false ? { subtraction: false } : {}), ...(variant.perPerson === false ? { perPerson: false } : {}) }
+}
+
 /** 以某個版本的做法組出那個步驟的系統提示；其他做法用現行版本，框架與輸出照那次呼叫的設定（variant）。 */
 export function systemWith(life: LifeStore, name: ProcedureName, procedure: Procedure, variant: ProcedureVariant = {}): string {
-  const flags = { ...(variant.energy === false ? { energy: false } : {}), ...(variant.subtraction === false ? { subtraction: false } : {}), ...(variant.perPerson === false ? { perPerson: false } : {}) }
+  const flags = flagsOf(variant)
   switch (name) {
     case 'deliberate':
       return deliberateSystem({ procedures: { deliberate: procedure, subtract: currentProcedure(life, 'subtract') }, ...flags })
@@ -71,6 +83,10 @@ interface AuxData {
   readonly procedures?: Record<string, number>
   readonly systemHash?: string
   readonly variant?: ProcedureVariant
+  /** context 模式（主 agent 自己思考）的紀錄。 */
+  readonly mode?: string
+  /** context 模式：那一步主 agent 請求的快照 id（rd/context-replay.ts）。 */
+  readonly context?: string
 }
 
 export interface ProbeSituation {
@@ -82,6 +98,10 @@ export interface ProbeSituation {
   readonly afterwards: string
   /** 提案依據的經歷所在的那一次（不是只因為最近才被選上）。 */
   readonly fromEvidence: boolean
+  /** 那次用的做法版本（name → version）。 */
+  readonly procedures: Readonly<Record<string, number>>
+  /** context 模式的思考：主 agent 請求的快照 id；context 模式但沒有快照時是 null。輔助呼叫的紀錄沒有。 */
+  readonly context?: string | null
 }
 
 /** 那次思考之後實際發生的事：同一個 session 中下一個決定的事後比對。 */
@@ -129,7 +149,15 @@ export function probeSituations(life: LifeStore, name: ProcedureName, k = PROBES
     const d = aux.data as AuxData
     if (out.length >= k || seen.has(d.input!)) return
     seen.add(d.input!)
-    out.push({ aux, input: d.input!, variant: d.variant ?? {}, afterwards: name === 'deliberate' || name === 'subtract' ? afterwards(life, aux) : '', fromEvidence })
+    out.push({
+      aux,
+      input: d.input!,
+      variant: d.variant ?? {},
+      afterwards: name === 'deliberate' || name === 'subtract' ? afterwards(life, aux) : '',
+      fromEvidence,
+      procedures: d.procedures ?? {},
+      ...(d.mode === 'context' ? { context: d.context ?? null } : {}),
+    })
   }
   for (const id of evidence) {
     const aux = evidenceAux(life, name, id)
@@ -155,6 +183,10 @@ interface ProbeData {
   readonly candidateHash?: string
   /** references 中有幾個是重用的（不是這一輪跑的）。 */
   readonly reused?: number
+  /** context：在主 agent 那一步的脈絡中重跑（rd/context-replay.ts）。 */
+  readonly replay?: 'context'
+  /** context 模式的思考卻以輔助呼叫的格式重跑（近似）時的原因。 */
+  readonly approximation?: string
 }
 
 /**
@@ -172,6 +204,57 @@ function knownReferences(life: LifeStore, s: ProbeSituation, hash: string, model
   for (const probe of life.all(PROCEDURE_KIND.probe)) {
     const p = probe.data as ProbeData
     if (p.inputHash === inputHash && p.referenceHash === hash) out.push(...(p.references ?? []).slice(p.reused ?? 0))
+  }
+  return [...new Set(out)]
+}
+
+/**
+ * context 模式的處境在主 agent 的脈絡中重跑需要的請求：照現行做法的（reference）與照提案的（candidate），
+ * 都是那一步的快照，只換最後一則思考通知中做法的段落（rd/context-replay.ts）。做不到時回傳原因（退回近似）。
+ * recordedIsSample：那次用的做法與現行的相同，那次真實的作答就是現行做法的一個樣本。
+ */
+function contextRequests(
+  life: LifeStore,
+  s: ProbeSituation,
+  name: ProcedureName,
+  proposed: Procedure,
+): { readonly reference: ReplayRequest; readonly candidate: ReplayRequest; readonly referenceHash: string; readonly candidateHash: string; readonly recordedIsSample: boolean } | { readonly fallback: string } {
+  if (!s.context) return { fallback: '那一步沒有存下主 agent 的請求' }
+  const snapshot = loadSnapshot(life, s.context)
+  if (!snapshot) return { fallback: '找不到那一步主 agent 請求的快照' }
+  const flags = flagsOf(s.variant)
+  const usedDeliberate = procedureAt(life, 'deliberate', s.procedures['deliberate'] ?? 1)
+  const usedSubtract = s.procedures['subtract'] === undefined ? undefined : procedureAt(life, 'subtract', s.procedures['subtract'])
+  if (!usedDeliberate || (s.procedures['subtract'] !== undefined && !usedSubtract)) return { fallback: '找不到那次用的做法版本' }
+  const current = { deliberate: currentProcedure(life, 'deliberate'), subtract: currentProcedure(life, 'subtract') }
+  const old = procedureSections({ procedures: { deliberate: usedDeliberate, ...(usedSubtract ? { subtract: usedSubtract } : {}) }, ...flags })
+  const ref = procedureSections({ procedures: current, ...flags })
+  const cand = procedureSections({ procedures: { ...current, [name]: proposed }, ...flags })
+  if (old.length !== ref.length || old.length !== cand.length) return { fallback: '那次的做法段落與現在的數量不同' }
+  const reference = swapNotice(snapshot, old.map((o, i) => [o, ref[i]!] as const))
+  const candidate = swapNotice(snapshot, old.map((o, i) => [o, cand[i]!] as const))
+  if (!reference || !candidate) return { fallback: '那一步的思考通知中找不到當時的做法段落' }
+  return {
+    reference,
+    candidate,
+    referenceHash: promptHash(`${s.context}\n${ref.join('\n')}`),
+    candidateHash: promptHash(`${s.context}\n${cand.join('\n')}`),
+    recordedIsSample: old.every((o, i) => o === ref[i]),
+  }
+}
+
+/**
+ * context 模式的處境照現行做法、已經有的輸出：那次真實的作答（做法與現行的相同、而且沒有重寫過），以及之前在同一個脈絡、
+ * 照同一個現行做法重跑過的輸出。模型照那次的快照（重跑也是同一個模型），所以不比對現在的模型。
+ */
+function knownContextReferences(life: LifeStore, s: ProbeSituation, referenceHash: string, recordedIsSample: boolean): string[] {
+  const out: string[] = []
+  const d = s.aux.data as AuxData
+  const sameInput = s.aux.session ? life.allInSession(s.aux.session, 'memory/aux').filter((a) => (a.data as AuxData).purpose === d.purpose && (a.data as AuxData).input === s.input) : []
+  if (recordedIsSample && sameInput.length <= 1) out.push(d.output!)
+  for (const probe of life.all(PROCEDURE_KIND.probe)) {
+    const p = probe.data as ProbeData
+    if (p.replay === 'context' && p.referenceHash === referenceHash) out.push(...(p.references ?? []).slice(p.reused ?? 0))
   }
   return [...new Set(out)]
 }
@@ -234,12 +317,13 @@ interface ProbeResult {
   readonly s: ProbeSituation
   readonly references: readonly string[]
   readonly candidate: string
+  readonly replay?: 'context'
 }
 
 function composeInput(name: ProcedureName, current: Procedure, p: ProcedureProposalData, results: readonly ProbeResult[]): string {
   const lines = [`## 做法：${PROCEDURE_LABEL[name]}`, '', `### 現行的做法（第 ${current.version} 版）`, current.text, '', '### 提案的做法', p.text, '', `### 提案的理由`, p.reason]
   for (const r of results) {
-    lines.push('', `## ${r.label}${r.s.fromEvidence ? '（提案依據的經歷）' : ''}`, '### 那次的輸入（節錄）', clipEnds(r.s.input, 1500))
+    lines.push('', `## ${r.label}${r.s.fromEvidence ? '（提案依據的經歷）' : ''}${r.replay === 'context' ? '（在我當時對話的脈絡中重跑）' : ''}`, '### 那次的輸入（節錄）', clipEnds(r.s.input, 1500))
     r.references.forEach((ref, i) => lines.push('', `### 照現行做法的輸出（第 ${i + 1} 個）`, clip(ref, 1500)))
     lines.push('', '### 照提案做法的輸出', clip(r.candidate, 1500))
     if (r.s.afterwards) lines.push('', '### 之後實際發生的事', r.s.afterwards)
@@ -252,7 +336,13 @@ function composeInput(name: ProcedureName, current: Procedure, p: ProcedurePropo
  * revise 時建立修改後的新提案並回傳它，由呼叫端決定要不要再跑一輪。中途失敗就丟出例外，已寫的探測保留、提案沒有決定。
  * model＝閘門呼叫用的模型（provider/model）：那次真實呼叫的模型不同時，它的輸出不當現行做法的樣本。
  */
-export async function runProcedureGate(life: LifeStore, proposal: LifeEvent, call: GateCall, model?: string): Promise<{ readonly decision: LifeEvent; readonly next?: LifeEvent }> {
+export async function runProcedureGate(
+  life: LifeStore,
+  proposal: LifeEvent,
+  call: GateCall,
+  model?: string,
+  replay?: GateReplay,
+): Promise<{ readonly decision: LifeEvent; readonly next?: LifeEvent }> {
   const p = proposal.data as ProcedureProposalData
   const current = currentProcedure(life, p.name)
   const costChars = p.text.length - current.text.length
@@ -261,6 +351,10 @@ export async function runProcedureGate(life: LifeStore, proposal: LifeEvent, cal
   const counted: GateCall = async (system, input, purpose) => {
     calls++
     return call(system, input, purpose)
+  }
+  const countedReplay = async (request: ReplayRequest) => {
+    calls++
+    return replay!(request)
   }
   const decide = (data: Omit<ProcedureDecisionData, 'proposal' | 'name' | 'costChars'>): LifeEvent =>
     life.append({
@@ -280,6 +374,20 @@ export async function runProcedureGate(life: LifeStore, proposal: LifeEvent, cal
   const probes: string[] = []
   for (const [i, s] of situations.entries()) {
     const label = `S${i + 1}`
+    // context 模式的思考：在主 agent 那一步的脈絡中重跑（只換做法的段落）；做不到時退回下面的近似。
+    const contextual = s.context !== undefined && (p.name === 'deliberate' || p.name === 'subtract') ? (replay ? contextRequests(life, s, p.name, proposed) : { fallback: '這次的閘門沒有重跑主 agent 請求的能力' }) : undefined
+    if (contextual && 'reference' in contextual) {
+      const known = knownContextReferences(life, s, contextual.referenceHash, contextual.recordedIsSample).slice(0, REFERENCES)
+      reused += known.length
+      const references = [...known]
+      while (references.length < REFERENCES) references.push(await countedReplay(contextual.reference))
+      const candidate = await countedReplay(contextual.candidate)
+      const data: ProbeData = { proposal: proposal.id, aux: s.aux.id, label, references, candidate, inputHash: promptHash(s.input), referenceHash: contextual.referenceHash, candidateHash: contextual.candidateHash, reused: known.length, replay: 'context' }
+      probes.push(life.append({ kind: PROCEDURE_KIND.probe, origin: 'self', data, causes: [proposal.id, s.aux.id] }).id)
+      results.push({ label, s, references, candidate, replay: 'context' })
+      continue
+    }
+    const approximation = contextual && 'fallback' in contextual ? contextual.fallback : undefined
     const referenceSystem = systemWith(life, p.name, current, s.variant)
     const referenceHash = promptHash(referenceSystem)
     const known = knownReferences(life, s, referenceHash, model).slice(0, REFERENCES)
@@ -288,7 +396,18 @@ export async function runProcedureGate(life: LifeStore, proposal: LifeEvent, cal
     while (references.length < REFERENCES) references.push(await counted(referenceSystem, s.input, 'procedure-probe'))
     const candidateSystem = systemWith(life, p.name, proposed, s.variant)
     const candidate = await counted(candidateSystem, s.input, 'procedure-probe')
-    const data: ProbeData = { proposal: proposal.id, aux: s.aux.id, label, references, candidate, inputHash: promptHash(s.input), referenceHash, candidateHash: promptHash(candidateSystem), reused: known.length }
+    const data: ProbeData = {
+      proposal: proposal.id,
+      aux: s.aux.id,
+      label,
+      references,
+      candidate,
+      inputHash: promptHash(s.input),
+      referenceHash,
+      candidateHash: promptHash(candidateSystem),
+      reused: known.length,
+      ...(approximation ? { approximation } : {}),
+    }
     probes.push(life.append({ kind: PROCEDURE_KIND.probe, origin: 'self', data, causes: [proposal.id, s.aux.id] }).id)
     results.push({ label, s, references, candidate })
   }

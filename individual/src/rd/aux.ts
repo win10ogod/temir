@@ -9,7 +9,7 @@
  * 行動產生提示（「For EACH action, provide your confidence as an integer from 0 to 100」「sum … MUST equal 100」）。
  */
 import { extractJson, strings } from '../recall/aux.ts'
-import { DEFAULT_PROCEDURES, procedurePrompt, withoutLines, type Procedure } from '../self/procedure.ts'
+import { DEFAULT_PROCEDURES, procedurePrompt, procedureSection, withoutLines, type Procedure } from '../self/procedure.ts'
 import type { Candidate } from './jitrl.ts'
 
 const DEFAULT = (name: 'deliberate' | 'subtract' | 'outcome'): Procedure => ({ name, version: 1, text: DEFAULT_PROCEDURES[name] })
@@ -102,6 +102,14 @@ export function deliberateNotice(options: DeliberateOptions & { readonly held: r
   const frame = `（這不是對方說的話。）${options.reminder ? `${options.reminder}` : ''}對方剛說了話。回應之前，先呼叫 ${DELIBERATE_TOOL} 工具思考與準備（只在心裡想，不算）：${purposeOf(options.subtraction ?? true)}。需要查記憶的話，可以先用 recall。呼叫之前不要對對方說話；拿到準備之後再回應對方，實際怎麼做仍由你決定。照下面你自己的做法思考。`
   const context = [...(options.held.length > 0 ? [options.held.join('\n').trim()] : []), `## 過去類似處境的經驗\n${options.experiences}`]
   return [procedurePrompt(frame, procedures, contract.replace(JSON_ONLY, `呼叫 ${DELIBERATE_TOOL} 工具，參數就是下面這個物件的各個欄位：`)), ...context].join('\n\n')
+}
+
+/**
+ * 思考通知（與思考的系統提示）中，做法的段落的確切文字（消融時拿掉提到被關掉的機制的部分之後）。
+ * context 模式的閘門在主 agent 的請求中把這幾段換成要對照的版本（rd/context-replay.ts）。
+ */
+export function procedureSections(options: DeliberateOptions): string[] {
+  return deliberateParts(options).procedures.map(procedureSection)
 }
 
 /** 消融：關閉扣除時丟掉模型仍可能寫出的扣除，選擇回到全部候選中分數最高的。 */

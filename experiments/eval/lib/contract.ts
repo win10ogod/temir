@@ -53,6 +53,10 @@ export type JudgePromptId =
   | 'pc-eval-match'
   /** pc-eval-v1：自我模型的修訂，由自己的評價還是另一個人設的評價解釋。 */
   | 'pc-revision-match'
+  /** theory-t2：一次修訂有沒有回應重大事件。 */
+  | 't2-addressed'
+  /** theory-t2：人生敘事有沒有把事件前後連成同一個持續的自己。 */
+  | 't2-continuity'
 
 export interface CategorySpec {
   readonly id: string

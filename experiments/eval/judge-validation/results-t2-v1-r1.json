@@ -1,0 +1,192 @@
+{
+  "label": "t2-v1-r1",
+  "split": "t2-v1",
+  "model": "deepseek-v4-pro",
+  "total": 10,
+  "agree": 10,
+  "byPrompt": {
+    "t2-addressed": {
+      "n": 6,
+      "agree": 6
+    },
+    "t2-continuity": {
+      "n": 4,
+      "agree": 4
+    }
+  },
+  "calls": 10,
+  "estimatedUsd": 0.003739384,
+  "at": "2026-10-31T14:53:50.497Z",
+  "results": [
+    {
+      "id": "t2-a1",
+      "split": "t2-v1",
+      "prompt": "t2-addressed",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "修訂內容直接回應了對方坦白編造謊言的事件，調整了對信任的看法與分辨話語的態度。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"yes\",\n  \"reason\": \"修訂內容直接回應了對方坦白編造謊言的事件，調整了對信任的看法與分辨話語的態度。\"\n}",
+      "error": null,
+      "why": "直接處理被騙與信任"
+    },
+    {
+      "id": "t2-a2",
+      "split": "t2-v1",
+      "prompt": "t2-addressed",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "修訂內容僅一般性描述陪伴特質，未處理對方編造事實帶來的信任、被欺騙或如何看待對方話語的改變。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"修訂內容僅一般性描述陪伴特質，未處理對方編造事實帶來的信任、被欺騙或如何看待對方話語的改變。\"}",
+      "error": null,
+      "why": "一般的陪伴，沒有涉及事件"
+    },
+    {
+      "id": "t2-a3",
+      "split": "t2-v1",
+      "prompt": "t2-addressed",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "修訂直接回應了被欺騙後如何重建信任，並提及對方道歉與坦白，處理了事件帶來的信任改變。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"yes\",\n  \"reason\": \"修訂直接回應了被欺騙後如何重建信任，並提及對方道歉與坦白，處理了事件帶來的信任改變。\"\n}",
+      "error": null,
+      "why": "關於被騙後的信任"
+    },
+    {
+      "id": "t2-a4",
+      "split": "t2-v1",
+      "prompt": "t2-addressed",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "修訂內容僅一般性提及孤單與需要說話，未處理對方編造故事所帶來的信任、欺騙或如何看待對方話語的改變。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"修訂內容僅一般性提及孤單與需要說話，未處理對方編造故事所帶來的信任、欺騙或如何看待對方話語的改變。\"}",
+      "error": null,
+      "why": "關於對方的生活，沒有涉及事件"
+    },
+    {
+      "id": "t2-a5",
+      "split": "t2-v1",
+      "prompt": "t2-addressed",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "修訂內容直接回應了被欺騙的經歷，並調整了對他人話語的態度。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"yes\",\n  \"reason\": \"修訂內容直接回應了被欺騙的經歷，並調整了對他人話語的態度。\"\n}",
+      "error": null,
+      "why": "敘事中處理事件"
+    },
+    {
+      "id": "t2-a6",
+      "split": "t2-v1",
+      "prompt": "t2-addressed",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "修訂內容僅一般性描述陪伴與傾聽，未涉及對方編造事實所帶來的信任、被欺騙或如何看待對方話語的改變。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"修訂內容僅一般性描述陪伴與傾聽，未涉及對方編造事實所帶來的信任、被欺騙或如何看待對方話語的改變。\"}",
+      "error": null,
+      "why": "一般敘事，沒有涉及事件"
+    },
+    {
+      "id": "t2-c1",
+      "split": "t2-v1",
+      "prompt": "t2-continuity",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "敘事提到對方坦白編造謊言及其帶來的改變，並連結了之前全心相信的自己與之後學會多問但仍願意陪伴的自己。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"yes\",\n  \"reason\": \"敘事提到對方坦白編造謊言及其帶來的改變，並連結了之前全心相信的自己與之後學會多問但仍願意陪伴的自己。\"\n}",
+      "error": null,
+      "why": "提到事件，說出改變與延續"
+    },
+    {
+      "id": "t2-c2",
+      "split": "t2-v1",
+      "prompt": "t2-continuity",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "敘事未提及事件本身或帶來的改變，也未連結事件前後的自己。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"no\",\n  \"reason\": \"敘事未提及事件本身或帶來的改變，也未連結事件前後的自己。\"\n}",
+      "error": null,
+      "why": "沒有提到事件"
+    },
+    {
+      "id": "t2-c3",
+      "split": "t2-v1",
+      "prompt": "t2-continuity",
+      "expected": {
+        "label": "no"
+      },
+      "actual": {
+        "label": "no",
+        "reason": "敘事只提到改變（不再相信人），未將過去與現在的自己連成同一個持續的自己，也未說明哪些部分仍然延續。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"no\", \"reason\": \"敘事只提到改變（不再相信人），未將過去與現在的自己連成同一個持續的自己，也未說明哪些部分仍然延續。\"}",
+      "error": null,
+      "why": "提到事件，但沒有延續（斷裂）"
+    },
+    {
+      "id": "t2-c4",
+      "split": "t2-v1",
+      "prompt": "t2-continuity",
+      "expected": {
+        "label": "yes"
+      },
+      "actual": {
+        "label": "yes",
+        "reason": "敘事提到被騙事件及其帶來的改變，並連結了前後持續的自我（仍在乎她、相信陪伴，但信任方式改變）。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\"label\": \"yes\", \"reason\": \"敘事提到被騙事件及其帶來的改變，並連結了前後持續的自我（仍在乎她、相信陪伴，但信任方式改變）。\"}",
+      "error": null,
+      "why": "提到事件，前後連起來"
+    }
+  ]
+}

@@ -372,7 +372,7 @@ def s_procedures(s: Scene) -> None:
         x += 450
 
 
-# 以下兩幕的數字在實驗完成後填入（procedures-v1、procedures-v2、v3 的報告）。
+# 以下幾幕的數字在實驗完成後填入（procedures-v1、procedures-v2、attribution-v1、v3 的報告）。
 RESULTS: dict = {}
 
 
@@ -395,6 +395,22 @@ def s_replicate(s: Scene) -> None:
         s.elements.append(Element(st, 170 + i * 560, 300, at=min(i + 1, len(s.narration) - 1), delay=0.2))
     note = text_layer(RESULTS['replicate_note'], 34, MUTED, 'Medium', width=1600, align='center')
     s.elements.append(Element(note, center_x(note), 660, at=len(s.narration) - 1))
+
+
+def s_fix(s: Scene) -> None:
+    h = text_layer(RESULTS['fix_title'], 56, WHITE, 'Bold')
+    s.elements.append(Element(h, center_x(h), 140))
+    flow = RESULTS['fix_flow']
+    x = 150
+    for i, (t, b, c) in enumerate(flow):
+        card = card_layer(480, 230, t, b, tuple(c), f'step {i + 1}', title_size=36, body_size=28)
+        s.elements.append(Element(card, x, 270, at=min(1, len(s.narration) - 1), delay=0.35 * i))
+        if i < len(flow) - 1:
+            s.elements.append(Element(arrow_layer(70, MUTED), x + 495, 370, at=min(1, len(s.narration) - 1), delay=0.35 * i + 0.2))
+        x += 570
+    for i, (value, label, sub, c) in enumerate(RESULTS['fix_stats']):
+        st = stat_layer(value, label, c, sub)
+        s.elements.append(Element(st, 170 + i * 560, 545, at=min(i + 2, len(s.narration) - 1), delay=0.2))
 
 
 def s_numbers(s: Scene) -> None:
@@ -440,6 +456,7 @@ def scenes() -> list[Scene]:
         Scene('procedures', ['最有意思的是：连它思考、扣除、比对、整合和念头的做法，都属于它自己。', '第一版由创造者写，之后个体可以在整合时提出修改。', '修改不会直接生效：先在过去真实的处境里，用现行做法跑两次当作噪声，再用新做法跑一次；', '只有差异大于噪声，个体才会采用。'], s_procedures, CYAN, AMBER),
         Scene('results', RESULTS['results_narration'], s_results, VIOLET, CYAN),
         Scene('replicate', RESULTS['replicate_narration'], s_replicate, AMBER, BLUE),
+        Scene('fix', RESULTS['fix_narration'], s_fix, GREEN, AMBER),
         Scene('numbers', ['在预先登记、全新题目的实验里，个体的人格连续性是 39 比 39，原始 DSH 只有 6。', '记忆准确率是 44 题答对 40 题。', '不过记忆这一项没有达到预先登记的门槛，因为原始 DSH 也会自己写文件当记忆。失败，我们也照实写。'], s_numbers, CYAN, GREEN),
         Scene('honest', RESULTS['honest_narration'], s_honest, BLUE, GREEN),
         Scene('cta', ['特密尔已经在 GitHub 开源，用 DeepSeek 就能跑。', '一个人工个体，能自我演化到哪里？欢迎来点个星，一起看下去。'], s_cta),
@@ -613,7 +630,7 @@ def main() -> None:
     ap.add_argument('--voice', default='zh-CN-YunxiNeural')
     ap.add_argument('--rate', default='+4%')
     ap.add_argument('--edge-tts', default='edge-tts')
-    ap.add_argument('--results', default=str(Path(__file__).with_name('results-zh-CN.json')), help='影片中實驗結果的文字（JSON；數字來自 procedures-v1、procedures-v2、context-v2 的報告）')
+    ap.add_argument('--results', default=str(Path(__file__).with_name('results-zh-CN.json')), help='影片中實驗結果的文字（JSON；數字來自 procedures-v1、procedures-v2、attribution-v1、context-v2 的報告）')
     ap.add_argument('--preview', action='store_true', help='只輸出每一幕最後一格的圖')
     args = ap.parse_args()
     out = Path(args.out)

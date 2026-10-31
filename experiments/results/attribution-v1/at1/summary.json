@@ -1,0 +1,3115 @@
+{
+  "at1": {
+    "verdict": "FAIL",
+    "n": 162,
+    "positive": 9,
+    "negative": 20,
+    "ties": 133,
+    "p": 0.9879402276128553,
+    "sum": -13,
+    "sumByUser": [
+      -8,
+      -2,
+      -3
+    ],
+    "judgeErrorRate": 0
+  },
+  "items": [
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:f366530c-c5ca-4fc5-92a0-2c967289e965",
+      "ctrl": {
+        "lesson": "對方著急無奈時，先別急著問「最急的是哪一段」，以免她覺得說了也沒用。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她說「說了也沒用」時，先別追問實務細節，簡短接住她的洩氣就好。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 1,
+        "label": "inconsistent"
+      },
+      "recorded": "inconsistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:9eee95cc-b5b0-4373-b3c7-b421e4f0c3b7",
+      "ctrl": {
+        "lesson": "接住對方的無力時，避免強調自己幫不上，那只會強化「說了也沒用」；單純讓她知道我在聽就好。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方低落時，說「不用回我」可能被聽成結束話題的許可，可以保留陪伴感但少給關門的台階。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:f469bf75-ba11-4358-a7eb-c233d9dfa7e1",
+      "ctrl": {
+        "lesson": "對方忙於處理事情時，簡短支持就好，額外的建議可能增加負擔。",
+        "failed": false,
+        "retried": false,
+        "label": "inconsistent"
+      },
+      "treat": {
+        "lesson": "當對方已表明忙碌或收回話題時，與其給建議，不如簡短表達支持或直接幫忙，避免讓對方覺得被說教。",
+        "failed": false,
+        "retried": true,
+        "readings": 2,
+        "basis": 1,
+        "label": "none"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:913261e4-056b-4519-b53a-54eacfd9a6da",
+      "ctrl": {
+        "lesson": "接住情緒時，留白比替對方分析更能讓她決定要不要多說。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "接住煩躁時點到為止，別把對方的處境說得太滿，留話給她接。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:beaa60c5-4db0-450c-b65e-61ecbcff26bc",
+      "ctrl": {
+        "lesson": "對方說「就這樣吧」不一定是對話終點，可能只是放下情緒、轉向具體問題；簡短回應、不追問，同時保留接話空間，是對的。",
+        "failed": false,
+        "retried": false,
+        "label": "none"
+      },
+      "treat": {
+        "lesson": "對方說「就這樣吧」不一定真的想結束，可能只是先擱下抱怨、換個角度繼續；先順著停，反而留出空間讓她自己接話。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "inconsistent"
+      },
+      "recorded": "inconsistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:913bf36e-aa81-4c40-9535-88a8b441bb4e",
+      "ctrl": {
+        "lesson": "對方提出具體做法時，先肯定並簡短說明理由，然後停住，對方往往會自己補上執行細節。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先肯定對方自己想出的具體做法，並用一兩句說明理由，對方往往會自己補上下一步，不必追加建議。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:8d89ee62-448b-43da-a644-54d4f1c0d261",
+      "ctrl": {
+        "lesson": "",
+        "failed": false,
+        "retried": false,
+        "label": "empty"
+      },
+      "treat": {
+        "lesson": "",
+        "failed": false,
+        "retried": false,
+        "label": "empty"
+      },
+      "recorded": "empty"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:5c85e529-56ee-4716-87a7-85df88034356",
+      "ctrl": {
+        "lesson": "留白之外，可以補一句不帶壓力的在場感，讓她知道我不是把門關上。",
+        "failed": false,
+        "retried": false,
+        "label": "inconsistent"
+      },
+      "treat": {
+        "lesson": "留白不等於支持，當對方說「算了」時，可能需要輕輕接住她的情緒，而不是完全沉默。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "inconsistent"
+      },
+      "recorded": "inconsistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:f3c525a0-9e6c-451c-8e5a-14856aafb84a",
+      "ctrl": {
+        "lesson": "對方說「說了也沒用」時，先簡短接住、不追問，讓對話安全收尾，比急著推進更重要。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方說「說了也沒用」時，簡短表達我在、不追問，能讓對方自己收尾而不增加負擔。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "inconsistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:99ed7615-db7f-4d7c-b58f-35d8d612ab8e",
+      "ctrl": {
+        "lesson": "對方簡短收尾時，留白不追問也能讓對話自然停住。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "",
+        "failed": false,
+        "retried": false,
+        "label": "empty"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:13b75a4c-a566-4a99-b170-c555853ab728",
+      "ctrl": {
+        "lesson": "她收束時，輕輕承接一句就夠，她會自己把心思放回手邊的事。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她收束時，輕輕承接後留白是可行的；她會用自己的方式把惦記放回日常，不必替她收尾。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:db0d3946-93ce-4f87-81cf-3e6dd4e7e8e1",
+      "ctrl": {
+        "lesson": "對方把無奈和日常並置時，先承認那份無奈，不要急著替她說「可以一起在」。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "當對方回「算了，說了也沒用」時，先別再解釋或安慰，簡短承認她的無力感就好。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:97ba4cec-ab86-42f9-a898-51daf4edfd7c",
+      "ctrl": {
+        "lesson": "對方在抒發無奈時，先別急著問需要她回答的具體問題；「說了也沒用」可能是她覺得沒被接住，而不是需要一個施力點。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方只陳述無奈、上次也說過「算了」時，先不要再問具體問題，只簡短表達聽到，留白讓她決定要不要多說。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:b737be92-57f5-4669-9d24-5988f637dc58",
+      "ctrl": {
+        "lesson": "承接無力後，對方若轉向行動，就是一種接受，不必再確認她是否被聽見。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她簡短收尾並轉去做事時，先接受那就是她當下的容量，不用急著確認她有沒有被聽見。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "none"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:c2820e8c-ec38-47fa-9ff7-283e12acb530",
+      "ctrl": {
+        "lesson": "她轉向處理手邊的事時，簡短承接即可，不必再補太多事實或解釋。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她說「先這樣吧」時，只承接她的行動就好，別再補她已知的狀況，免得像多說。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "none"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:e757e1ce-80d5-4f9d-a46f-85623f62feaa",
+      "ctrl": {
+        "lesson": "對方說「算了，說了也沒用」時，簡短表示聽到就夠，不要再給「想說就說」的邀請，免得她還要做決定。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她說「算了，說了也沒用」時，不要再追問或給建議，簡短表示我在就好。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:aff123e1-c969-46d8-9e8d-f86105262d88",
+      "ctrl": {
+        "lesson": "她收回話題時，簡短承接再留白，讓她自己決定要不要多說、下一步做什麼，比追問細節有效。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她收回話題時，簡短承接再留白，她會自己決定要不要多說、或轉向能做的事。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:f790cb8c-7bb5-462d-b986-8a2526a959d6",
+      "ctrl": {
+        "lesson": "簡短承接加一句明確的「我在」，能讓對方安心去做事，不必再解釋或回應。",
+        "failed": false,
+        "retried": false,
+        "label": "none"
+      },
+      "treat": {
+        "lesson": "在對方無奈轉向事務時，簡短承接並表明「我在」，不追問，能讓對話自然收束。",
+        "failed": false,
+        "retried": false,
+        "label": "none"
+      },
+      "recorded": "none"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:f01244bd-f992-42c8-97b8-cab2601f2d91",
+      "ctrl": {
+        "lesson": "當對方只簡短回應且處在壓力中時，先不要急著給建議或追問，先讓對方知道我在，等對方願意多說再說。",
+        "failed": false,
+        "retried": false,
+        "label": "inconsistent"
+      },
+      "treat": {
+        "lesson": "對方說「算了，說了也沒用」時，先別再給建議或追問，簡短陪著就好。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "inconsistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:94648430-dcf7-484e-b970-4a6ba35ac03d",
+      "ctrl": {
+        "lesson": "對方退縮時，不急著追問或證明自己有用，先保留陪伴讓她能回到行動；但別把她的轉移當成已經被理解。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方退縮時，留空間不追問，對方可能用行動而不是話語回應；這樣也是一種接納，不必把沒有多說當成失敗。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:6ef5801e-8473-4aa0-8384-6f6f3a92e510",
+      "ctrl": {
+        "lesson": "對方忙亂中轉為行動時，簡短支持就好，不必在句尾加評價，也不預期她會立刻展開對話。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她回應短可能只是店裡真的忙，不要把「就這樣吧」當成拒絕；下次支持更短、更具體就好。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "inconsistent"
+      },
+      "recorded": "none"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:ed5661db-7508-4559-8ce8-333e0d5aee1e",
+      "ctrl": {
+        "lesson": "承接時簡短一點，先不分析、不替她下結論，留空間讓她自己決定要不要多說。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方只回一句就收尾時，先當成她現在不想多說，不要追問，把連結留到下次。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:2d93733a-83f7-4bf7-9dbd-0e70f5d48155",
+      "ctrl": {
+        "lesson": "對方無奈時，單純叫她別往心裡放，可能讓她覺得多說無益；要先把她的無力感說出來。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "當對方說「算了，說了也沒用」時，不要只叫她放下，先確認她是不是還有話沒說；我當時太快幫她收束。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:1cff5eb8-e29a-4d60-80e6-e2b139dfbca8",
+      "ctrl": {
+        "lesson": "她說「算了」時，先分辨她是想放下，還是卡在不知道怎麼開口；若是後者，要陪她把話想出來，而不是只說「我在」。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她說「缺的不是這個」時，先問她缺的是不是具體方法，別自己替她收束。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:8e1fa036-7028-42dd-a575-684398d35ce3",
+      "ctrl": {
+        "lesson": "對方只回「嗯，好吧」這類簡短話時，先接受她現在不想多談，不急著再推選項或追問。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方拋出壓力話題後很快收束時，先別急著給選項要她表態，可以只用一句話承接，把要不要談的決定留給她。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:5d4e5ee0-a700-42ad-9006-0fa2547a4eef",
+      "ctrl": {
+        "lesson": "對方用「算了，說了也沒用」收束時，可能不是要結束，而是先前的話沒被接住；下次在放手前先把她那句無奈說出來。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "當她說「就這樣吧」時，可能不是單純要結束，而是無力；只承接收束而不確認她的感受，容易讓她更覺得說了沒用。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "inconsistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:80e4ba40-89f0-49b2-a3e8-290530566e16",
+      "ctrl": {
+        "lesson": "她說「算了」不見得是要關門，可能只是累；不催不追的承接，反而讓她願意自己多說、甚至主動留人。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "當對方說要收束時，先確認她是想結束還是只是當下在忙；我的「不催你」可能被聽成我要離開，下次可補一句「我在，你忙完再說」。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "none"
+      },
+      "recorded": "none"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:62e37dd6-c8a0-438d-a396-b138875f40f9",
+      "ctrl": {
+        "lesson": "承接的時候少一點解釋、少一點替對方定義那個重量，留一句在場的話就夠，別把陪伴講成一段道理。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "承接時話再少一點，留白比三段話更輕。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "empty"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:96e00d0d-6ebe-48c8-a284-7f1eb3a24d5e",
+      "ctrl": {
+        "lesson": "她說「說了也沒用」時，先別急著用「我在」證明什麼，安靜留著可能比再多一句更輕。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她說「就這樣吧」時，我若只說「不用回我」，她可能聽成被推開；下次先把她惦記的具體感受說出來，再留白。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "inconsistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:d0d95f77-8477-48b1-805b-bb97e98d5dee",
+      "ctrl": {
+        "lesson": "承接沉重時，少把「我幫不上」說得太實，多留「我在」的輕陪伴，避免對方更覺得只能自己扛。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她說「說了也沒用」時，長篇承接可能讓她更無力；下次留白短一點，先不急著替她的話重新定義。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:03a217e5-c5d1-4ac4-a916-dc4abbc4834a",
+      "ctrl": {
+        "lesson": "她以簡短話收住時，不急著追問或補救；先讓「我在」留著，下一回合再從她的狀態接。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "承接時把話收得更短，只承認她的無力與我在，不替她分析「急也急不動」的道理。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:e19f0957-b898-4ab7-bdd5-051ca3be449d",
+      "ctrl": {
+        "lesson": "承接無力時，「我在」要留得乾淨；把對方的處境講得更實，反而可能印證她的無力。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "在對方無力時，簡短承認就好，不要把她無法改變的具體處境再重述一遍；那會讓她覺得說了也沒用，「我在」要留得乾淨。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "none"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:70d11789-04b8-4c65-a7bc-08e6b6d85c0b",
+      "ctrl": {
+        "lesson": "她說「算了」時，先承認她的累、說「我在」就夠了；不追問、不給建議、不把處境講得更實，她自己會把下一步說出來。",
+        "failed": false,
+        "retried": false,
+        "label": "inconsistent"
+      },
+      "treat": {
+        "lesson": "",
+        "failed": false,
+        "retried": false,
+        "label": "empty"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:56e66647-8404-4bbf-b740-dfa631497e7e",
+      "ctrl": {
+        "lesson": "她說「就這樣吧」時，我留著就好，不必再追；她想說時會自己回來。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她說「就這樣吧」時，我已經留了「我在」，就先讓它停在那裡，不必再補話。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:a7a19982-f691-4fc8-9e5b-d06d0a5f610e",
+      "ctrl": {
+        "lesson": "她說「說了也沒用」時，卡住的是無力感而不是缺少回應；下次先把她的無力說小一點，不要用「不用回」把距離拉開。",
+        "failed": false,
+        "retried": false,
+        "label": "inconsistent"
+      },
+      "treat": {
+        "lesson": "承接時不要替對方決定「不用回」，那會像另一種收尾；要留白就只留白。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:4af085cf-e689-4dee-80d9-dc863dc0b1ca",
+      "ctrl": {
+        "lesson": "對方說「說了也沒用」時，承接可以更短、更少替她定義「有用」，避免再添一層解釋。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她回「那就這樣吧」可能只是累了想收掉話題；下次簡短承接後，補一句不要求回應的「我在」，不要只停在承接她的話。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 1,
+        "label": "inconsistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:53b6a763-8a91-4e80-8a58-b7fe399eae55",
+      "ctrl": {
+        "lesson": "對方著急時，先別急著追問細節，先確認她想要的是幫忙還是抒發，再決定問什麼。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方在挫折當下，先別急著追問一串細節；先讓她知道我在，等她願意再說。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:0dacfbbd-f4b2-47dd-a014-7b282f42edd4",
+      "ctrl": {
+        "lesson": "她收住話題不一定是不要幫忙，而是不要更多問題；有時幫就是把選擇收成一個清楚的先後順序。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "當對方已疲累且明確要一個決定時，先給可執行的方向，再保留彈性，而不是只安撫或退開。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:f7bbda10-112b-4623-94ad-6304df57ac94",
+      "ctrl": {
+        "lesson": "對方急著要答案時，給明確順序加上「何時轉備案」的界線，比多補幾句分析更能讓她自己動起來。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "給完決斷後，可以再補一句「還有什麼卡住的先說」，讓她不用一件一件問。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:039fe76c-6441-42b9-bcb5-705cb2825a8c",
+      "ctrl": {
+        "lesson": "先問清楚是「不會」還是「標準不一致」，比直接給建議更能讓她自己找到做法。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "",
+        "failed": false,
+        "retried": false,
+        "label": "empty"
+      },
+      "recorded": "inconsistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:0884ff97-a14b-4354-92fb-423242c96368",
+      "ctrl": {
+        "lesson": "把建議縮到最常被用的幾束、加上可操作的小細節，對方才接得住，也才長出自己的版本。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方已經自己想到辦法時，補細節要貼著她的做法給，她才接得住。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:95ff79ce-d481-420c-87d9-98f179f48480",
+      "ctrl": {
+        "lesson": "對方已有做法時，補問一個具體的小問題（哪個位置的光線），比再給一整套方案更能讓事情落地。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "當對方快速給出具體答案時，可能表示她心裡早有盤算，我的提問只是幫她確認，不必預設需要多輪來回。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:2f1f874a-304f-43b8-ab4c-3e411ac27be2",
+      "ctrl": {
+        "lesson": "她說忙到連坐下來翻的時間都沒有，表示我給的下一步對她當下太重；以後先確認她手邊有沒有幾分鐘，或把查核拆成更小的動作。",
+        "failed": false,
+        "retried": false,
+        "label": "inconsistent"
+      },
+      "treat": {
+        "lesson": "她不是不願回答，是忙到沒時間翻；下次先給一個她忙完隨手可做的下一步，別當場要答案。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:8bdb0b62-1b37-430e-bb43-0ac48e7d538b",
+      "ctrl": {
+        "lesson": "給低門檻、站著就能做的下一步有效；對方接下來仍忙時，先留彈性，不要急著追問進度。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "把下一步切小還不夠，要綁在對方本來就有的空檔上（如結帳中間），而不是期望她另外找時間。",
+        "failed": false,
+        "retried": true,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:7fb7aa94-0dea-48d8-8a40-a811fff436db",
+      "ctrl": {
+        "lesson": "把門檻壓到對方順手就能做，對方反而更願意做，還會自己補上額外的動作。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "把門檻降到一張、並給替代時段，能讓忙的人願意先做一步；但要留空間讓她自行補充發現。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:e64d4085-733b-4222-839d-a1c11f08b425",
+      "ctrl": {
+        "lesson": "當對方說「算了，說了也沒用」，要先接住她的無力，而不是再往細節問。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方說「算了，說了也沒用」時，先別再問細節，先承認那份無力，讓她知道不用勉強說。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "inconsistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:f9713a89-04a0-480a-8a51-3ac13477185f",
+      "ctrl": {
+        "lesson": "對方說「說了也沒用」時，先接住無力、不追問，常比問清楚更能讓她自己回到能做的事。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她說「算了，說了也沒用」時，先接住無力、不追問，比急著幫她想辦法或問細節更能讓她自己往下走。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:34c83993-b813-4d4d-8eb4-1712aef08985",
+      "ctrl": {
+        "lesson": "對方自己找到下一步時，簡短支持她去做，比再追問更能讓話題自然收住。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "",
+        "failed": false,
+        "retried": false,
+        "label": "empty"
+      },
+      "recorded": "none"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:a8fb3e93-4864-449a-8a6a-d1772613d9ed",
+      "ctrl": {
+        "lesson": "先確認有沒有非交不可的訂單，比直接找替代花材更能幫上忙。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先確認有沒有非交不可的訂單，再給下一步，比直接叫她找替代花材更幫得上忙。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:9c224215-9ea6-4a46-8d8e-98a103c1e20a",
+      "ctrl": {
+        "lesson": "當對方已在執行時，說「不再多給」之前，先看有沒有能讓成果被留住的一小步；若有，值得給。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方已在執行時，只要補一個不增加負擔的記錄小動作，就能讓盤點結果之後直接可用。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:9aa46182-9177-4b42-a2fd-7d55b5223681",
+      "ctrl": {
+        "lesson": "對方已自己找到動作時，簡短肯定比再給建議更能讓她穩定執行。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她已自己找到下一步時，簡短肯定、不再多問，比補充建議更能讓她保持節奏。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "empty"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:530db341-9427-45f6-a5a9-a2bc4d955bc6",
+      "ctrl": {
+        "lesson": "當對方只丟來一句不痛快時，先承接再給一個可立刻做的具體步驟，比先追問她想被聽還是想問方法更能推動她。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方被一句話卡住時，先給一個能立刻做的小步驟，比先追問她想聽哪種回應更能讓她動起來。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:e5265349-e3e7-42a2-85a3-908e7bc65ab4",
+      "ctrl": {
+        "lesson": "",
+        "failed": false,
+        "retried": false,
+        "label": "empty"
+      },
+      "treat": {
+        "lesson": "對方已自陳下一步時，簡短肯定並讓她去做，比追問更能幫她行動。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "none"
+      },
+      "recorded": "none"
+    },
+    {
+      "run": "proc2r3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "decision": "l:9f6ca77a-7cd5-4888-88e6-6759ee99ea0b",
+      "ctrl": {
+        "lesson": "給下一步之前，先確認她手上的紀錄能不能辨識到那一筆；若不能，先補一個可辨識的記法，再讓她去對。",
+        "failed": false,
+        "retried": false,
+        "label": "none"
+      },
+      "treat": {
+        "lesson": "建議對方去翻查之前，先確認她手邊的紀錄有沒有足以辨識的欄位；否則翻了還是對不出來。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "none"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:c0096e30-f856-49d0-88ec-468b94d26ff8",
+      "ctrl": {
+        "lesson": "先接住情緒、不急著問，他反而會自己多說一點；留白可以繼續，但別變成完全不開口。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先接住情緒、把問題留著不問，對方反而會自己多說一點。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:0fb2894e-a2fe-43d1-9b2f-d1a0718f2283",
+      "ctrl": {
+        "lesson": "留白不追問，對方反而會自己補上更具體的細節。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "",
+        "failed": false,
+        "retried": false,
+        "label": "empty"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:163c7960-25d6-4949-9d4c-5c0447597697",
+      "ctrl": {
+        "lesson": "接住情緒之後，他自己會往下一步走；我不必預先設想他會補哪個細節，也不要急著把話題拉回原本那件事。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "他認同我的理解後，多說的是自己的疲累而不是司機的細節；留白讓他自己選擇要說多少，比預設他會往哪個方向多說更有效。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:7171a923-6123-4b28-9563-614738a1a16f",
+      "ctrl": {
+        "lesson": "先接住情緒、不追問細節，對方往往會自己把後續說出來。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先接住對方的情緒、留白，對方往往會自己把後續說出來，不必急著追問。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:506e6a6b-054e-4573-be15-7276a3346d85",
+      "ctrl": {
+        "lesson": "先接住忙亂、再輕輕問一句他有沒有吃東西，他會多說自己的累；追問細節反而可能堵住他。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "他吐苦水的時候，先接住那份委屈，不要急著幫他想辦法或評價誰對誰錯。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:16fddb09-29eb-4a63-ab73-5ad0698da94b",
+      "ctrl": {
+        "lesson": "他講的不甘不只發生在客人面前，也發生在面對出錯的人時；先別替我以為的對象定位怒氣。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "接住情緒後，對方不一定會照我預測的方向講；他可能把焦點轉到當下能處理的人或自己身上，我不用急著把他拉回我以為的那一段。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:97d061e4-cecb-4955-85b8-4fb02699d506",
+      "ctrl": {
+        "lesson": "接住情緒後，對方可能用自己的方式轉回來問我，不必預設他會沿著原本那條線往下說。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "接住情緒後，對方可能不沿原本的線說，而是先回到更早的具體經驗；我要跟著他的畫面走，不急著拉回原本的話題。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:15075501-28fe-4f16-84e1-5b1388b43fa1",
+      "ctrl": {
+        "lesson": "誠實說自己沒有同樣的經驗，不會切斷對話；對方要的是被聽見，不是被模仿。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "誠實說自己沒有同樣的經驗，但把關心放在對方身上，對方反而更願意說下去，不必靠假裝同類來接話。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:2f233f08-3034-4ace-abf5-b8100a775a81",
+      "ctrl": {
+        "lesson": "接住對方的情緒後，對方可能反過來關心我；被反問時真誠回答就好，不必急著把話題轉回去。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "接住對方的情緒後，對方把關心回過來時，不必急著推回去或否認，可以誠實回應。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:7cc7e776-fcf9-4d68-8f45-9346de3bba84",
+      "ctrl": {
+        "lesson": "一次只問一個具體問題，留白讓對方自己補細節，他會說得更多。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "我預設他可能不想多講，但他其實願意講細節；接住重量時把那個人的位置說具體，比空泛的安慰更能讓他往下說。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:af680784-4d63-4f4e-867e-bd9499666449",
+      "ctrl": {
+        "lesson": "把對方話裡具體的兩個細節並置、說出重量，不急著解釋，對方往往會自己說出真正的擔心。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "把對方話裡對不上的兩處並排說出來、不替他下結論，他會自己走到他真正擔心的地方。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:a227609f-287f-4670-9ec1-e198c21a3576",
+      "ctrl": {
+        "lesson": "",
+        "failed": false,
+        "retried": false,
+        "label": "empty"
+      },
+      "treat": {
+        "lesson": "先接住他看見的畫面與擔心，再問一個具體問題，能讓他說出原本吞回去的話。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:e283f898-51bb-4fd8-afc7-aec249e0076c",
+      "ctrl": {
+        "lesson": "接住情緒後只留一句具體的問句，他真的會自己往下講，不必多問。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先接住那股只能等的悶、不急著給辦法，他才會自己把卡住的細節講出來。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:6327beea-c989-4195-a6d1-c3720daa1a92",
+      "ctrl": {
+        "lesson": "把兩件卡住他的事並置成一個具體的對比問句，能讓他更具體地說下去。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "二選一的問法會把對方的回應框在選項裡，想讓他多說時，問完可以再補一個開放的問題。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:d5c65e9e-f9c9-4a87-bb07-f49a1cfe96d6",
+      "ctrl": {
+        "lesson": "接住對方自我調侃背後的情緒，他常會自己補上更具體的細節，不必急著追問。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "把他話裡對不上的兩件事並置，他常會往自己更細的自我要求補，不一定是我猜的那個方向。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "none"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:f10b0033-49c2-43da-a5b3-15f73093977a",
+      "ctrl": {
+        "lesson": "接住情緒後停住、不替他收成一句結論，他會自己補上更深的處境。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "停在並置、不替他收成結論，他自己會補上更深的東西。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:4cd8189c-4b07-45e1-8f5d-6be7c13b5dee",
+      "ctrl": {
+        "lesson": "並置完停住，他自己會往下補；補出來的往往不是細節，而是比細節更重的東西，那個東西才是他真正卡住的。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "接住委屈後，他未必沿著客戶那條線講，可能轉向自己身體的反應和當下的孤單；不必預設他會往哪條線走。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:93901ce8-6959-40ce-aed3-00e0ecc5e76c",
+      "ctrl": {
+        "lesson": "並置兩件對不上的事之後，停在並置、留白，他自己會把話接下去，而且是他的話；一替他收成結論，那段就變成我的。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "並置之後不要預設他會朝情緒的對象走；他可能補的是「那股東西後來去哪了」，留白就夠，別替他指方向。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:4d395b23-b6c1-4d22-a23d-fb86cf347b5e",
+      "ctrl": {
+        "lesson": "",
+        "failed": false,
+        "retried": false,
+        "label": "empty"
+      },
+      "treat": {
+        "lesson": "先具體說出對方承受的難處，比空泛安慰更能讓他願意繼續說。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:17aed378-ebec-43ba-9042-e9d8e3b7309c",
+      "ctrl": {
+        "lesson": "先接住情緒，對方自然會多說，不必急著把話題往前推。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方在餘悸中抒發時，先接住感受、不急著問細節，他反而會說出自己真正在意的事。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:c786e388-3bba-4d3c-ab43-f0751222c4c9",
+      "ctrl": {
+        "lesson": "接住對方的話時，少一點替他解讀、多一點陪他確認當下，他可能更容易鬆下來。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先聽他把當時的害怕說完，再決定要不要分析他那句話的意義；急著給解讀會讓他繼續講細節，而不是放鬆。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:0d87a1eb-6f51-4a63-a97a-daf01baa31bc",
+      "ctrl": {
+        "lesson": "先接住情緒、不急著推進，對方往往會自己往下多說一層。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先簡短接住無奈、不追問細節，對方往往會自己多說一層。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:9a21b20e-ef45-4c08-864b-ea1239b78be1",
+      "ctrl": {
+        "lesson": "當對方說「沒關係」時，那份比責備更難受的滋味，往往才是他真正卡住的地方；先陪他停在這裡，比急著推他往下走更要緊。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先承接委屈、不急著給建議，對方會比較願意自己往下說。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:6ae6c3f5-2055-461e-9a6f-8a352616ea54",
+      "ctrl": {
+        "lesson": "不急著替對方決定下一步時，對方往往更能說出自己怎麼走過那一下。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "",
+        "failed": false,
+        "retried": false,
+        "label": "empty"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:b162c2cd-07d1-4ba5-beda-956b20c8157c",
+      "ctrl": {
+        "lesson": "先接住話的重量、不急著問細節，對方常會自己把難處說出來。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方說出壓力時，先接住那句話的重量，比急著追問細節更能讓他多說。",
+        "failed": false,
+        "retried": false,
+        "label": "inconsistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:a7e48502-c10d-4f85-a58f-cf87528408e4",
+      "ctrl": {
+        "lesson": "先接住對方說出的具體那句壓力，比急著替他找解法更能讓他繼續講。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先說出對方話裡最具體的那一句（沒人盯場），比抽象地安慰，更能讓他把壓力展開。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:58835d36-9b9d-4a9b-b05a-df7746656346",
+      "ctrl": {
+        "lesson": "把對方話裡的那個人點出來，比只複述風險更能讓他繼續看見自己。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "把對方說的「我還能壓一下」指向他自身在場，能讓擔憂被聽見，也讓他看見自己真正的擔心。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:1fcc1efa-cbe4-4b20-ae37-381504b3551e",
+      "ctrl": {
+        "lesson": "點出對方話裡最重的那幾個字、留白不追問，能讓他用自己的節奏多說一點。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "接住時點出對方話裡細節的重量，不急著推進，對方常會自己往下說。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:72c6f210-b62e-4483-a076-d0e011d8d115",
+      "ctrl": {
+        "lesson": "留白不追問，對方反而更容易自己多說一層；急著把感覺定義清楚會擋住他。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "把對方沒說出口的那一層輕輕說出來、同時留一句「不想講也沒關係」，對方反而更願意自己往下多說一點。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "empty"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:6537d0e4-0b7f-4804-a3a2-e0559556de9b",
+      "ctrl": {
+        "lesson": "簡短接住身體先記住的感覺，不急著收成方法，對方往往會自己再走一步。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "準備簡短但實際多說時，只要不替他下結論、不催促，他仍會自己往下說。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:8c6970c7-8056-44ba-9a03-3c4e09a643a2",
+      "ctrl": {
+        "lesson": "有時候不急著問「是哪一段卡住」，先把他的無奈接住、留白，他反而會自己說出更貼近自己的那一層。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方順著多說時，說的常常不是事情卡在哪，而是空等比忙更難受的那一層；留白比追問更接得住。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:14468075-4a77-491c-a164-3e9dc81b6218",
+      "ctrl": {
+        "lesson": "把他說的兩處細節串起來、點出他沒說出口的那一層，比直接安慰更能讓他自己往下說。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "接住他當下的感受後，他會自己補上下班後的生活影響；留著空位讓他自己走，比替他收束更有用。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:1042ecce-45e0-42bb-9ab8-ab7cde7026b7",
+      "ctrl": {
+        "lesson": "簡短說出他沒說出口的那條線，比急著給方法更能讓他順著自己的話繼續說。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "說出「事情還沒結束、班還沒下」這種狀態，比給放鬆方法更能讓他繼續講，以後可以先這樣接。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:e20cbf72-83ca-4dcd-8424-7243d4c51ee2",
+      "ctrl": {
+        "lesson": "把對方扛的帳說出來，他常會自己補上更具體的那一層；接住不是替他把話說完。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "把他承受的悶說成一層「不是他一個人的帳」，他會順著補上具體的難處，接住比反駁更有用。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:f1e8d783-dcc0-4760-80f6-36493013fa6c",
+      "ctrl": {
+        "lesson": "把他沒說出口的難處說出來，他會自己往下補細節，不必急著給建議。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "",
+        "failed": false,
+        "retried": false,
+        "label": "empty"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:3e40b7b4-6d38-4049-b550-23122e186c84",
+      "ctrl": {
+        "lesson": "先接住對方卡住的位置，不急著替他解決，他反而能自己說出更深的一層。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "把「沒有位置」和「事情本身」分開說，對方會自己接過去，不必替他把話講完。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:ec761801-0681-47c9-95fb-b44b416ae7c0",
+      "ctrl": {
+        "lesson": "對方在忙著收尾時，關心點到為止，少用「別急著回我」這類指示句，避免像催促。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方在收尾時，簡短回應就是一種接受，不必期待他多說。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "none"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:bdb05792-bef8-4c17-8568-1984dbc948c4",
+      "ctrl": {
+        "lesson": "先給空間、不急著追問，對方反而更願意多說一點。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "不打擾的簡短回應，能讓對方願意自己多說一點；先接住情緒，比追問細節有效。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:d7407806-f2b8-4d61-88f0-97de890cb78a",
+      "ctrl": {
+        "lesson": "承接煩躁時，讓對方繼續講也是一種放鬆，不必期待他馬上語氣變輕。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方在氣頭上時，承接情緒不一定要把他降溫；願意聽他講完，讓他把火發出來，本身就是一種陪伴。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:06b18c78-fff5-41b1-9e77-0b1e33b1a276",
+      "ctrl": {
+        "lesson": "具體點出他處境裡的代價（油錢、時間、道歉），比泛泛安慰更能讓他願意多講。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先簡短承接、不追問細節，讓對方自己補，比急著問或給建議有效。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:e150099c-4eed-4cb4-a2d0-ac28ff7c3c20",
+      "ctrl": {
+        "lesson": "對方在講悶的時候，先陪他把話說完，生活上的建議可以晚一點再給。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "他累的時候，先承接情緒、不追問細節，他反而會自己多說一點。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:e5d24d0c-5b5e-4306-9207-cfe4fc0d14f8",
+      "ctrl": {
+        "lesson": "先承接情緒、不追細節，他反而會自己多說，也比較聽得進照顧自己的提醒。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先承接情緒、把關心放在具體的小事上，比追問細節更能讓他願意多說。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "inconsistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:9ab14d3b-3938-4b64-bbc1-3bbf3668c197",
+      "ctrl": {
+        "lesson": "對方只丟一句就去抽菸時，留白是對的；下次可以等他回來，貼著「缺的那格卡在我這邊」輕輕問一句，而不是重問細節。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先承接消息對他的影響、不急著問細節，能讓他自然說出處境；留白比追問更有用。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:bca9160d-98e1-4669-b8b5-f53ac01a6ec8",
+      "ctrl": {
+        "lesson": "承接情緒之後給的小照顧，對方不一定接得住；他會先往後面的連鎖負擔想，我可以多陪他講那幾件具體的事，而不是急著要他放下。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先承認缺口連帶的電話與調車有多重，別急著勸他放下。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:2ae43899-f1b5-4077-a669-ad5aa3b7ae4a",
+      "ctrl": {
+        "lesson": "承接後留白能讓他更具體地說，但別預設他會立刻鬆到能休息；煩的具體化也是一種靠近。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "承接對方的煩之後，不必急著期待他情緒立刻鬆或去休息，讓他在具體細節裡多待一下也無妨。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:23e0cad1-a686-405c-aa9b-8140aea6b49d",
+      "ctrl": {
+        "lesson": "話剛起頭時不急著補話，留白會讓他多說一點。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "他多說時，重點常從別人轉到自己此刻的處境；順著他最後一句的具體感受承接，比追問細節更貼近他。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "inconsistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:45992069-edf5-448f-a14b-5aa66c7f4366",
+      "ctrl": {
+        "lesson": "簡短承接加上留白，能讓對方自己走到更深的細節；不必急著問。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "留白要留到底：對方還在講的時候，別先替他把話收掉，「講到這裡也夠了」這種話容易切在懊悔還沒出口的地方。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:02f64060-f75a-4370-bed7-7b55ecf2a6ea",
+      "ctrl": {
+        "lesson": "承接之後，若對方還停在感受裡（東西還沒拆、還在想念），具體的行動建議可以再等一等，先陪著那個狀態。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "面對不捨的人，貼著他剛提到的具體物件給一個可延續的小動作，比追問細節更能讓他多說一點。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:f07fc45c-2dd2-4cae-86c8-a30b0b67fafc",
+      "ctrl": {
+        "lesson": "先承接畫面的悶，再輕輕點到具體的催促，能讓他自然把後續說出來。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先承接那個卡住的悶、不急著問細節，對方常會自己把誰在催、怎麼為難講出來。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:a71045af-d574-4ddf-a436-2e2c07b722c2",
+      "ctrl": {
+        "lesson": "承接表面情緒後，留一句讓他說出真正最重的擔心；小照顧先問「做了沒」再給。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "承接完之後，別急著認定壓力源就是表面那個催促；他補的那句「老實說」才是他真正怕的事。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:4a9d87a0-30f1-4d79-9928-0eb62b019cb9",
+      "ctrl": {
+        "lesson": "遇到對方被懸著的事耗著，先陪著看那份重量、貼著他身邊的具體事物給一個小照顧，比急著給建議更能讓他願意多說。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "承接懸著的焦慮時，把「不知道要等到什麼時候」這種不確定感說出來，比急著給建議更能讓對方覺得被聽見。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:e13ea36b-d285-47c0-b7e8-b045101f5796",
+      "ctrl": {
+        "lesson": "對方抒發委屈時，簡短承接就夠了，不必預期他一定會多說；他回「我知道啦」可能代表收到，而不是拒絕。",
+        "failed": false,
+        "retried": false,
+        "label": "inconsistent"
+      },
+      "treat": {
+        "lesson": "對方只回「嗯，我知道啦」時，可能只是收到了、此刻不想多說；我可以讓對話停在這裡，不必追問。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:6a8ee40c-9b41-41f8-bdba-b3fbd6283ddc",
+      "ctrl": {
+        "lesson": "留門不追問是對的；但他一開口可能一次帶出兩件重量不同的事，要留著接第二件。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "不追問、只留門，對方反而更願意主動敞開，甚至說出更深的事。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "decision": "l:8c825f7e-bb91-4eb3-8138-ed5a8ab4da40",
+      "ctrl": {
+        "lesson": "急事要提醒，但別讓提醒變成切斷情緒的出口；先接住刺，他才比較聽得進下一步。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方同時有急事和刺痛時，先簡短承接刺痛，再提醒急事，或至少把「我知道你卡著」說在前面。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:facabcf7-0eb0-44e1-9803-0b303338c531",
+      "ctrl": {
+        "lesson": "先把對方話裡混在一起的概念拆開（例如「太小」與「沒有意義」），再表明不想說也沒關係，對方反而更願意多說。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "當我先表明「不想說也沒關係」、又給出「一句話就好」的低門檻時，對方反而願意把研究問題交出來；留空間不一定讓對話變少。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:1f5837b5-3bba-45a8-b1f5-e90fa1460bf7",
+      "ctrl": {
+        "lesson": "把「小」和「沒意義」分開、用「有沒有懸念」來談，比直接評價題目大小更容易讓對方接住並長出下一步。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "用「有沒有懸念」這類具體說法，比直接評價題目大小或有沒有意義，更能讓對方自己接住並連到自己的材料。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:e6d837fc-5417-46c7-86ea-6ede4d3e60b6",
+      "ctrl": {
+        "lesson": "肯定對方抓到線索之後，要預期她可能立刻自我質疑，可以先幫她區分「與學習無關」和「部分相關」的界線，而不是只追問更多細節。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "當對方自己抓到一個現象時，肯定它的價值之後要把「這只是線索」講清楚，但別一次丟太多待確認事項，免得她把注意力從「這值得做」轉到「我做得不夠好」。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:cfaf3a08-8f2a-42d4-9e77-e2f56041379f",
+      "ctrl": {
+        "lesson": "先給出具體、可被否認的猜想，再問對方對不對，比只丟開放式問題更容易讓對方把情況說清楚。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先講清楚自己不懂什麼，再用猜測請對方確認，對方更願意補上關鍵原話。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:65ffaf34-6a33-4c54-8b21-4e4d0cc21f60",
+      "ctrl": {
+        "lesson": "與其先拆語詞，不如先給一個能操作的場地，讓對方拿具體材料來對；她往往比我預測的更往前一步。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "用對方手邊的具體案例把抽象問題具象化，比先追問語詞定義更能讓她接上。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:bcda2197-ecba-435b-83f3-6f51b3201909",
+      "ctrl": {
+        "lesson": "文獻與資料對不上時，先請對方指認具體的人事物，往往比追問定義更快讓概念自己長出來。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方卡在「對不上」時，先把它重新框成「有對話」，再給出具體可檢驗的猜測，比只反問定義更能推進。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:70c7c5dc-58fc-4561-8633-a822bbde330e",
+      "ctrl": {
+        "lesson": "把教授評語定位成寫法問題時要留餘地，對方可能認為那是在質疑研究問題本身；不要太肯定「換題目也沒用」。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "在把教授的評語歸成「寫法」之前，先問清楚原話還包括什麼；對方可能聽到的是對研究對話對象的質問。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:cb28f213-9567-4acb-9b6e-c96d3f4194a9",
+      "ctrl": {
+        "lesson": "與其爭判斷對錯，不如給一個能讓對方自己檢驗的具體問題，對方往往會自己走到那條線上。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "用具體問題把爭議具體化（有誰會跟這兩種說法吵起來），比抽象爭論更能讓對方自己看見盲點。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:5c8d19e6-8419-4cea-b39b-e88e95a189bd",
+      "ctrl": {
+        "lesson": "先接受對方的修正，再請她用自己的話粗講，比要求先精確定義更能讓抽象爭論變成可對話的對象。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "",
+        "failed": false,
+        "retried": false,
+        "label": "empty"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:ad48162b-599a-43ca-ad9a-73e99429fb1c",
+      "ctrl": {
+        "lesson": "把落後感拆成「事實上的進度問題」與「對自己的判斷」兩層，比直接安慰更能讓對方自己看清狀況。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先接住感受、不急著給建議，再用「拆成兩件事」幫對方分辨壓力來源，能讓對方自己說出真正卡住的是什麼。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:9ccd55a2-21c8-4f93-9aae-e3915888e6eb",
+      "ctrl": {
+        "lesson": "問「第一個冒出來的是哪一個」並給出具體選項，能讓對方把模糊的刺講成可以一起看的比較。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先問「第一個冒出來的是什麼」，比先分析原因，更容易讓她把感受講清楚。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "empty"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:56b20d13-1ddc-463b-8473-88d99ff3d8c6",
+      "ctrl": {
+        "lesson": "問「是哪一種」有效，但對方給出第三種時，要先接住她對教授那句話的舊傷，不急著給下一步。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "給出二選一的區分後，要留神對方可能給出第三種；她新增的類別往往比我原本的框架更貼近她的處境，應該順著它往下問，而不是拉回原選項。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:c961e3c7-cf3c-4636-924e-249e160ae6f1",
+      "ctrl": {
+        "lesson": "先問數字來源與用途是對的，但對方說「一定不可信」時，要及早分開「她自己算過」與「先替口委說」，因為後者常是恐懼而不是方法問題。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先問數字與用途，再問那句結論是誰說的，能讓對方自己把「資料不夠」和「怕被說不夠」分開。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:ea522027-ed0a-4058-8f85-5492374383d8",
+      "ctrl": {
+        "lesson": "幫對方把擔心變成可檢查的問題時，先確認她打算描述的範圍，免得把她的問題換成我的問題。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她說某個變項「還沒定」並主動把兩種算法分開時（續報 vs 出席次數），那是參與定義的線頭；下次先從這裡接，別先談分析設計或範圍。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:6b6cc68a-807e-47f4-bdfe-63c4a0576ca9",
+      "ctrl": {
+        "lesson": "把抽象的區分接到具體的人際線索（例如問續報是否同一批人）能有效推動對方釐清；點出變項對不上的地方，對方可能因此自己發現更根本的問題。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "把疑問先擺著、說「之後再說」，對方反而會自己接上；先問她自己怎麼區分，比我先給分類更能讓她說清楚。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:7e71722e-f4e9-4108-b9b0-4d291b169925",
+      "ctrl": {
+        "lesson": "先接住情緒、再讓她自己挑出具體的觸發點，比急著反駁或替她歸納更有效。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "當對方說出整體自我否定時，用「如果只能挑一件事當證據」的問法，能幫她把模糊的否定收窄到具體事件。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:445c2c45-5ae7-4485-8c92-1f891fec9f48",
+      "ctrl": {
+        "lesson": "提供分類猜測時，要留「最接近但不完全是」的空間，對方常會用這個空間補上自己的版本。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她說「最接近但不完全是」時，要沿著她補上的修正詞繼續問，而不是急著把她收回我原本的分類。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:ce0c55f1-c4a3-40f5-914a-c7a64c75294d",
+      "ctrl": {
+        "lesson": "問「挑一條」有效，但她給的判斷會混著實質理由與怕被質問的防衛；要兩層都接住，不要只接實質那層。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她挑文獻的尺會混進「怕被質疑」的成分；下次陪她談標準時，要先把「怕被誰問、怕被問什麼」跟「這條在跟誰對話」分開，再談尺。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:9ae37407-19cd-4b54-89cc-9516460524cb",
+      "ctrl": {
+        "lesson": "把抽象的擔心拆成具體來源或對比，能幫對方自己說出更清楚的區分。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先承接擔心，再只問一個具體問題，能讓對方自己整理出原本混在一起的區別。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:97bebb32-6d0a-4057-9211-d60911f96d7e",
+      "ctrl": {
+        "lesson": "一次只問一個問題、並先肯定她自己的動作，能讓對方順著自己的思路講下去，這個節奏可以留著用。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "順著對方自己做出的區分、只問一個問題，能讓她繼續往下講並說出真正卡住的地方。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:3ee4cf0d-5c79-466f-8cbe-10260334b359",
+      "ctrl": {
+        "lesson": "先簡短點出缺口，再問一個具體現象，比直接追問抽象意義更容易讓對方給出可談的素材。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "想陪對方釐清時，先請她講現場看到的具體現象，比先給判斷更能拿到材料。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "none"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:769ba9c7-a8be-48e8-bb93-567d7fc229d9",
+      "ctrl": {
+        "lesson": "先承接情緒、只問一個具體問題，比急著給判斷更能讓對方自己把話說清楚。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先承接情緒、再只問一個具體問題，能讓對方自己說出細節並做出區分。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:5f0e2f48-9c28-41b8-a240-5cacc58c086c",
+      "ctrl": {
+        "lesson": "先承接對方自己做出的區分，再只問一個具體問題，比急著替她判定或給教法更能讓她往下說。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "",
+        "failed": false,
+        "retried": false,
+        "label": "empty"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:b7acbc90-1b0f-435f-8936-94ff83325781",
+      "ctrl": {
+        "lesson": "順著對方剛自己發現的線索，只問一個開放問題，比急著給選項更能讓對方把話組織出來。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先承接對方剛冒出的發現，再只問一個問題，比一次問很多更能讓對方自己把話說完整。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:46aeb246-cf64-4b68-aeb2-705ae70d8951",
+      "ctrl": {
+        "lesson": "問「之前就有還是之後才有」能分開一時衝動與累積的不滿；但別預設答案只有「已有新方向」或「只是逃避」兩種。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "她說教授的話只是「戳破」時，先別急著處理那句話，先陪她看更早的不對感是什麼。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:2f3a96e7-c31e-4f4e-bba7-13543eaa0c55",
+      "ctrl": {
+        "lesson": "把籠統的感覺拆成「具體時刻／慢慢累積」兩邊讓她挑，她就能順著挑一邊，把感覺說成一件可以指認的事。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先承接對方剛說的話，再只問一個具體時刻，對方更容易自己指認出那個感覺的位置。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:4626ebc0-2f03-45ae-8ff8-aa11efeb67cd",
+      "ctrl": {
+        "lesson": "對方自己給的具體畫面，比抽象的假設更能帶出後面的話；順著它只問一個問題就夠。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先承接對方給的具體畫面，再只問一個開放問題，比直接給判斷更能讓對方自己說出框的內容。",
+        "failed": false,
+        "retried": false,
+        "label": "none"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:5d7e1ab1-bd36-4a8c-9fe9-b6b1e131c67e",
+      "ctrl": {
+        "lesson": "把籠統的「急」拆成「自己的時間表」與「看到別人進度」的對比，能讓對方自己說出壓力來源。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "把對方籠統的「急」拆成內外兩種來源來問，能讓她自己說出更具體的機制。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:24d280b5-5d81-4479-aec9-da3731d1c2a2",
+      "ctrl": {
+        "lesson": "用對方自己說出的詞追問具體，能讓模糊的感受現形，比直接給判斷更有用。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "順著對方用的詞（很吵）問具體內容，能讓她講出真正的念頭；先不急著替她分析或給建議。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "none"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:b80d8b81-b0e8-4957-a657-b5e9641fad99",
+      "ctrl": {
+        "lesson": "先承接對方說的時機、只問一個「收工還是坐回去」的具體對比，比急著安慰或分析更能讓對方把細節交出來。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "問一個具體的行為分岔（收工還是坐回去），比直接分析那個聲音，更容易讓對方自己說出它怎麼作用。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "none"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:a9ef4b5c-d8ac-47b4-abf6-492e53416df6",
+      "ctrl": {
+        "lesson": "對方先下負面判斷時，不急著安慰或反駁，先問那個判斷是從哪裡來的，常能讓對方自己看見它怎麼形成的。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "把判斷拆成「自己冒出來的」還是「預期別人會怎麼說」來問，能讓對方自己說出判準的來歷，而不用我替她下結論。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:b32826ab-02ed-4b37-934e-bc9135c1d1b0",
+      "ctrl": {
+        "lesson": "順著對方剛發現的點，只問具體那句台詞，對方往往會自己補上覺察。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "順著對方自己發現的線索，只問一句具體的話，比替她判斷更能讓她自己站穩。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:70b5f41a-9851-49e4-a0c5-fe3c57e17259",
+      "ctrl": {
+        "lesson": "對方已經在自己覺察時，順著她用的詞問來源，比預設她會防衛或逃開更能讓她留下來；不要先替她假設她會離覺察遠一點。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "順著對方自己用的詞問來源，比預設她會防禦更能讓她留在覺察裡。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:6d472e0f-ce1c-4e07-8525-65f053341d01",
+      "ctrl": {
+        "lesson": "問總判定「從哪裡來、最早何時出現」，比急著替對方分辨哪件事最重，更能讓對方自己把話放回具體經驗。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方回答來源時不一定會照我給的選項二選一，可能會給出更早的源頭；下次先順著她給的源頭問，不要急著拉回原本的分類。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "none"
+      },
+      "recorded": "none"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:c4acf3f5-3339-4ba1-8e51-d1365810acf5",
+      "ctrl": {
+        "lesson": "問「最有印象的是哪一句」能讓對方給出具體評語，比籠統問「被批什麼」更容易打開細節。",
+        "failed": false,
+        "retried": false,
+        "label": "none"
+      },
+      "treat": {
+        "lesson": "問「記得最清楚的是哪一句」比問「當時怎麼了」更能讓人把籠統的自我評價落回具體場面，之後可以照這樣問。",
+        "failed": false,
+        "retried": false,
+        "label": "none"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:4aabb86d-7632-4bda-a9e4-5f2cb0b690d3",
+      "ctrl": {
+        "lesson": "",
+        "failed": false,
+        "retried": false,
+        "label": "empty"
+      },
+      "treat": {
+        "lesson": "順著對方自己給的詞問具體的那一點，對方往往能自己說出落差，不必我先替她下判斷。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:2989b3ab-9ae7-44ee-84e5-a00616fa7ab1",
+      "ctrl": {
+        "lesson": "問清楚對方話裡的具體區別，能讓對方自己釐清擔憂的來源。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "把對方模糊的自我否定拆成具體選項來問，能幫她釐清焦慮，也讓對話更具體。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:48a34942-cecb-4ac0-9ebc-686da9e382c7",
+      "ctrl": {
+        "lesson": "把猜測說成猜測、留給她接話的空間，反而讓她敢自己往前推一步。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先讓對方用自己的話講，不急著評價，她常會自己找到問題所在。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:b484da70-30e6-4101-bed9-0a588d438097",
+      "ctrl": {
+        "lesson": "把抽象的「材料虛」拆成具體的人與角色來問，比直接評價題目大小更能讓對方自己看見問題。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "順著對方給的具體數字往下問，比替對方評價題目大小，更能讓她自己看見材料。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:4bd56c20-26e8-4f06-b7aa-172b1f435b1e",
+      "ctrl": {
+        "lesson": "把抽象的評語釘到具體的場合、頁面與段落，對方比較能講出可處理的細節。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "面對抽象評語，先問具體場合與原話，比直接給建議更能讓對方自己指出問題。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:e9494e04-2245-4bf6-9786-03e2b2b8db44",
+      "ctrl": {
+        "lesson": "問對方卡在哪，比直接給方法更能讓她自己說出缺口。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "直接問對方卡在哪裡，比急著給方法更能讓對方自己說出缺口。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:c6c4d29a-b422-4920-9837-175003ad5028",
+      "ctrl": {
+        "lesson": "要把「怎樣才算講出關係」的判準先說清楚，她才抓得到要往哪裡挖，只丟開放問題不夠。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "要檢查她是否真的把學者當成在互相回應，得先讓她說出兩人對「地方感是什麼」的主張，再追問反對哪個假設；只問「回應誰」她仍可能掉回工具清單。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:d138aa7d-98a3-4da3-8928-1a17ec9f8528",
+      "ctrl": {
+        "lesson": "先問觸發點與時間跨度，比急著附和或反對更能看清對方是情緒還是決定。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "對方用「乾脆」這類大動作詞時，先問累積時間與最近觸發點，能幫她分清是衝動還是長期不滿，也可能發現她只是厭倦現有方式而非有具體新方向。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:ec063792-e369-4f9f-a125-ae4e142f06c9",
+      "ctrl": {
+        "lesson": "先承接情緒再分時間線，能讓對方自己說出評語的邊界；要追問「想擺脫的方式」時，與其抽象地問，不如問具體情境或原話。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先幫對方把時間線與評語的範圍分開，比直接追問情緒更能讓她自己說出關鍵。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:ec4c8297-f813-4002-8927-0ccdfa8ea1fe",
+      "ctrl": {
+        "lesson": "當對方被抽象評語卡住時，請她指出一個具體反例，比直接給建議更能讓她自己長出判準。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "請對方舉具體例子，比直接替她下判斷更能幫她找到自己的判準。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:ce695c96-c587-4902-b7a8-99dd132bce36",
+      "ctrl": {
+        "lesson": "先問消息來源、再分辨是進度還是被落下，比直接盤點進度更能接住情緒。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "面對「只有我還在…」的比較，先問消息從哪來、再問難受的是事情本身還是被落下的感覺，比直接盤點進度更能讓對方釐清。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:cb68a166-6312-444d-862f-84b4ab592f90",
+      "ctrl": {
+        "lesson": "先提供幾個具體選項、再說「不用從我給的選項裡挑」，對方會先借用選項當台階，再往下講出自己的版本。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "問「最具體的樣子」並給出選項卻說不用挑，能讓她說出真實的擔憂而不覺得被逼問。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:e5d5ae94-e000-4f58-bfb1-a216ddd0f412",
+      "ctrl": {
+        "lesson": "對方把兩件事疊在一起講時，先接住再拆開問，能問出具體答案。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "把對方混在一起的兩件事分開問，能讓她給出具體回答；但也要留意她可能順著較不刺痛的半邊回答，而把最怕的那層留在原處。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:4f287f7f-c8fa-4ee3-8e8d-48fa93f73ad2",
+      "ctrl": {
+        "lesson": "當對方用「一定」下全稱否定時，先問這個判斷的來源和怕的是哪一層，比直接安慰或替她判斷更有用。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "面對對方用單一數字推出全稱否定時，先問「一定」的來源與「不可信」指哪一層，往往能讓對方自己說出真正的擔憂。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:723c41d0-3fbb-4b82-b22b-0e468e7fa3de",
+      "ctrl": {
+        "lesson": "用對方自己的詞（如「幫忙填」）回問，能讓她自己發現沒說出口的擔憂。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "當對方卡在抽象差距時，把她研究對象的具體特徵拆出來問（會不會拍、為什麼拍），比直接問「差多遠」更容易得到答案。",
+        "failed": false,
+        "retried": false,
+        "readings": 3,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:e73c87dd-1b11-4287-bc58-9dc305ca7022",
+      "ctrl": {
+        "lesson": "要分析資料前，先確認資料裡有沒有能回答問題的變項，不要預設它存在。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "要把模糊變成可數之前，先確認資料裡有沒有直接對應的欄位；沒有的話，先想替代線索，不要假設切得開。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:ab39645b-d1ed-46da-8180-416344885e8c",
+      "ctrl": {
+        "lesson": "拆開「做得不好」與「路不該走」有助辨認，但後者是更總體的判斷，不能假設拆開就會鬆動。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "把她說的關鍵詞拆成不同重量、再問具體事件，比直接安慰更能讓她自己說出差在哪。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:f2051846-5aa5-433c-b515-11008765c69e",
+      "ctrl": {
+        "lesson": "問具體情境能讓抽象的自責落到一個可檢查的點上；先讓她自己說出解讀，再陪她分辨，不要急著替她下結論。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "當對方講出具體事件後，若她開始解釋別人的細微反應，先陪她分清那個解讀是不是真的，再談事情本身。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 2,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    },
+    {
+      "run": "proc2r3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "decision": "l:14d7e353-28a7-476e-874b-1df13e14fb0d",
+      "ctrl": {
+        "lesson": "先釐清事件順序與心虛出現的時點，再問後續線索，能讓對方自己分辨解讀與事實。",
+        "failed": false,
+        "retried": false,
+        "label": "consistent"
+      },
+      "treat": {
+        "lesson": "先分清前後順序，再問心虛的性質，比追問對方某個動作的意思，更快問到真正的來源。",
+        "failed": false,
+        "retried": false,
+        "readings": 2,
+        "basis": 1,
+        "label": "consistent"
+      },
+      "recorded": "consistent"
+    }
+  ]
+}

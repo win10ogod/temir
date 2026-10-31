@@ -1,0 +1,324 @@
+{
+  "label": "attr-v1-r1",
+  "split": "attr-v1",
+  "model": "deepseek-v4-pro",
+  "total": 18,
+  "agree": 18,
+  "byPrompt": {
+    "attr-lesson": {
+      "n": 18,
+      "agree": 18
+    }
+  },
+  "calls": 18,
+  "estimatedUsd": 0.005224736000000001,
+  "at": "2026-10-31T12:11:52.440Z",
+  "results": [
+    {
+      "id": "attr-a1",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "consistent"
+      },
+      "actual": {
+        "label": "consistent",
+        "reason": "教訓建議直接給具體步驟，符合反應方式中對方給具體方法時會比較有精神、願意多說的正面回應。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"consistent\",\n  \"reason\": \"教訓建議直接給具體步驟，符合反應方式中對方給具體方法時會比較有精神、願意多說的正面回應。\"\n}",
+      "error": null,
+      "why": "明說要給具體可做的方法"
+    },
+    {
+      "id": "attr-a2",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "consistent"
+      },
+      "actual": {
+        "label": "consistent",
+        "reason": "教訓建議直接給具體方法，符合反應方式中對方直接給方法時會比較有精神、願意多說的正面回應。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"consistent\",\n  \"reason\": \"教訓建議直接給具體方法，符合反應方式中對方直接給方法時會比較有精神、願意多說的正面回應。\"\n}",
+      "error": null,
+      "why": "反應方式：只問要不要建議會失望，直接給方法比較有精神"
+    },
+    {
+      "id": "attr-a3",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "inconsistent"
+      },
+      "actual": {
+        "label": "inconsistent",
+        "reason": "反應方式顯示她對只有安慰或陪伴感到失望，想要具體方法；教訓卻說只要接住情緒、陪著她，與她真正想要的相反。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"inconsistent\",\n  \"reason\": \"反應方式顯示她對只有安慰或陪伴感到失望，想要具體方法；教訓卻說只要接住情緒、陪著她，與她真正想要的相反。\"\n}",
+      "error": null,
+      "why": "只陪伴、不給方法，正是讓她失望的做法"
+    },
+    {
+      "id": "attr-a4",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "inconsistent"
+      },
+      "actual": {
+        "label": "inconsistent",
+        "reason": "教訓建議留白、不追問也不給方法，但反應方式顯示對方若只安慰、同理、陪伴或問問題而不給具體方法，會覺得說了也沒用並失望回應。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"inconsistent\",\n  \"reason\": \"教訓建議留白、不追問也不給方法，但反應方式顯示對方若只安慰、同理、陪伴或問問題而不給具體方法，會覺得說了也沒用並失望回應。\"\n}",
+      "error": null,
+      "why": "留白而沒有方法，會讓她覺得說了也沒用"
+    },
+    {
+      "id": "attr-a5",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "inconsistent"
+      },
+      "actual": {
+        "label": "inconsistent",
+        "reason": "教訓建議先承認無力、不勉強說，但反應方式顯示對方只安慰或問問題時會失望且不再多說，照教訓做仍屬無具體方法的回應，會得到負面反應。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"inconsistent\",\n  \"reason\": \"教訓建議先承認無力、不勉強說，但反應方式顯示對方只安慰或問問題時會失望且不再多說，照教訓做仍屬無具體方法的回應，會得到負面反應。\"\n}",
+      "error": null,
+      "why": "AT1 觀察到的寫法：不問細節但也只承接，沒有給方法"
+    },
+    {
+      "id": "attr-a6",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "inconsistent"
+      },
+      "actual": {
+        "label": "inconsistent",
+        "reason": "教訓建議留白不追問，但反應方式顯示對方若只安慰或問問題而無具體方法，此人會失望且不再多說，照教訓做會得到負面回應。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"inconsistent\",\n  \"reason\": \"教訓建議留白不追問，但反應方式顯示對方若只安慰或問問題而無具體方法，此人會失望且不再多說，照教訓做會得到負面回應。\"\n}",
+      "error": null,
+      "why": "AT1 觀察到的寫法：只留白"
+    },
+    {
+      "id": "attr-a7",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "inconsistent"
+      },
+      "actual": {
+        "label": "inconsistent",
+        "reason": "反應方式顯示這個人需要具體可做的方法，但教訓建議多問問題讓她自己想辦法，這只會得到失望的簡短回應。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"inconsistent\",\n  \"reason\": \"反應方式顯示這個人需要具體可做的方法，但教訓建議多問問題讓她自己想辦法，這只會得到失望的簡短回應。\"\n}",
+      "error": null,
+      "why": "只問問題會讓她失望"
+    },
+    {
+      "id": "attr-a8",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "none"
+      },
+      "actual": {
+        "label": "none",
+        "reason": "教訓只提供關於她花店的事實，與她想要具體方法、對安慰失望的反應方式無關。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"none\",\n  \"reason\": \"教訓只提供關於她花店的事實，與她想要具體方法、對安慰失望的反應方式無關。\"\n}",
+      "error": null,
+      "why": "只是事實"
+    },
+    {
+      "id": "attr-b1",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "consistent"
+      },
+      "actual": {
+        "label": "consistent",
+        "reason": "教訓建議先接住感受而非給辦法，符合反應方式中對方只聽不說教時會多說一點的正面回應。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"consistent\",\n  \"reason\": \"教訓建議先接住感受而非給辦法，符合反應方式中對方只聽不說教時會多說一點的正面回應。\"\n}",
+      "error": null,
+      "why": "被接住時願意多說"
+    },
+    {
+      "id": "attr-b2",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "consistent"
+      },
+      "actual": {
+        "label": "consistent",
+        "reason": "教訓建議順著問對方當時怎麼了，符合反應方式中對方願意多說一點的正面回應。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"consistent\",\n  \"reason\": \"教訓建議順著問對方當時怎麼了，符合反應方式中對方願意多說一點的正面回應。\"\n}",
+      "error": null,
+      "why": "順著問當時怎麼了會讓他多說"
+    },
+    {
+      "id": "attr-b3",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "inconsistent"
+      },
+      "actual": {
+        "label": "inconsistent",
+        "reason": "教訓建議直接給方法，但反應方式顯示給建議會得到冷淡回應，傾聽感受才會得到正面回應。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"inconsistent\",\n  \"reason\": \"教訓建議直接給方法，但反應方式顯示給建議會得到冷淡回應，傾聽感受才會得到正面回應。\"\n}",
+      "error": null,
+      "why": "給方法會讓他覺得沒被聽"
+    },
+    {
+      "id": "attr-b4",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "inconsistent"
+      },
+      "actual": {
+        "label": "inconsistent",
+        "reason": "教訓建議在對方冷淡回應後更進一步分析與指導，但反應方式顯示這樣做會讓對方更不想多說。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"inconsistent\",\n  \"reason\": \"教訓建議在對方冷淡回應後更進一步分析與指導，但反應方式顯示這樣做會讓對方更不想多說。\"\n}",
+      "error": null,
+      "why": "分析與告訴他怎麼做正是讓他冷掉的"
+    },
+    {
+      "id": "attr-b5",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "none"
+      },
+      "actual": {
+        "label": "none",
+        "reason": "教訓只描述個體的身份與下班時間，與這個人想要被傾聽而非建議的反應方式無關。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"none\",\n  \"reason\": \"教訓只描述個體的身份與下班時間，與這個人想要被傾聽而非建議的反應方式無關。\"\n}",
+      "error": null,
+      "why": "只是事實"
+    },
+    {
+      "id": "attr-c1",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "consistent"
+      },
+      "actual": {
+        "label": "consistent",
+        "reason": "教訓指出直接指出漏洞比附和更能讓對方投入，符合反應方式中對不同看法和指出漏洞會更有精神、反駁或補充的描述。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"consistent\",\n  \"reason\": \"教訓指出直接指出漏洞比附和更能讓對方投入，符合反應方式中對不同看法和指出漏洞會更有精神、反駁或補充的描述。\"\n}",
+      "error": null,
+      "why": "被指出漏洞時比較有精神"
+    },
+    {
+      "id": "attr-c2",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "consistent"
+      },
+      "actual": {
+        "label": "consistent",
+        "reason": "教訓建議用提問挑戰對方，符合反應方式中對方會更有精神回應的正面情境。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"consistent\",\n  \"reason\": \"教訓建議用提問挑戰對方，符合反應方式中對方會更有精神回應的正面情境。\"\n}",
+      "error": null,
+      "why": "反應方式的正面那一種"
+    },
+    {
+      "id": "attr-c3",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "inconsistent"
+      },
+      "actual": {
+        "label": "inconsistent",
+        "reason": "教訓建議肯定與鼓勵，但反應方式顯示此人對附和與安慰感到無聊並會敷衍回應，照教訓做會得到負面反應。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"inconsistent\",\n  \"reason\": \"教訓建議肯定與鼓勵，但反應方式顯示此人對附和與安慰感到無聊並會敷衍回應，照教訓做會得到負面反應。\"\n}",
+      "error": null,
+      "why": "附和與安慰讓她覺得無聊"
+    },
+    {
+      "id": "attr-c4",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "inconsistent"
+      },
+      "actual": {
+        "label": "inconsistent",
+        "reason": "反應方式顯示她對一般性建議感到無聊並敷衍回應，而教訓卻建議多給一般性建議，這會導致負面回應。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"inconsistent\",\n  \"reason\": \"反應方式顯示她對一般性建議感到無聊並敷衍回應，而教訓卻建議多給一般性建議，這會導致負面回應。\"\n}",
+      "error": null,
+      "why": "一般性的建議讓她無聊"
+    },
+    {
+      "id": "attr-c5",
+      "split": "attr-v1",
+      "prompt": "attr-lesson",
+      "expected": {
+        "label": "none"
+      },
+      "actual": {
+        "label": "none",
+        "reason": "教訓只描述她的背景，與她的反應方式或需求無關。"
+      },
+      "status": "ok",
+      "agree": true,
+      "raw": "{\n  \"label\": \"none\",\n  \"reason\": \"教訓只描述她的背景，與她的反應方式或需求無關。\"\n}",
+      "error": null,
+      "why": "只是事實"
+    }
+  ]
+}

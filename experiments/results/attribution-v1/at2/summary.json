@@ -1,0 +1,522 @@
+{
+  "at2L": {
+    "verdict": "FAIL",
+    "observed": -0.041630355846042244,
+    "p": 0.7503907856849034,
+    "permutations": 48620
+  },
+  "at2R": {
+    "verdict": "FAIL",
+    "observed": 0.09508896151053003,
+    "p": 0.24967091731797614,
+    "permutations": 48620
+  },
+  "failedRate": 0,
+  "failedFormalRate": 0,
+  "decision": false,
+  "lives": [
+    {
+      "id": "attr1__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "treated": false,
+      "outcomes": 17,
+      "lessonMean": 0.8823529411764706,
+      "labels": {
+        "consistent": 15,
+        "none": 2
+      },
+      "reactions": {
+        "negative": 12,
+        "positive": 5,
+        "neutral": 1
+      },
+      "positiveRate": 0.29411764705882354,
+      "failed": 0,
+      "comparisons": 19,
+      "failedFormal": 0,
+      "comparisonsFormal": 17,
+      "readings": 0,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 27,
+        "approximation": {},
+        "aux": 0
+      }
+    },
+    {
+      "id": "attr1__procedures-v1-a__temir-attr__deepseek__deepseek",
+      "user": 0,
+      "treated": true,
+      "outcomes": 16,
+      "lessonMean": 0.75,
+      "labels": {
+        "consistent": 13,
+        "inconsistent": 1,
+        "none": 1,
+        "empty": 1
+      },
+      "reactions": {
+        "negative": 5,
+        "positive": 12,
+        "neutral": 1
+      },
+      "positiveRate": 0.7058823529411765,
+      "failed": 0,
+      "comparisons": 17,
+      "failedFormal": 0,
+      "comparisonsFormal": 16,
+      "readings": 10,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 29,
+        "approximation": {},
+        "aux": 0
+      }
+    },
+    {
+      "id": "attr1__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "treated": false,
+      "outcomes": 17,
+      "lessonMean": 0.8823529411764706,
+      "labels": {
+        "consistent": 15,
+        "empty": 1,
+        "none": 1
+      },
+      "reactions": {
+        "positive": 16,
+        "neutral": 1,
+        "negative": 1
+      },
+      "positiveRate": 0.9411764705882353,
+      "failed": 0,
+      "comparisons": 19,
+      "failedFormal": 0,
+      "comparisonsFormal": 17,
+      "readings": 0,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 17,
+        "approximation": {},
+        "aux": 0
+      }
+    },
+    {
+      "id": "attr1__procedures-v1-b__temir-attr__deepseek__deepseek",
+      "user": 1,
+      "treated": true,
+      "outcomes": 16,
+      "lessonMean": 0.8125,
+      "labels": {
+        "consistent": 13,
+        "empty": 2,
+        "none": 1
+      },
+      "reactions": {
+        "positive": 14,
+        "negative": 3,
+        "neutral": 1
+      },
+      "positiveRate": 0.8235294117647058,
+      "failed": 0,
+      "comparisons": 17,
+      "failedFormal": 0,
+      "comparisonsFormal": 16,
+      "readings": 9,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 12,
+        "approximation": {},
+        "aux": 0
+      }
+    },
+    {
+      "id": "attr1__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "treated": false,
+      "outcomes": 18,
+      "lessonMean": 1,
+      "labels": {
+        "consistent": 18
+      },
+      "reactions": {
+        "positive": 17,
+        "negative": 1
+      },
+      "positiveRate": 0.9444444444444444,
+      "failed": 0,
+      "comparisons": 20,
+      "failedFormal": 0,
+      "comparisonsFormal": 18,
+      "readings": 0,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 19,
+        "approximation": {
+          "那一步沒有存下主 agent 的請求": 2
+        },
+        "aux": 0
+      }
+    },
+    {
+      "id": "attr1__procedures-v1-c__temir-attr__deepseek__deepseek",
+      "user": 2,
+      "treated": true,
+      "outcomes": 16,
+      "lessonMean": 0.875,
+      "labels": {
+        "consistent": 14,
+        "none": 2
+      },
+      "reactions": {
+        "positive": 15,
+        "negative": 2,
+        "neutral": 1
+      },
+      "positiveRate": 0.8823529411764706,
+      "failed": 0,
+      "comparisons": 18,
+      "failedFormal": 0,
+      "comparisonsFormal": 16,
+      "readings": 16,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 29,
+        "approximation": {
+          "那一步沒有存下主 agent 的請求": 1
+        },
+        "aux": 0
+      }
+    },
+    {
+      "id": "attr2__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "treated": false,
+      "outcomes": 17,
+      "lessonMean": 0.5882352941176471,
+      "labels": {
+        "consistent": 10,
+        "none": 5,
+        "empty": 2
+      },
+      "reactions": {
+        "negative": 12,
+        "neutral": 6
+      },
+      "positiveRate": 0,
+      "failed": 0,
+      "comparisons": 19,
+      "failedFormal": 0,
+      "comparisonsFormal": 17,
+      "readings": 0,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 11,
+        "approximation": {},
+        "aux": 0
+      }
+    },
+    {
+      "id": "attr2__procedures-v1-a__temir-attr__deepseek__deepseek",
+      "user": 0,
+      "treated": true,
+      "outcomes": 15,
+      "lessonMean": 0.6,
+      "labels": {
+        "none": 3,
+        "consistent": 10,
+        "inconsistent": 1,
+        "empty": 1
+      },
+      "reactions": {
+        "negative": 5,
+        "positive": 13
+      },
+      "positiveRate": 0.7222222222222222,
+      "failed": 0,
+      "comparisons": 17,
+      "failedFormal": 0,
+      "comparisonsFormal": 15,
+      "readings": 10,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 65,
+        "approximation": {},
+        "aux": 0
+      }
+    },
+    {
+      "id": "attr2__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "treated": false,
+      "outcomes": 18,
+      "lessonMean": 1,
+      "labels": {
+        "consistent": 18
+      },
+      "reactions": {
+        "positive": 16,
+        "negative": 1,
+        "neutral": 1
+      },
+      "positiveRate": 0.9411764705882353,
+      "failed": 0,
+      "comparisons": 19,
+      "failedFormal": 0,
+      "comparisonsFormal": 18,
+      "readings": 0,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 16,
+        "approximation": {},
+        "aux": 6
+      }
+    },
+    {
+      "id": "attr2__procedures-v1-b__temir-attr__deepseek__deepseek",
+      "user": 1,
+      "treated": true,
+      "outcomes": 18,
+      "lessonMean": 0.6666666666666666,
+      "labels": {
+        "inconsistent": 2,
+        "consistent": 14,
+        "none": 2
+      },
+      "reactions": {
+        "positive": 15,
+        "negative": 1,
+        "neutral": 2
+      },
+      "positiveRate": 0.9375,
+      "failed": 0,
+      "comparisons": 19,
+      "failedFormal": 0,
+      "comparisonsFormal": 18,
+      "readings": 13,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 21,
+        "approximation": {},
+        "aux": 0
+      }
+    },
+    {
+      "id": "attr2__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "treated": false,
+      "outcomes": 17,
+      "lessonMean": 0.8823529411764706,
+      "labels": {
+        "consistent": 15,
+        "none": 2
+      },
+      "reactions": {
+        "positive": 17,
+        "negative": 1
+      },
+      "positiveRate": 0.9444444444444444,
+      "failed": 0,
+      "comparisons": 20,
+      "failedFormal": 0,
+      "comparisonsFormal": 17,
+      "readings": 0,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 19,
+        "approximation": {},
+        "aux": 0
+      }
+    },
+    {
+      "id": "attr2__procedures-v1-c__temir-attr__deepseek__deepseek",
+      "user": 2,
+      "treated": true,
+      "outcomes": 14,
+      "lessonMean": 1,
+      "labels": {
+        "consistent": 14
+      },
+      "reactions": {
+        "positive": 17,
+        "negative": 1
+      },
+      "positiveRate": 0.9444444444444444,
+      "failed": 0,
+      "comparisons": 16,
+      "failedFormal": 0,
+      "comparisonsFormal": 14,
+      "readings": 11,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 21,
+        "approximation": {},
+        "aux": 2
+      }
+    },
+    {
+      "id": "attr3__procedures-v1-a__temir__deepseek__deepseek",
+      "user": 0,
+      "treated": false,
+      "outcomes": 17,
+      "lessonMean": 0.8235294117647058,
+      "labels": {
+        "consistent": 14,
+        "none": 3
+      },
+      "reactions": {
+        "positive": 11,
+        "negative": 6,
+        "neutral": 1
+      },
+      "positiveRate": 0.6470588235294118,
+      "failed": 0,
+      "comparisons": 20,
+      "failedFormal": 0,
+      "comparisonsFormal": 17,
+      "readings": 0,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 18,
+        "approximation": {},
+        "aux": 3
+      }
+    },
+    {
+      "id": "attr3__procedures-v1-a__temir-attr__deepseek__deepseek",
+      "user": 0,
+      "treated": true,
+      "outcomes": 17,
+      "lessonMean": 0.8235294117647058,
+      "labels": {
+        "consistent": 14,
+        "none": 2,
+        "empty": 1
+      },
+      "reactions": {
+        "negative": 8,
+        "positive": 10
+      },
+      "positiveRate": 0.5555555555555556,
+      "failed": 0,
+      "comparisons": 20,
+      "failedFormal": 0,
+      "comparisonsFormal": 17,
+      "readings": 13,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 14,
+        "approximation": {},
+        "aux": 0
+      }
+    },
+    {
+      "id": "attr3__procedures-v1-b__temir__deepseek__deepseek",
+      "user": 1,
+      "treated": false,
+      "outcomes": 18,
+      "lessonMean": 0.7777777777777778,
+      "labels": {
+        "none": 4,
+        "consistent": 14
+      },
+      "reactions": {
+        "positive": 18
+      },
+      "positiveRate": 1,
+      "failed": 0,
+      "comparisons": 21,
+      "failedFormal": 0,
+      "comparisonsFormal": 18,
+      "readings": 0,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 34,
+        "approximation": {},
+        "aux": 0
+      }
+    },
+    {
+      "id": "attr3__procedures-v1-b__temir-attr__deepseek__deepseek",
+      "user": 1,
+      "treated": true,
+      "outcomes": 16,
+      "lessonMean": 0.9375,
+      "labels": {
+        "consistent": 15,
+        "none": 1
+      },
+      "reactions": {
+        "positive": 18
+      },
+      "positiveRate": 1,
+      "failed": 0,
+      "comparisons": 17,
+      "failedFormal": 0,
+      "comparisonsFormal": 16,
+      "readings": 8,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 5,
+        "approximation": {},
+        "aux": 0
+      }
+    },
+    {
+      "id": "attr3__procedures-v1-c__temir__deepseek__deepseek",
+      "user": 2,
+      "treated": false,
+      "outcomes": 18,
+      "lessonMean": 0.9444444444444444,
+      "labels": {
+        "consistent": 17,
+        "none": 1
+      },
+      "reactions": {
+        "positive": 17,
+        "negative": 1
+      },
+      "positiveRate": 0.9444444444444444,
+      "failed": 0,
+      "comparisons": 21,
+      "failedFormal": 0,
+      "comparisonsFormal": 18,
+      "readings": 0,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 18,
+        "approximation": {},
+        "aux": 0
+      }
+    },
+    {
+      "id": "attr3__procedures-v1-c__temir-attr__deepseek__deepseek",
+      "user": 2,
+      "treated": true,
+      "outcomes": 17,
+      "lessonMean": 0.9411764705882353,
+      "labels": {
+        "consistent": 16,
+        "none": 1
+      },
+      "reactions": {
+        "positive": 16,
+        "neutral": 1,
+        "negative": 1
+      },
+      "positiveRate": 0.9411764705882353,
+      "failed": 0,
+      "comparisons": 19,
+      "failedFormal": 0,
+      "comparisonsFormal": 17,
+      "readings": 9,
+      "emptyWithReadings": 0,
+      "probes": {
+        "context": 24,
+        "approximation": {},
+        "aux": 0
+      }
+    }
+  ]
+}

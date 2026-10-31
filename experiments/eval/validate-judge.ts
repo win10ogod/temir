@@ -40,12 +40,13 @@ import {
   type RecallInput,
 } from './lib/prompts.ts'
 import { openChoiceKey } from './lib/text.ts'
+import { lessonPrompt, parseLesson, parseReact, reactPrompt, type LessonInput, type ReactInput } from './lib/attribution.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
 interface Case {
   readonly id: string
-  readonly split: 'dev' | 'test' | 'test2' | 'v2-dev' | 'v2-test' | 'v3-dev' | 'v3-test' | 'rd-v1'
+  readonly split: 'dev' | 'test' | 'test2' | 'v2-dev' | 'v2-test' | 'v3-dev' | 'v3-test' | 'rd-v1' | 'attr-v1'
   readonly prompt: JudgePromptId
   readonly input: Record<string, unknown>
   readonly expected: Record<string, string>
@@ -84,9 +85,10 @@ export function buildCase(c: Case): { pair: PromptPair; parse: (raw: string) => 
       // procedures-v2 的盲測比對沒有手寫用例（答案就是資料集，judge 看不到）。
       throw new Error('proc-match 沒有手寫用例')
     case 'attr-lesson':
+      // attribution-v1 的事後驗證（cases-attr-v1.json；看過 AT1 的結果之後才寫）。
+      return { pair: lessonPrompt(c.input as unknown as LessonInput), parse: parseLesson }
     case 'attr-react':
-      // attribution-v1 的 judge 沒有手寫用例（標準就是資料集的反應方式）。
-      throw new Error(`${c.prompt} 沒有手寫用例`)
+      return { pair: reactPrompt(c.input as unknown as ReactInput), parse: parseReact }
   }
 }
 

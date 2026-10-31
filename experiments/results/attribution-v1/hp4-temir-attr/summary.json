@@ -1,0 +1,178 @@
+{
+  "hp4": {
+    "verdict": "FAIL",
+    "correct": 1,
+    "n": 8,
+    "p": 0.9609815576893778,
+    "histories": 1
+  },
+  "hp5": {
+    "verdict": "PASS",
+    "observed": 0.029413245526658846,
+    "p": 0.0035714285714285713,
+    "permutations": 560
+  },
+  "matches": [
+    {
+      "id": "attr1__procedures-v1-a__temir-attr__deepseek__deepseek",
+      "history": 0,
+      "chosen": 1,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "reason": "修改強調先接住對方感受、不追問細節、不劃清界線，並在對方報進度時只接住而不給新做法，符合對象1偏好被傾聽而非建議。",
+      "status": "ok"
+    },
+    {
+      "id": "attr1__procedures-v1-b__temir-attr__deepseek__deepseek",
+      "history": 1,
+      "chosen": 2,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "reason": "修改強調不要替對方斷定別人在想什麼，顯示它學到要質疑自己的推測，這最可能來自對象1那種會指出漏洞、挑戰想法的互動。",
+      "status": "ok"
+    },
+    {
+      "id": "attr1__procedures-v1-c__temir-attr__deepseek__deepseek",
+      "history": 2,
+      "chosen": 1,
+      "order": [
+        1,
+        0,
+        2
+      ],
+      "reason": "修改強調先分辨需求、避免追問感受、聚焦對方卡住的地方，顯示學到要更精準回應而非只給建議或只同理，最符合對象1在對方沒在聽時冷淡、有在聽時多說的互動模式。",
+      "status": "ok"
+    },
+    {
+      "id": "attr2__procedures-v1-a__temir-attr__deepseek__deepseek",
+      "history": 0,
+      "chosen": 1,
+      "order": [
+        0,
+        2,
+        1
+      ],
+      "reason": "修改後強調先承接情緒、不急著給建議或追問，這最符合對象3對「只聽、接住感受」才有反應的模式。",
+      "status": "ok"
+    },
+    {
+      "id": "attr2__procedures-v1-b__temir-attr__deepseek__deepseek",
+      "history": 1,
+      "chosen": 2,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "reason": "修改強調順著對方務實邏輯、不預設情緒，並在對方提出不同看法或具體細節時追問，符合第一種對象偏好被挑戰與具體討論的反應模式。",
+      "status": "ok"
+    },
+    {
+      "id": "attr2__procedures-v1-c__temir-attr__deepseek__deepseek",
+      "history": 2,
+      "chosen": 2,
+      "order": [
+        2,
+        1,
+        0
+      ],
+      "reason": "修改強調尊重對方提出的區分、不強行合併或解釋，並以對方是否更靠近問題而非照自己規劃為評價標準，這最符合對象1那種會提出不同看法、指出漏洞、迫使重新思考的反應方式。",
+      "status": "ok"
+    },
+    {
+      "id": "attr3__procedures-v1-a__temir-attr__deepseek__deepseek",
+      "history": 0,
+      "chosen": 1,
+      "order": [
+        0,
+        2,
+        1
+      ],
+      "reason": "修改後的做法是順著對方簡短、只講自己感受的回應接話，而不是把話題拉回自己原本想講的，這最符合第三種對象：當對方只是聽你說、接住你的感受時，你願意多說一點。",
+      "status": "ok"
+    },
+    {
+      "id": "attr3__procedures-v1-c__temir-attr__deepseek__deepseek",
+      "history": 2,
+      "chosen": 0,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "reason": "修改強調直接給具體、步驟最少且符合對方明確限制的答案，不列多選項，這最符合對象2對具體可執行方法的偏好。",
+      "status": "ok"
+    }
+  ],
+  "noise": {
+    "points": 200,
+    "auc": 0.726043956043956
+  },
+  "earlyStop": [
+    {
+      "id": "attr1__procedures-v1-a__temir-attr__deepseek__deepseek",
+      "decisions": 9,
+      "calls": 53,
+      "changed": 3
+    },
+    {
+      "id": "attr1__procedures-v1-b__temir-attr__deepseek__deepseek",
+      "decisions": 4,
+      "calls": 25,
+      "changed": 1
+    },
+    {
+      "id": "attr1__procedures-v1-c__temir-attr__deepseek__deepseek",
+      "decisions": 10,
+      "calls": 61,
+      "changed": 2
+    },
+    {
+      "id": "attr2__procedures-v1-a__temir-attr__deepseek__deepseek",
+      "decisions": 16,
+      "calls": 76,
+      "changed": 9
+    },
+    {
+      "id": "attr2__procedures-v1-b__temir-attr__deepseek__deepseek",
+      "decisions": 7,
+      "calls": 45,
+      "changed": 1
+    },
+    {
+      "id": "attr2__procedures-v1-c__temir-attr__deepseek__deepseek",
+      "decisions": 7,
+      "calls": 44,
+      "changed": 3
+    },
+    {
+      "id": "attr3__procedures-v1-a__temir-attr__deepseek__deepseek",
+      "decisions": 5,
+      "calls": 30,
+      "changed": 3
+    },
+    {
+      "id": "attr3__procedures-v1-b__temir-attr__deepseek__deepseek",
+      "decisions": 2,
+      "calls": 12,
+      "changed": 0
+    },
+    {
+      "id": "attr3__procedures-v1-c__temir-attr__deepseek__deepseek",
+      "decisions": 8,
+      "calls": 51,
+      "changed": 0
+    }
+  ],
+  "verdictsHP1to3": {
+    "HP1": "PASS",
+    "HP2": "PASS",
+    "HP3": "PASS"
+  }
+}

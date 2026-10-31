@@ -1,0 +1,190 @@
+{
+  "hp4": {
+    "verdict": "FAIL",
+    "correct": 4,
+    "n": 9,
+    "p": 0.34969262815627766,
+    "histories": 2
+  },
+  "hp5": {
+    "verdict": "PASS",
+    "observed": 0.03581842347443703,
+    "p": 0.0035714285714285713,
+    "permutations": 1680
+  },
+  "matches": [
+    {
+      "id": "attr1__procedures-v1-a__temir__deepseek__deepseek",
+      "history": 0,
+      "chosen": 1,
+      "order": [
+        0,
+        2,
+        1
+      ],
+      "reason": "修改後的做法強調先承接感受、不主動給建議、只在對方明確要求時才給具體步驟，這最符合對象3的反應模式：對方給建議會覺得沒在聽，而單純傾聽和承接感受會讓對方願意多說。",
+      "status": "ok"
+    },
+    {
+      "id": "attr1__procedures-v1-b__temir__deepseek__deepseek",
+      "history": 1,
+      "chosen": 1,
+      "order": [
+        1,
+        0,
+        2
+      ],
+      "reason": "修改強調在對方回應簡短時留白並預測對方是否補充，這對應到第一種對象在感到對方沒在聽時會回短句、但若被接住感受則願意多說的模式。",
+      "status": "ok"
+    },
+    {
+      "id": "attr1__procedures-v1-c__temir__deepseek__deepseek",
+      "history": 2,
+      "chosen": 1,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "reason": "修改強調先確認、拆解、追問、描述感受並允許不回應，而非直接給建議或分析，符合對象3偏好被傾聽與接住感受、而非被給方法。",
+      "status": "ok"
+    },
+    {
+      "id": "attr2__procedures-v1-a__temir__deepseek__deepseek",
+      "history": 0,
+      "chosen": 1,
+      "order": [
+        1,
+        0,
+        2
+      ],
+      "reason": "修改強調先順著對方剛說的話、一次只聚焦一個焦點，符合對象1在對方只是聽、接住感受時願意多說的模式。",
+      "status": "ok"
+    },
+    {
+      "id": "attr2__procedures-v1-b__temir__deepseek__deepseek",
+      "history": 1,
+      "chosen": 1,
+      "order": [
+        2,
+        1,
+        0
+      ],
+      "reason": "修改強調在對方累或不想多說時保留陪伴、不給方法、不追問，這最符合對象2對「只聽、接住感受」的偏好。",
+      "status": "ok"
+    },
+    {
+      "id": "attr2__procedures-v1-c__temir__deepseek__deepseek",
+      "history": 2,
+      "chosen": 0,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "reason": "修改強調提供具體、低負擔、可立即執行的做法，並避免開放式問題，符合對象2偏好直接給方法而非只同理或提問。",
+      "status": "ok"
+    },
+    {
+      "id": "attr3__procedures-v1-a__temir__deepseek__deepseek",
+      "history": 0,
+      "chosen": 1,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "reason": "修改後的做法是判斷對方是在處理事情還是整理情緒，並在對方忙著盤算時先順著她的順序陪她算，不急著轉到感受，這顯示它學到不要急著給建議或分析，而是先配合對方當下的狀態，最符合第三種對象（討厭被給建議、喜歡被傾聽和順著話問）的互動模式。",
+      "status": "ok"
+    },
+    {
+      "id": "attr3__procedures-v1-b__temir__deepseek__deepseek",
+      "history": 1,
+      "chosen": 1,
+      "order": [
+        1,
+        0,
+        2
+      ],
+      "reason": "修改後的做法強調先接住對方簡短回應並從中提問，這與對象1在感到被傾聽時才願意多說的模式相符。",
+      "status": "ok"
+    },
+    {
+      "id": "attr3__procedures-v1-c__temir__deepseek__deepseek",
+      "history": 2,
+      "chosen": 2,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "reason": "修改強調先判斷對方要答案還是要一起拆解，並在拆解時保留開放出口、請對方用具體片段說明，這反映出一種重視被挑戰、被追問、避免被窮盡清單的互動模式，最符合第一種對象會因提出不同看法或指出漏洞而更有精神的反應。",
+      "status": "ok"
+    }
+  ],
+  "noise": {
+    "points": 188,
+    "auc": 0.6542703619909502
+  },
+  "earlyStop": [
+    {
+      "id": "attr1__procedures-v1-a__temir__deepseek__deepseek",
+      "decisions": 9,
+      "calls": 54,
+      "changed": 3
+    },
+    {
+      "id": "attr1__procedures-v1-b__temir__deepseek__deepseek",
+      "decisions": 6,
+      "calls": 34,
+      "changed": 4
+    },
+    {
+      "id": "attr1__procedures-v1-c__temir__deepseek__deepseek",
+      "decisions": 7,
+      "calls": 45,
+      "changed": 0
+    },
+    {
+      "id": "attr2__procedures-v1-a__temir__deepseek__deepseek",
+      "decisions": 4,
+      "calls": 23,
+      "changed": 1
+    },
+    {
+      "id": "attr2__procedures-v1-b__temir__deepseek__deepseek",
+      "decisions": 8,
+      "calls": 49,
+      "changed": 1
+    },
+    {
+      "id": "attr2__procedures-v1-c__temir__deepseek__deepseek",
+      "decisions": 7,
+      "calls": 39,
+      "changed": 1
+    },
+    {
+      "id": "attr3__procedures-v1-a__temir__deepseek__deepseek",
+      "decisions": 7,
+      "calls": 44,
+      "changed": 2
+    },
+    {
+      "id": "attr3__procedures-v1-b__temir__deepseek__deepseek",
+      "decisions": 11,
+      "calls": 58,
+      "changed": 4
+    },
+    {
+      "id": "attr3__procedures-v1-c__temir__deepseek__deepseek",
+      "decisions": 6,
+      "calls": 40,
+      "changed": 1
+    }
+  ],
+  "verdictsHP1to3": {
+    "HP1": "PASS",
+    "HP2": "PASS",
+    "HP3": "PASS"
+  }
+}

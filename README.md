@@ -73,6 +73,7 @@ DeepSeek Harness（身體：CLI、Web、工具、技能、MCP、子代理……�
 - **自我**（`individual/src/self`）：系統提示只陳述事實（它是什麼、記憶怎麼運作、它可以拒絕），人格由個體自己寫的紀錄承載。人生敘事一開始是空的，由個體自己寫。
 - **行動前的思考與經驗修正**（`individual/src/rd`）：每則對方的話之前，以自我狀態、回憶與過去類似處境的結果為條件，寫出處境與 3 個候選做法（附預期後果與口述信心），以 JitRL（arXiv:2601.18510）的優勢估計修正選擇；下一則話來時比對預測與實際，依個體自己的價值評估回報。與論文不同的地方都列在 [`ADR-0002`](research/decisions/ADR-0002-rd-jitrl-integration-disclosure.md)。
   - 2026-10-31 起，思考由主 agent 在自己的回合中以 `deliberate` 工具做（context 模式，[`ADR-0009`](research/decisions/ADR-0009-deliberate-in-context.md)）；程式驗證同樣的強制判斷。三段歷史合併的不劣比較見 [`context-v2-report.md`](experiments/results/context-v2-report.md)。原本的輔助呼叫留作條件（`mode: aux`）。
+    做法的閘門在主 agent 那一步的脈絡中只換做法的段落重跑（`individual/src/rd/context-replay.ts`）；找不到那一步的請求時退回輔助呼叫的近似，並記下原因。
 - **整合期**（`individual/src/integrate`）：模型只能「提出」修訂，每一項都必須引用這段期間的事件 id，由確定性程式碼驗證後在同一個交易中寫入；安全模型參考了其他 DSH 記憶插件的做法（調查見 [`memory-plugins-survey.md`](research/dsh/memory-plugins-survey.md)）。
 
 詳細的研究依據：[`research/methods/`](research/methods)（JitRL、WikiSkill、RRSI、Dream-RSI、Harness² 的方法與論文↔程式碼對照）、[`research/dsh/architecture.md`](research/dsh/architecture.md)、[`research/decisions/ADR-0001-build-on-dsh.md`](research/decisions/ADR-0001-build-on-dsh.md)。
@@ -161,6 +162,8 @@ Nemotron 上通過「決定性差異」門檻（差 0.83，p＝3.6×10⁻¹²）
 - RD 階段、JitRL 經驗修正、整合期、人生敘事與能量已實作，v3 實驗的個體包含它們，但沒有逐一消融，各自的效果還沒有證據。JitRL 的處境相似度門檻等數值是本專案的選擇，尚待以重播調整。
 - **能量**：三次預先登記的消融（DeepSeek）中，能量確實改變了個體的行為，但沒有證據顯示它讓「追蹤還沒結束的事」變好。三次的差分別是 −0.44、0.00、+0.19，都沒有達到增益門檻；第一次甚至讓它把注意力帶到瑣碎的懸念上。勢能紀錄的品質是關鍵，仍在改進（[`energy-followup-v3-report.md`](experiments/results/energy-followup-v3-report.md)）。
 - **RD 的扣除**（使用者對「−」的定義）：個體會扣除不該做的做法，理由大多引用對方說過的界線。但預先登記的消融中，關閉扣除時表現一樣好：界線在想出做法時就已經被考慮（[`subtraction-v1-report.md`](experiments/results/subtraction-v1-report.md)）。
+- **做法的修訂會改錯**：個體會修改自己的思考做法，但同一段生活重複三次時，只看修改認不出它和誰相處過（[`procedures-v2-report.md`](experiments/results/procedures-v2-report.md)）。
+  對方要具體方法時，個體常把「說了也沒用」讀成需要更多安慰，做法也跟著改錯。預先登記的修正（事後比對時強制列出幾種解讀、各自引用對方的原話）沒有幫助，維持關閉（[`attribution-v1-report.md`](experiments/results/attribution-v1-report.md)）。
 - 按需披露（最相關的 3 筆給全文、其餘只給索引、需要時展開）是預設。v3 的預先登記比較中，兩個模型都不輸全文；但個體從不用 id 展開索引，需要細節時用的是查詢。
 - 「記憶與感受參與決策」目前只有本頁實驗量測到的範圍；其他主張都還沒有消融證據。
 - Web UI 是 DSH 原生的介面，個體的內在狀態（自我模型、生命日誌）目前只能用 CLI 與資料庫檢視。

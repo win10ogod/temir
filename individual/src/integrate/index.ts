@@ -22,7 +22,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { auxRecord, modelCaller, promptHash, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
-import { clip, clipKeepLines, isHeard } from '../recall/retrieve.ts'
+import { clip, clipKeepLines, isHeard, quietFor } from '../recall/retrieve.ts'
 import { currentProcedure, pendingProcedureProposals, procedureVersions } from '../self/procedure.ts'
 import { INTEGRATION_KIND, collect, integrationStart, reconsiderSince, renderEvidence, type IntegrationTrigger } from './evidence.ts'
 import { applyProposal, integrateRetryNote, integrateSystem, parseProposal, proposalProblems, validate } from './proposal.ts'
@@ -272,8 +272,9 @@ export function apply(ctx: Context, config: Config | undefined): void {
     const timer = setInterval(() => {
       try {
         if (running || !life.isOpen) return
-        const lastEvent = life.recent(1)[0]
-        if (lastEvent && Date.now() - lastEvent.ts < idleMs) return
+        // 閒置從最後一則對話算起（同 RD、念頭與技能；code review 2026-11-01：這裡原本漏改，body/start 與自己的簿記會重設閒置）。
+        const quiet = quietFor(life, Date.now())
+        if (quiet !== undefined && quiet < idleMs) return
         const check = due(life, intervalHours, minRounds)
         if (check.due) void start(check.deep ? 'pivotal' : 'idle', check.deep)
       } catch (error) {

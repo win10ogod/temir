@@ -28,12 +28,26 @@ export const FACTS_KIND = 'memory/facts'
 /**
  * 對話的訊息（對方說的與我說的）。閒置與沉默從最後一則算起：內部的簿記（body/start、事實擷取、輔助呼叫）不是有人在互動
  * （think-v1 的試跑：每次啟動寫下的 body/start 讓沉默永遠不成立，念頭與暫時的比對都沒有發生）。
+ * DSH 與插件注入的 user/message（執行環境、時間、回憶、排程）也不是對方說的話，只算對方的話（`isHeard`）與我說的話。
  */
 export const INTERACTION_KINDS: readonly string[] = ['dsh/user/message', 'dsh/assistant/message']
 
 /** 最後一則對話的訊息；還沒有對話時是 undefined。 */
 export function lastInteraction(life: LifeStore): LifeEvent | undefined {
-  return life.recent(1, INTERACTION_KINDS)[0]
+  // 每個回合注入的訊息只有幾則（執行環境、時間、回憶、RD 的通知），往回 50 則一定找得到對話本身。
+  return life.recent(50, INTERACTION_KINDS).find((e) => e.kind === SAID || isHeard(e))
+}
+
+/**
+ * 安靜了多久（毫秒）：從最後一則對話的訊息，或 `ownKinds` 之中最新的一筆（例如自己上一次的念頭）算起，取較晚的。
+ * 自己的活動也要算：念頭之後 RD 寫下暫時的比對、整合寫下結果，都是新的經歷，但不是新的一段安靜（code review 2026-11-01：
+ * 只從對話算起時，同一段安靜中念頭會接連想兩次，think-v1 的 +2 小時）。還沒有對話時是 undefined。
+ */
+export function quietFor(life: LifeStore, now: number, ownKinds: readonly string[] = []): number | undefined {
+  const last = lastInteraction(life)
+  if (!last) return undefined
+  const own = ownKinds.length > 0 ? (life.recent(1, ownKinds)[0]?.ts ?? 0) : 0
+  return now - Math.max(last.ts, own)
 }
 const HEARD = 'dsh/user/message'
 const SAID = 'dsh/assistant/message'

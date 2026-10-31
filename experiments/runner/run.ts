@@ -347,6 +347,7 @@ async function main(): Promise<void> {
   // 分叉：沿用另一個 run 在某段歷史之後的快照，只跑之後的歷史。之前的歷史（id、台詞、時間）必須逐字相同。
   const branchFrom = values['branch-from']
   let branch: { readonly run: string; readonly history: string; readonly start: number } | undefined
+  if (branchFrom && fromRun) throw new Error('--branch-from 與 --from-run 不能同時使用（兩者都會把快照拷貝成起點）')
   if (branchFrom) {
     const [run, history] = branchFrom.split(':') as [string, string | undefined]
     if (!run || !history) throw new Error('--branch-from 的格式是 <runId>:<歷史 id>')
@@ -356,7 +357,8 @@ async function main(): Promise<void> {
     const baseDataset = JSON.parse(readFileSync(join(REPO, base.dataset.path), 'utf8')) as Dataset
     const cut = dataset.histories.findIndex((h) => h.id === history)
     if (cut < 0) throw new Error(`--branch-from 的 ${history} 不是資料集中的歷史`)
-    const same = (h: Dataset['histories'][number] | undefined) => JSON.stringify(h && { id: h.id, turns: h.turns, at: h.meta?.at })
+    // 除了說明（notes）之外整段相同：台詞、時間，以及會改變快照內容的 tasks、meta.simulate、meta.quiet（code review 2026-11-01）。
+    const same = (h: Dataset['histories'][number] | undefined) => JSON.stringify(h && { ...h, notes: undefined })
     for (let i = 0; i <= cut; i++) if (same(dataset.histories[i]) !== same(baseDataset.histories[i])) throw new Error(`--branch-from：歷史 ${dataset.histories[i]?.id} 與 ${run} 的資料集不同`)
     const from = join(experimentsRoot, run, `snapshot-${history}`)
     if (!existsSync(from)) throw new Error(`找不到 ${run} 在 ${history} 之後的快照`)
@@ -366,6 +368,14 @@ async function main(): Promise<void> {
 
   const patches = CONDITIONS[condition]
   const simulated = dataset.histories.some((h) => h.meta?.at !== undefined)
+  // 最後一段之前的快照只在模擬時間的資料集中拍得到（每段歷史之間才會重新啟動）；分叉起點之前的歷史不會再跑（code review 2026-11-01）。
+  if (snapshotAfter) {
+    const at = dataset.histories.findIndex((h) => h.id === snapshotAfter)
+    if (at < (branch?.start ?? 0)) throw new Error(`--snapshot-after 的 ${snapshotAfter} 在分叉起點之前，這次不會跑到`)
+    if (!simulated && at !== dataset.histories.length - 1) throw new Error('--snapshot-after 用在最後一段之前的歷史時，資料集要有模擬時間（meta.at）')
+  }
+  // 沒有內部反省的條件不給安靜期：think-now.yml 會打開念頭（code review 2026-11-01）。
+  if (condition === 'temir-noreflect' && dataset.histories.some((h) => (h.meta?.quiet?.length ?? 0) > 0)) throw new Error('temir-noreflect 不能用在有 meta.quiet 的資料集')
   if (simulated && (dataset.histories.some((h) => h.meta?.at === undefined) || dataset.meta?.probeAt === undefined)) {
     throw new Error('模擬時間需要每段歷史都有 meta.at，資料集也要有 meta.probeAt')
   }

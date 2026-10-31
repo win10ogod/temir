@@ -12,18 +12,20 @@ export interface Task {
 }
 
 /**
- * 比對時不計的字元：空白、逗號、引號、句末標點、常見的單位詞前綴（「答案：」），以及答案後面的括號註記。
+ * 比對時不計的字元：空白、千分位逗號、引號、markdown、句末標點、常見的前綴（「答案：」），以及答案後面的括號註記。
  * 括號註記：cogrow-v1 中「384 元（暫算，店裡算法未確認）」數字是對的，原本被判錯，個體收到了錯的回饋（報告 cogrow-v1-report.md）。
+ * 小數點不去掉（code review 2026-11-01：原本「3.5」會等於「35」）。
  */
 function normalize(s: string): string {
   return s
     .replace(/\s*[（(][^（）()]*[）)]\s*$/u, '')
     .replace(/^.*?(答案|答|總共|合計)[:：是為]?/u, '')
-    .replace(/[\s,，。．.、「」『』"'：:*`]/gu, '')
-    .replace(/元$|天$|個$|次$/u, '')
+    .replace(/(?<=\d)[,，](?=\d{3})/gu, '')
+    .replace(/[\s「」『』"'：:*`]/gu, '')
+    .replace(/[。．.、，,]+$/u, '')
 }
 
-/** 個體回覆的最後一行（去掉 markdown 的粗體與空行）。 */
+/** 個體回覆的最後一行（去掉空行）。 */
 export function lastLine(reply: string): string {
   return (
     reply
@@ -34,14 +36,23 @@ export function lastLine(reply: string): string {
   )
 }
 
-/** 最後一行是不是正確答案：正規化之後完全相同，或最後一行以正確答案結尾（前面還有幾個字，例如「總共 1,026 元」）。 */
+const NUMBER = /\d+(?:\.\d+)?/gu
+
+/**
+ * 最後一行是不是正確答案。
+ * - 數字答案：最後一行（去掉括號註記）只有一個數字，而且就是正確答案；前後可以有幾個字（「總共 1,026 元」）。
+ *   兩個以上的數字不算（code review 2026-11-01：「答案是 1,026 元，不是 2,026」原本會被當成 2026）。
+ * - 其他答案：正規化之後完全相同。
+ */
 export function grade(task: Task, reply: string): boolean {
   const got = normalize(lastLine(reply))
   const want = normalize(task.answer)
   if (!got || !want) return false
-  if (got === want) return true
-  // 以答案結尾、而且前一個字不是數字（避免 21026 被當成 1026）。
-  return got.endsWith(want) && !/\d/u.test(got.charAt(got.length - want.length - 1))
+  if (/^\d+(?:\.\d+)?$/u.test(want)) {
+    const numbers = got.match(NUMBER) ?? []
+    return numbers.length === 1 && numbers[0] === want
+  }
+  return got === want
 }
 
 export function feedback(task: Task, correct: boolean): string {

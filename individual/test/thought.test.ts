@@ -212,3 +212,23 @@ test('temir-thought: automatic false only stops idle thoughts; the IM relay for 
     rmSync(home, { recursive: true, force: true })
   }
 })
+
+test('quiet time counts only the conversation and the cycle’s own last activity: injected messages and bookkeeping do not reset it (code review 2026-11-01)', async () => {
+  const { lastInteraction, quietFor } = await import('../src/recall/retrieve.ts')
+  withStore((store) => {
+    const t0 = Date.now() - 10 * 3_600_000
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 's1', ts: t0, data: {}, text: '對方說：我明天面試' })
+    store.append({ kind: 'dsh/assistant/message', origin: 'session', session: 's1', ts: t0 + 1_000, data: {}, text: '我說：加油' })
+    // DSH 注入的執行環境、啟動的簿記：時間比對話新，但都不是互動。
+    store.append({ kind: 'dsh/user/message', origin: 'session', session: 's1', ts: t0 + 3_600_000, data: { data: { source: { kind: 'runtime-context' } } } })
+    store.append({ kind: 'body/start', origin: 'body', ts: t0 + 3_600_000, data: {} })
+    assert.equal(lastInteraction(store)?.text, '我說：加油')
+    const now = t0 + 5 * 3_600_000
+    assert.equal(quietFor(store, now), now - (t0 + 1_000))
+    // 念頭之後，同一段安靜要從念頭重新算起，免得接著寫下的暫時比對又讓念頭馬上再想一次。
+    store.append({ kind: THOUGHT_KIND, origin: 'self', ts: t0 + 4 * 3_600_000, data: {} })
+    assert.equal(quietFor(store, now, [THOUGHT_KIND]), 3_600_000)
+    assert.equal(quietFor(store, now), now - (t0 + 1_000), 'without own kinds only the conversation counts')
+  })
+  withStore((store) => assert.equal(quietFor(store, Date.now()), undefined, 'no conversation yet'))
+})

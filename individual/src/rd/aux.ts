@@ -137,12 +137,23 @@ const OUTCOME_CONTRACT = `只輸出一個 JSON 物件，不要任何其他文字
 - left：這一回合新產生、會掛在你心上的事。每條 {"text": "一句話", "forOther": true}；沒有就給空陣列。
   - forOther：每條必答：這件事推動你對對方做什麼（true），還是推動你自己的反省（false）。`
 
-/** 事後比對的系統提示（框架＋比對做法＋輸出）。energy 關閉時沒有 released、left、gapOnMind（勢能的釋放與留下）。 */
-export function outcomeSystem(options: { readonly procedure?: Procedure; readonly energy?: boolean } = {}): string {
+/**
+ * 事後比對的歸因（hypotheses.md H-AT；attribution-v1）：預測不符時，對方的反應可以有幾種解讀。
+ * procedures-v2 中，個體只寫下第一個想到的解讀，讀錯的方向與模型的習慣一致（對方的「說了也沒用」讀成需要更多承接）。
+ * 程式在預測不符（partly、no）、而且對方真的回了話時要求逐一判斷：至少兩種彼此不同的解讀，各自引用對方的原話（沒有就空字串），
+ * 教訓只能依據有原話支持的那一個（basis）。解讀的內容與選哪一個由個體決定；程式只驗證結構，以及引用確實出自對方的話。
+ */
+const ATTRIBUTION_FIELDS = `- readings：matched 是 partly 或 no 時必答：對方為什麼會這樣回應我實際做的事，至少兩種彼此不同的解讀；matched 是 yes 時給空陣列。每條 {"reading": "一句話的解讀", "quote": "對方接著說的話中支持這個解讀的原文，逐字摘錄；沒有就給空字串"}。
+- basis：列了 readings、而且 lesson 不是空的時必答：lesson 依據的是哪一個解讀（readings 的順序：1、2…）。那個解讀要有對方原話的支持（quote 不是空的）；沒有任何解讀有原話支持時，lesson 給空字串。`
+
+/** 事後比對的系統提示（框架＋比對做法＋輸出）。energy 關閉時沒有 released、left、gapOnMind（勢能的釋放與留下）；attribution 開時要逐一判斷解讀。 */
+export function outcomeSystem(options: { readonly procedure?: Procedure; readonly energy?: boolean; readonly attribution?: boolean } = {}): string {
   const energy = options.energy ?? true
   const procedure = options.procedure ?? DEFAULT('outcome')
   const frame = '你是一個人工個體，回頭比對自己上一個決定：當時的預測，和實際發生的事一不一樣。照下面你自己的做法比對，輸出照最後一段的格式。'
-  return procedurePrompt(frame, [energy ? procedure : withoutLines(procedure, ENERGY_WORDS)], energy ? OUTCOME_CONTRACT : withoutFields(OUTCOME_CONTRACT, ['gapOnMind', 'released', 'left', 'forOther']))
+  let contract = energy ? OUTCOME_CONTRACT : withoutFields(OUTCOME_CONTRACT, ['gapOnMind', 'released', 'left', 'forOther'])
+  if (options.attribution) contract = `${contract.replace('"reason": "...", "lesson": ""', '"reason": "...", "readings": [], "basis": 0, "lesson": ""')}\n${ATTRIBUTION_FIELDS}`
+  return procedurePrompt(frame, [energy ? procedure : withoutLines(procedure, ENERGY_WORDS)], contract)
 }
 
 export const OUTCOME_SYSTEM = outcomeSystem()
@@ -382,6 +393,59 @@ export interface OutcomeJudgement {
   readonly released: string
   readonly releasedRefs: readonly string[]
   readonly left: readonly LeftItem[]
+  /** H-AT（attribution 開、預測不符、對方回了話時）：對方反應的幾種解讀，以及教訓依據的那一個（1 起算；沒有教訓時沒有）。 */
+  readonly readings?: readonly Reading[]
+  readonly basis?: number
+}
+
+/** 對方反應的一種解讀（H-AT）：quote 是對方原話的逐字摘錄，沒有就是空字串。 */
+export interface Reading {
+  readonly reading: string
+  readonly quote: string
+}
+
+/** 比對引用時不計的字元：空白與常見的標點（全形、半形），模型摘錄時常常增減。 */
+const QUOTE_IGNORED = /[\s，。！？、；：「」『』（）《》〈〉…～—,.!?;:'"()[\]~-]/gu
+const normalizeQuote = (s: string) => s.replace(QUOTE_IGNORED, '')
+
+/** quote 是不是對方原話的逐字摘錄（不計空白與標點；至少兩個字）。 */
+export function quotedFrom(quote: string, heard: string): boolean {
+  const q = normalizeQuote(quote)
+  return q.length >= 2 && normalizeQuote(heard).includes(q)
+}
+
+/** readings 與 basis 的強制判斷（H-AT）：至少兩種彼此不同的解讀、引用出自對方的話、教訓依據有原話支持的解讀。 */
+function readingsOf(obj: Record<string, unknown>, heard: string, lesson: string, problems: string[]): { readonly readings: Reading[]; readonly basis?: number } {
+  const raw = obj['readings']
+  if (!Array.isArray(raw)) {
+    problems.push('預測不符，但 readings 不是陣列')
+    return { readings: [] }
+  }
+  const readings: Reading[] = []
+  for (const [i, v] of (raw as unknown[]).entries()) {
+    const item = typeof v === 'object' && v !== null ? (v as Record<string, unknown>) : undefined
+    const reading = text(item?.['reading'], 300)
+    if (!reading) {
+      problems.push(`readings 第 ${i + 1} 條沒有 reading`)
+      continue
+    }
+    if (typeof item?.['quote'] !== 'string') {
+      problems.push(`readings 第 ${i + 1} 條的 quote 不是字串`)
+      continue
+    }
+    const quote = text(item['quote'], 200)
+    if (quote && !quotedFrom(quote, heard)) problems.push(`readings 第 ${i + 1} 條的 quote 不是對方接著說的話的原文`)
+    readings.push({ reading, quote })
+  }
+  if (new Set(readings.map((r) => r.reading)).size < 2) problems.push('預測不符，但 readings 少於兩種彼此不同的解讀')
+  if (!lesson) return { readings }
+  const basis = obj['basis']
+  if (typeof basis !== 'number' || !Number.isInteger(basis) || basis < 1 || basis > readings.length) {
+    problems.push('有 lesson，但 basis 不是 readings 中的一個編號')
+    return { readings }
+  }
+  if (!readings[basis - 1]!.quote) problems.push('lesson 依據的解讀沒有對方原話的支持（quote 是空的）')
+  return { readings, basis }
 }
 
 /** released 是陣列（[{item, how}]）；第一版的一句話也接受。 */
@@ -427,7 +491,7 @@ export type OutcomeParse = { readonly ok: true; readonly judgment: OutcomeJudgem
  * 所以缺了就列出問題，由呼叫端附上 outcomeRetryNote 重問；仍不合格就記下失敗，不當成經驗。
  * labels＝輸入中懸著的事的編號（能量開時）：released 寫了認不得的編號也是問題，不靜默丟掉（改進清單第 6 項）。
  */
-export function parseOutcome(output: string, options: { readonly labels?: ReadonlyMap<string, string>; readonly energy?: boolean } = {}): OutcomeParse {
+export function parseOutcome(output: string, options: { readonly labels?: ReadonlyMap<string, string>; readonly energy?: boolean; readonly attribution?: { readonly heard: string } } = {}): OutcomeParse {
   const energy = options.energy ?? true
   const obj = extractJson(output)
   if (!obj) return { ok: false, problems: ['不是 JSON 物件'] }
@@ -446,6 +510,9 @@ export function parseOutcome(output: string, options: { readonly labels?: Readon
   const released = energy ? releases(obj['released']) : { text: '', refs: [] }
   if (options.labels) for (const ref of released.refs) if (!options.labels.has(ref.trim().toUpperCase())) problems.push(`released 的「${ref}」不是輸入中列出的懸著的事的編號`)
   const left = energy ? lefts(obj['left'], problems) : []
+  const lesson = text(obj['lesson'], 300)
+  // H-AT：預測不符、對方真的回了話時（暫時的比對沒有原話可引用，不要求）。
+  const attributed = options.attribution && (matched === 'partly' || matched === 'no') ? readingsOf(obj, options.attribution.heard, lesson, problems) : undefined
   if (problems.length > 0 || typeof reward !== 'number' || (matched !== 'yes' && matched !== 'partly' && matched !== 'no')) return { ok: false, problems }
   return {
     ok: true,
@@ -457,7 +524,7 @@ export function parseOutcome(output: string, options: { readonly labels?: Readon
       error: text(obj['error'], 300),
       reward: Math.min(Math.max(reward, -1), 1),
       reason: text(obj['reason'], 300),
-      lesson: text(obj['lesson'], 300),
+      lesson,
       feeling,
       keepFeeling: feeling !== '' && obj['keepFeeling'] === true,
       reconsider: obj['reconsider'] === true,
@@ -465,11 +532,15 @@ export function parseOutcome(output: string, options: { readonly labels?: Readon
       released: released.text,
       releasedRefs: released.refs,
       left,
+      ...(attributed ? { readings: attributed.readings } : {}),
+      ...(attributed?.basis !== undefined ? { basis: attributed.basis } : {}),
     },
   }
 }
 
 /** 事後比對不合格時重問一次所附的說明，列出缺少或不合格的部分（輸出段本來就要求這些欄位）。 */
-export function outcomeRetryNote(problems: readonly string[]): string {
-  return `（重寫一次：上一次的比對不完整。只輸出一個完整的 JSON 物件；didAction 不能是空的，matched 只能是 yes、partly 或 no，reward 是 -1 到 1 之間的數，declined 與 reconsider 是 true 或 false；有 feeling 時 keepFeeling 是 true 或 false，matched 是 no 時 gapOnMind 是 true 或 false，left 的每一條都要有 forOther（true 或 false）。不合格的地方：${problems.join('；')}）`
+export function outcomeRetryNote(problems: readonly string[], attribution = false): string {
+  // attribution 關閉時文字與之前完全相同（之前的實驗可以比較）。
+  const readings = attribution ? 'matched 是 partly 或 no 時，readings 至少兩種彼此不同的解讀，quote 只能是對方原話的逐字摘錄（沒有就空字串），有 lesson 時 basis 指向一個有原話支持的解讀。' : ''
+  return `（重寫一次：上一次的比對不完整。只輸出一個完整的 JSON 物件；didAction 不能是空的，matched 只能是 yes、partly 或 no，reward 是 -1 到 1 之間的數，declined 與 reconsider 是 true 或 false；有 feeling 時 keepFeeling 是 true 或 false，matched 是 no 時 gapOnMind 是 true 或 false，left 的每一條都要有 forOther（true 或 false）。${readings}不合格的地方：${problems.join('；')}）`
 }

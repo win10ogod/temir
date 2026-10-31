@@ -100,6 +100,9 @@ export interface OutcomeData {
    * 對方之後回話時會再正式比對一次；同一個決定以最新的比對為準（experiences）。舊紀錄沒有這個欄位。
    */
   readonly provisional?: boolean
+  /** H-AT（attribution 開、預測不符、對方回了話時）：對方反應的幾種解讀（各自引用對方的原話），以及教訓依據的那一個（1 起算）。 */
+  readonly readings?: readonly { readonly reading: string; readonly quote: string }[]
+  readonly basis?: number
 }
 
 /**

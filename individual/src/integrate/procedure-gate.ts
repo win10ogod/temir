@@ -67,7 +67,7 @@ export function systemWith(life: LifeStore, name: ProcedureName, procedure: Proc
     case 'subtract':
       return deliberateSystem({ procedures: { deliberate: currentProcedure(life, 'deliberate'), subtract: procedure }, ...flags })
     case 'outcome':
-      return outcomeSystem({ procedure, ...flags })
+      return outcomeSystem({ procedure, ...flags, ...(variant.attribution ? { attribution: true } : {}) })
     case 'integrate':
       return integrateSystem({ procedure, ...(variant.deep ? { deep: true } : {}) })
     case 'thought':

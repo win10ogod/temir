@@ -83,6 +83,10 @@ export function buildCase(c: Case): { pair: PromptPair; parse: (raw: string) => 
     case 'proc-match':
       // procedures-v2 的盲測比對沒有手寫用例（答案就是資料集，judge 看不到）。
       throw new Error('proc-match 沒有手寫用例')
+    case 'attr-lesson':
+    case 'attr-react':
+      // attribution-v1 的 judge 沒有手寫用例（標準就是資料集的反應方式）。
+      throw new Error(`${c.prompt} 沒有手寫用例`)
   }
 }
 

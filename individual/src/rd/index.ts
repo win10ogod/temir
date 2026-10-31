@@ -128,6 +128,11 @@ export interface Config {
    * - aux：另外的輔助呼叫思考，主 agent 收到準備訊息（context-v2 之前的預設）。
    */
   readonly mode?: 'aux' | 'context'
+  /**
+   * 事後比對的歸因（hypotheses.md H-AT；預設關，attribution-v1 預先登記的實驗之後決定）：預測不符、對方回了話時，
+   * 強制個體逐一判斷對方反應的幾種解讀（各自引用對方的原話），教訓只能依據有原話支持的那一個（rd/aux.ts 的 readingsOf）。
+   */
+  readonly attribution?: boolean
 }
 
 function textOf(content: readonly { readonly type: string; readonly text?: string }[]): string {
@@ -201,8 +206,14 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
   const perPerson = config?.perPerson ?? true
   const revision = (config?.revision ?? true) && subtraction
   const silenceMs = (config?.silenceMinutes ?? 10) * 60_000
+  const attribution = config?.attribution ?? false
   // 消融關掉的機制（memory/aux 的 variant）：做法的閘門照同樣的設定重跑（integrate/procedure-gate.ts）。
-  const variant: ProcedureVariant = { ...(energy ? {} : { energy: false }), ...(subtraction ? {} : { subtraction: false }), ...(perPerson ? {} : { perPerson: false }) }
+  const variant: ProcedureVariant = {
+    ...(energy ? {} : { energy: false }),
+    ...(subtraction ? {} : { subtraction: false }),
+    ...(perPerson ? {} : { perPerson: false }),
+    ...(attribution ? { attribution: true } : {}),
+  }
 
   /** 背景的事後比對；卸載前等它們完成。 */
   const background = new Set<Promise<void>>()
@@ -281,17 +292,18 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         clip(heard, 1500),
       ].join('\n')
       const procedure = currentProcedure(life, 'outcome')
-      const system = outcomeSystem({ procedure, energy })
+      const system = outcomeSystem({ procedure, energy, attribution })
       const session = decision.session ?? undefined
       const output = await call('outcome', route, system, input, session, [decision.id], [procedure])
       // 能量開時，released 只能指名輸入中列出的懸著的事（認不得的編號也要重問）。
-      const options = energy ? { labels, energy } : { energy }
+      // 歸因（H-AT）：引用要出自對方接著說的話；暫時的比對（對方沒有回話）沒有原話可引用，不要求。
+      const options = { ...(energy ? { labels } : {}), energy, ...(attribution && !provisional ? { attribution: { heard } } : {}) }
       let parsed = output === undefined ? undefined : parseOutcome(output, options)
       const problems: string[] = output === undefined ? ['比對的呼叫失敗'] : []
       // 強制判斷：不合格時附上問題重問一次（呼叫失敗時不重問，與思考相同）；仍不合格就記下失敗，不寫 rd/outcome。
       if (parsed && !parsed.ok && life.isOpen) {
         problems.push(...parsed.problems.map((p) => `第 1 次：${p}`))
-        const again = await call('outcome', route, `${system}\n${outcomeRetryNote(parsed.problems)}`, input, session, [decision.id], [procedure])
+        const again = await call('outcome', route, `${system}\n${outcomeRetryNote(parsed.problems, attribution)}`, input, session, [decision.id], [procedure])
         parsed = again === undefined ? undefined : parseOutcome(again, options)
         if (!parsed) problems.push('第 2 次：比對的呼叫失敗')
         else if (!parsed.ok) problems.push(...parsed.problems.map((p) => `第 2 次：${p}`))
@@ -303,7 +315,7 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         return
       }
       const judged = parsed.judgment
-      const { releasedRefs, left, gapOnMind, ...rest } = judged
+      const { releasedRefs, left, gapOnMind, readings, basis, ...rest } = judged
       const releasedItems = resolvePotential(releasedRefs, labels).filter((k) => !k.startsWith('goal:'))
       const outcome: OutcomeData = {
         decision: decision.id,
@@ -320,6 +332,8 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         selfVersion: self?.version ?? 0,
         heard: clip(heard, 500),
         ...(provisional ? { provisional: true } : {}),
+        ...(readings ? { readings } : {}),
+        ...(basis !== undefined ? { basis } : {}),
       }
       const recorded = life.append({
         kind: OUTCOME_KIND,

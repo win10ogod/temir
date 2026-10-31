@@ -1,0 +1,5 @@
+# attribution-v1（experiments/specs/attribution-v1.md）：事後比對的歸因（hypotheses.md H-AT）。
+# 預測不符、對方回了話時，強制個體逐一判斷對方反應的幾種解讀（各自引用對方的原話），教訓只能依據有原話支持的那一個。
+- id: temir-rd
+  config:
+    attribution: true

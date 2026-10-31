@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs'
 
 /** 與 experiments/runner/run.ts 的 CONDITIONS 相同（v3 起加入 2026-10-29 的條件；v1、v2 的契約只用前四個）。 */
-export const CONDITIONS = ['baseline', 'temir', 'temir-no-autorecall', 'temir-no-snapshot', 'temir-progressive', 'temir-full', 'temir-no-rd', 'temir-no-jitrl', 'temir-no-energy', 'temir-no-subtraction', 'temir-no-perperson', 'temir-no-skill', 'temir-no-revision', 'temir-context', 'temir-aux'] as const
+export const CONDITIONS = ['baseline', 'temir', 'temir-no-autorecall', 'temir-no-snapshot', 'temir-progressive', 'temir-full', 'temir-no-rd', 'temir-no-jitrl', 'temir-no-energy', 'temir-no-subtraction', 'temir-no-perperson', 'temir-no-skill', 'temir-no-revision', 'temir-context', 'temir-aux', 'temir-attr'] as const
 export type Condition = (typeof CONDITIONS)[number]
 
 export const MODELS = ['deepseek-flash', 'EVE-27B', 'Qwen3.8-Flash-Next'] as const
@@ -45,6 +45,10 @@ export type JudgePromptId =
   | 'pc-change-v2'
   /** procedures-v2：做法的修改來自和哪一種對象相處（盲測比對）。 */
   | 'proc-match'
+  /** attribution-v1：教訓對對方要什麼的理解，與模擬使用者的反應方式是否一致。 */
+  | 'attr-lesson'
+  /** attribution-v1：模擬使用者的一句話是反應方式中正面、負面的那一種，或都不是。 */
+  | 'attr-react'
 
 export interface CategorySpec {
   readonly id: string

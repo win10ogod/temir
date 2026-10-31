@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { LifeStore } from '../src/life/store.ts'
 import type { CallModel } from '../src/recall/aux.ts'
-import { REVISION_SYSTEM, deliberationRetryNote, outcomeRetryNote, revisionRetryNote } from '../src/rd/aux.ts'
+import { OUTCOME_SYSTEM, REVISION_SYSTEM, deliberationRetryNote, outcomeRetryNote, outcomeSystem, parseOutcome, revisionRetryNote } from '../src/rd/aux.ts'
 import { createRd, type Config, type StepInput } from '../src/rd/index.ts'
 import { DEFAULT_PARAMS } from '../src/rd/jitrl.ts'
 import { DECISION_KIND, DELIBERATION_FAILED_KIND, OUTCOME_FAILED_KIND, OUTCOME_KIND, type DecisionData, type DeliberationFailedData, type OutcomeData, type OutcomeFailedData } from '../src/rd/memory.ts'
@@ -479,4 +479,66 @@ test('context mode: the decision is written after the words it answers; the next
     assert.match(calls[0]!.input, /## 你實際說了什麼\n先寫下你想說的三句話\n\n## 對方接著說了什麼\n好，我明天試試看/u)
     const [decision] = decisions(store)
     assert.equal(outcomesOf(store, decision!.id).length, 1)
+  }))
+
+/** 事後比對的歸因（hypotheses.md H-AT）：預測不符、對方回了話時，要逐一判斷幾種解讀，教訓依據有原話支持的那一個。 */
+const ATTRIBUTION: Config = { ...CONFIG, attribution: true }
+const MISREAD = (fields: Record<string, unknown>) =>
+  JSON.stringify({ didAction: '先陪她、沒有給方法', declined: false, actual: '她說算了，說了也沒用', matched: 'no', error: '她沒有放鬆', reward: -0.4, reason: 'r', lesson: '她要的是能做的方法', feeling: '', reconsider: false, gapOnMind: false, released: [], left: [], ...fields })
+
+test('attribution (H-AT): a missed prediction needs at least two readings quoting what the other said; the lesson rests on a quoted one', () =>
+  withStore(async (store) => {
+    const old = lastTurn(store)
+    const one = MISREAD({ readings: [{ reading: '她需要更多陪伴', quote: '算了' }], basis: 1 })
+    const ok = MISREAD({
+      readings: [
+        { reading: '她需要更多陪伴', quote: '算了' },
+        { reading: '陪伴沒有用，她要的是能做的方法', quote: '說了也沒用' },
+      ],
+      basis: 2,
+    })
+    const { call, calls } = scripted({ outcome: [one, ok] })
+    const rd = createRd({ life: store, call, logger: recorder().logger }, ATTRIBUTION)
+    rd.evaluate(store.get(old)!, '算了，說了也沒用。', ROUTE)
+    await rd.settle()
+    assert.match(calls[0]!.system, /- readings：matched 是 partly 或 no 時必答：對方為什麼會這樣回應我實際做的事，至少兩種彼此不同的解讀/u)
+    assert.equal(calls[1]!.system, `${calls[0]!.system}\n${outcomeRetryNote(['預測不符，但 readings 少於兩種彼此不同的解讀'], true)}`)
+    const [o] = outcomesOf(store, old)
+    assert.deepEqual([o!.lesson, o!.basis, o!.readings?.length], ['她要的是能做的方法', 2, 2])
+    assert.equal((store.all('memory/aux')[0]!.data as { variant?: unknown }).variant !== undefined, true, 'the gate rebuilds the same prompt')
+  }))
+
+test('attribution (H-AT): a quote that is not the other’s words, or a lesson resting on an unquoted reading, is asked again', () => {
+  const heard = { heard: '嗯，好吧，就這樣吧。' }
+  const readings = (quote2: string) => [
+    { reading: '她累了不想多說', quote: '就這樣吧' },
+    { reading: '我給的建議太空泛', quote: quote2 },
+  ]
+  const invented = parseOutcome(MISREAD({ readings: readings('你說的都沒用'), basis: 1 }), { energy: false, attribution: heard })
+  assert.deepEqual(invented.ok ? [] : invented.problems, ['readings 第 2 條的 quote 不是對方接著說的話的原文'])
+  const unquoted = parseOutcome(MISREAD({ readings: readings(''), basis: 2 }), { energy: false, attribution: heard })
+  assert.deepEqual(unquoted.ok ? [] : unquoted.problems, ['lesson 依據的解讀沒有對方原話的支持（quote 是空的）'])
+  const noBasis = parseOutcome(MISREAD({ readings: readings('') }), { energy: false, attribution: heard })
+  assert.deepEqual(noBasis.ok ? [] : noBasis.problems, ['有 lesson，但 basis 不是 readings 中的一個編號'])
+  // 標點與空白的增減不算改了原話；沒有教訓時不需要 basis。
+  const fine = parseOutcome(MISREAD({ readings: readings(''), lesson: '', basis: 0 }), { energy: false, attribution: heard })
+  assert.equal(fine.ok && fine.judgment.basis, undefined)
+  const punctuated = parseOutcome(MISREAD({ readings: [{ reading: 'a', quote: '嗯 好吧' }, { reading: 'b', quote: '' }], basis: 1 }), { energy: false, attribution: heard })
+  assert.equal(punctuated.ok, true)
+  // 預測成真時不需要解讀；attribution 關閉時與之前完全相同。
+  assert.equal(parseOutcome(MISREAD({ matched: 'yes' }), { energy: false, attribution: heard }).ok, true)
+  assert.equal(parseOutcome(MISREAD({}), { energy: false }).ok, true)
+  assert.equal(outcomeSystem({ attribution: false }), OUTCOME_SYSTEM)
+  assert.doesNotMatch(outcomeRetryNote(['x']), /readings/u)
+})
+
+test('attribution (H-AT): a provisional comparison (the other has not replied) has no words to quote, so no readings are required', () =>
+  withStore(async (store) => {
+    const old = lastTurn(store)
+    const { call } = scripted({ outcome: [MISREAD({ actual: '對方沒有再說話', lesson: '' })] })
+    const rd = createRd({ life: store, call, logger: recorder().logger }, ATTRIBUTION)
+    rd.evaluate(store.get(old)!, '（對方到現在都沒有再說話。）', ROUTE, true)
+    await rd.settle()
+    const [o] = outcomesOf(store, old)
+    assert.deepEqual([o!.provisional, o!.readings], [true, undefined])
   }))

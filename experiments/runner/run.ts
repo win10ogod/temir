@@ -76,6 +76,8 @@ export const CONDITIONS = {
   // `temir-context` 留著讓之前的規格可以重現，`temir-aux` 是原本的輔助呼叫。
   'temir-context': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'context.yml')],
   'temir-aux': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'aux.yml')],
+  // 2026-10-31：事後比對的歸因（hypotheses.md H-AT；attribution-v1）。
+  'temir-attr': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'attribution.yml')],
 } as const
 export type Condition = keyof typeof CONDITIONS
 

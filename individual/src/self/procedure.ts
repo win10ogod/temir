@@ -151,6 +151,8 @@ export interface ProcedureVariant {
   readonly energy?: false
   readonly subtraction?: false
   readonly perPerson?: false
+  /** 事後比對的歸因（H-AT）開著（預設關；attribution-v1）。 */
+  readonly attribution?: true
 }
 
 /** memory/aux 記下這次呼叫用了哪幾個做法的哪一版（name → version）。 */

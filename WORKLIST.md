@@ -339,6 +339,24 @@
   - dev19（4251dc7，code review 修正之後）：記憶 40/44、拒答 8/8、對照 6/6；人格 39/39、對照 4/4。沒有退化。
     - 回合錯誤 1：探針 q47 的 MALFORMED_RESPONSE（見上面重試的項目）；這題算錯，仍在規則內。
 
+## 安裝（2026-11-01）
+
+- [x] 裝進 DSH Launcher 的「TW」整合包（pack-tw，DSH 0.2.2-alpha.2；使用者「你直接幫我裝好」）。
+  - 個體以 `link:F:/DSH/temir-individual` 安裝：Node 不剝除 node_modules 中 `.ts` 檔的型別，所以指向原始碼目錄。
+    - 那個目錄是 `individual/` 在 6125c0b 的 git archive，不含 test/；更新方式寫在它的 SOURCE.txt。
+  - 一起安裝的：
+    - dsh-im 5.9.1、agent-browser、kiseki-input、archify、opencode2dsh；
+    - DSH 自帶的 agent-team、plugin-market、inspector；
+    - 更新到支援 0.2.2 的 auto-tool-prune 0.2.4、turn-continuation 0.2.3、knowledge-work 0.1.2、evidence-first-knowledge-work 0.1.3。
+  - 沒有安裝：fount-memory（第二套記憶）、fount-reality（自動看螢幕、持續呼叫模型）、tavern-room（角色引擎，只支援 0.1.7）、cot-translation（每次都要翻譯呼叫）。
+  - 開機驗證（測試用的 TEMIR_HOME，沒有送訊息）：15 個 bundle 都啟用。
+  - 第一次開機發現 temir-plugin 匯入失敗：整合包只讓插件解析到自己宣告的 peer。已補上宣告，並加上檢查的測試（6125c0b）。
+  - **正式個體的誕生**：從 Launcher 第一次啟動 TW 包時，生命紀錄建在 `C:\Users\jmes1\.local\share\temir`。TW 包的 DeepSeek 金鑰由使用者在 Launcher 中設定。
+- [x] 四個插件支援 DSH 0.2.2-alpha.2，推上各自的 main（使用者要求）：
+  - auto-tool-prune ed59553、turn-continuation dd8901b、knowledge-work e4ed581、evidence-first-knowledge-work 7a8a7dd；
+  - 有 CI 的三個，Ubuntu 與 Windows 都通過。
+  - 插件本身不用改。DSH 0.2.2 要求組裝中載入工具執行器，測試的組裝改為載入 dsh-tool-executor-native（同 dsh-base）。
+
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID
 - H-EX（以行動檢驗想像出來的讀法；T4 的前提）與 H-ET（勢能的時間：在該想起的時候想起）：兩個草案，確認前不實作

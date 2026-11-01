@@ -71,6 +71,11 @@ export interface Candidate {
    * 解除時，原本的扣除理由保留在 reason。
    */
   readonly judgment?: { readonly decision: 'keep' | 'lift'; readonly why: string; readonly refs: readonly string[]; readonly reason?: string }
+  /**
+   * H-EX（explore 開時）：這個做法分辨得出的「還分不出的讀法」。思考的輸出中是 P 編號，寫進決定紀錄時換成勢能的 key（doubt:…）。
+   * 分辨得出卻被扣除的做法，要再判斷一次維持或解除（memory.ts 的 exclusionReviews）。
+   */
+  readonly tells?: readonly string[]
 }
 
 /** 一個有回報的過去決定 (s, a, G)。 */

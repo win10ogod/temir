@@ -26,10 +26,12 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
 import { latestRoute } from '../integrate/index.ts'
+import { LESSON_KIND } from '../integrate/carried.ts'
+import type { LessonData } from '../integrate/evidence.ts'
 import { auxRecord, modelCaller, promptHash, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
 import { clip, clipEnds, clipKeepLines, lastInteraction, replyOf, sessionSoFar } from '../recall/retrieve.ts'
 import { newLeftItems, potentialItems, presentPotential, resolvePotential, unlabel } from '../self/energy.ts'
-import { KIND, appraisalText, currentNarrative, currentSelfModel, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
+import { KIND, appraisalText, currentNarrative, currentSelfModel, formatNow, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
 import { currentProcedure, procedureVersions, type Procedure, type ProcedureVariant } from '../self/procedure.ts'
 import {
   ALL_EXCLUDED_NOTE,
@@ -63,6 +65,8 @@ import {
   openDecision,
   applyJudgments,
   exclusionReviews,
+  withDoubtReviews,
+  type DoubtEvidence,
   parseJudgments,
   relevantExperiences,
   renderExclusionReview,
@@ -133,6 +137,18 @@ export interface Config {
    * 強制個體逐一判斷對方反應的幾種解讀（各自引用對方的原話），教訓只能依據有原話支持的那一個（rd/aux.ts 的 readingsOf）。
    */
   readonly attribution?: boolean
+  /**
+   * 懸著的事的時間（hypotheses.md H-ET；使用者 2026-11-01 確認；預設關，think-v2 預先登記的實驗之後決定）：
+   * 事後比對每留下一件事，都要判斷「有沒有一個時間，到了就該再想起」（rd/aux.ts 的 REVISIT_LEFT）。時間到了念頭會醒來（temir-thought 的 revisit）。
+   */
+  readonly revisit?: boolean
+  /**
+   * 以行動檢驗讀法（hypotheses.md H-EX；使用者 2026-11-01 確認；預設關，T4 預先登記的實驗之後決定）：
+   * 對方回了話，比對要判斷有沒有另一種讀法（成為「還分不出的讀法」）；之後的思考，每個做法都要判斷分不分辨得出，
+   * 分辨得出卻被扣除的要再判斷一次；之後的比對判斷結果支持哪一種，支持了就放下、寫成教訓（memory/lesson）。
+   * 上一個決定之後有讀法剛被判斷時，被扣除的每一個做法都要再判斷一次。需要 energy 與 revision。
+   */
+  readonly explore?: boolean
 }
 
 function textOf(content: readonly { readonly type: string; readonly text?: string }[]): string {
@@ -207,12 +223,16 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
   const revision = (config?.revision ?? true) && subtraction
   const silenceMs = (config?.silenceMinutes ?? 10) * 60_000
   const attribution = config?.attribution ?? false
+  const revisit = (config?.revisit ?? false) && energy
+  const explore = (config?.explore ?? false) && energy
   // 消融關掉的機制（memory/aux 的 variant）：做法的閘門照同樣的設定重跑（integrate/procedure-gate.ts）。
   const variant: ProcedureVariant = {
     ...(energy ? {} : { energy: false }),
     ...(subtraction ? {} : { subtraction: false }),
     ...(perPerson ? {} : { perPerson: false }),
     ...(attribution ? { attribution: true } : {}),
+    ...(revisit ? { revisit: true } : {}),
+    ...(explore ? { explore: true } : {}),
   }
 
   /** 背景的事後比對；卸載前等它們完成。 */
@@ -290,20 +310,24 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         '',
         '## 對方接著說了什麼',
         clip(heard, 1500),
+        // H-ET：判斷再想起的時間需要知道現在（關閉時輸入不變）。
+        ...(revisit ? ['', '## 現在', formatNow(Date.now())] : []),
       ].join('\n')
       const procedure = currentProcedure(life, 'outcome')
-      const system = outcomeSystem({ procedure, energy, attribution })
+      const system = outcomeSystem({ procedure, energy, attribution, revisit, explore })
+      // H-EX：列出的「還分不出的讀法」（P 編號 → 讀法的數目），每一件都要判斷；對方回了話才問 doubt。
+      const doubts = new Map(explore ? [...labels].filter(([, key]) => key.startsWith('doubt:')).map(([label, key]) => [label, held.find((h) => h.key === key)?.readings?.length ?? 2] as const) : [])
       const session = decision.session ?? undefined
       const output = await call('outcome', route, system, input, session, [decision.id], [procedure])
       // 能量開時，released 只能指名輸入中列出的懸著的事（認不得的編號也要重問）。
       // 歸因（H-AT）：引用要出自對方接著說的話；暫時的比對（對方沒有回話）沒有原話可引用，不要求。
-      const options = { ...(energy ? { labels } : {}), energy, ...(attribution && !provisional ? { attribution: { heard } } : {}) }
+      const options = { ...(energy ? { labels } : {}), energy, revisit, ...(explore ? { explore: { doubts, replied: !provisional } } : {}), ...(attribution && !provisional ? { attribution: { heard } } : {}) }
       let parsed = output === undefined ? undefined : parseOutcome(output, options)
       const problems: string[] = output === undefined ? ['比對的呼叫失敗'] : []
       // 強制判斷：不合格時附上問題重問一次（呼叫失敗時不重問，與思考相同）；仍不合格就記下失敗，不寫 rd/outcome。
       if (parsed && !parsed.ok && life.isOpen) {
         problems.push(...parsed.problems.map((p) => `第 1 次：${p}`))
-        const again = await call('outcome', route, `${system}\n${outcomeRetryNote(parsed.problems, attribution)}`, input, session, [decision.id], [procedure])
+        const again = await call('outcome', route, `${system}\n${outcomeRetryNote(parsed.problems, attribution, revisit, explore)}`, input, session, [decision.id], [procedure])
         parsed = again === undefined ? undefined : parseOutcome(again, options)
         if (!parsed) problems.push('第 2 次：比對的呼叫失敗')
         else if (!parsed.ok) problems.push(...parsed.problems.map((p) => `第 2 次：${p}`))
@@ -315,8 +339,13 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         return
       }
       const judged = parsed.judgment
-      const { releasedRefs, left, gapOnMind, readings, basis, ...rest } = judged
-      const releasedItems = resolvePotential(releasedRefs, labels).filter((k) => !k.startsWith('goal:'))
+      const { releasedRefs, left, gapOnMind, readings, basis, doubt, tested, ...rest } = judged
+      // H-EX：判斷出是哪一種讀法的，放下（releasedItems），之後寫成教訓。
+      const testedRecords = (tested ?? []).flatMap((t) => {
+        const key = labels.get(t.ref)
+        return key ? [{ key, supports: t.supports, why: t.why, lesson: t.lesson }] : []
+      })
+      const releasedItems = [...new Set([...resolvePotential(releasedRefs, labels).filter((k) => !k.startsWith('goal:')), ...testedRecords.filter((t) => t.supports > 0).map((t) => t.key)])]
       const outcome: OutcomeData = {
         decision: decision.id,
         ...rest,
@@ -325,7 +354,10 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         left: left.map((l) => unlabel(l.text, labels, held)).join('；'),
         ...(() => {
           // 只留新的懸念：與目前懸著的事文字相同的略過（v2：同一件事每次比對都再寫一次，累積到 15 件）。
-          const items = newLeftItems(left.map((l) => ({ text: unlabel(l.text, labels, held), forOther: l.forOther })), potentialItems(life))
+          const items = newLeftItems(
+            left.map((l) => ({ text: unlabel(l.text, labels, held), forOther: l.forOther, ...(l.revisitAt !== undefined ? { revisitAt: l.revisitAt } : {}) })),
+            potentialItems(life),
+          )
           return items.length > 0 ? { leftItems: items } : {}
         })(),
         ...(releasedItems.length > 0 ? { releasedItems } : {}),
@@ -334,6 +366,7 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         ...(provisional ? { provisional: true } : {}),
         ...(readings ? { readings } : {}),
         ...(basis !== undefined ? { basis } : {}),
+        ...(explore ? { doubt: doubt ?? null, ...(testedRecords.length > 0 ? { tested: testedRecords } : {}) } : {}),
       }
       const recorded = life.append({
         kind: OUTCOME_KIND,
@@ -343,6 +376,12 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         text: [provisional && '（暫時的比對：對方還沒有回話）', `預測：${planned?.prediction ?? ''}`, `實際：${judged.actual}`, judged.lesson && `教訓：${judged.lesson}`].filter(Boolean).join('\n'),
         causes: [decision.id],
       })
+      // H-EX：判斷出讀法的教訓，連到讀法所在的比對與這次的比對（回憶與整合都看得到）。
+      for (const t of testedRecords.filter((x) => x.supports > 0)) {
+        const source = t.key.slice('doubt:'.length)
+        const data: LessonData = { text: t.lesson, evidence: [source, recorded.id], outcome: recorded.id }
+        life.append({ kind: LESSON_KIND, origin: 'self', session, data, text: `教訓：${t.lesson}`, causes: [source, recorded.id] })
+      }
       // 行動後果留下的感受（性質 2：經驗評價受 PC 影響；H-M1：情感是被記住的感受）。個體決定要記下的（keepFeeling）
       // 寫成感受紀錄，指向那一回合（對方的話與我的回覆），回憶時會一起帶出；其餘只留在比對紀錄裡（ADR-0008 §2）。
       // 要不要重新檢視自己（reconsider，H4）記在比對紀錄上，整合依它決定是否以深度模式提前進行。
@@ -402,6 +441,10 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
     const heldNow = potentialView?.shown ?? []
     const potentialLabels = potentialView?.labels ?? new Map<string, string>()
     const goalIds = new Set(goals(life).filter((g) => g.status === 'active' || g.status === 'paused').map((g) => g.id))
+    // H-EX：列出的「還分不出的讀法」（每個做法都要判斷 tells），以及上一個決定之後剛被結果判斷的讀法（被扣除的做法要再判斷）。
+    const doubtLabels = new Set(explore ? [...potentialLabels].filter(([, key]) => key.startsWith('doubt:')).map(([label]) => label) : [])
+    const openDoubts: DoubtEvidence[] = explore ? heldNow.filter((i) => i.kind === 'doubt').map((i) => ({ key: i.key, readings: i.readings ?? [] })) : []
+    const resolvedDoubts = explore && revision ? resolvedSince(life.latest(DECISION_KIND)?.seq ?? -1) : []
     const soFar = sessionSoFar(life, session, cue)
     const experienceText = renderExperiences(shown, revision)
     const input = [
@@ -435,6 +478,9 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
       shown,
       labels,
       withExcluded,
+      doubtLabels,
+      openDoubts,
+      resolvedDoubts,
       shownIds,
       heldNow,
       potentialLabels,
@@ -444,8 +490,23 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
       input,
       procedures,
       used,
-      system: deliberateSystem({ procedures, energy, subtraction, perPerson }),
+      system: deliberateSystem({ procedures, energy, subtraction, perPerson, explore }),
     }
+  }
+
+  /** H-EX：seq 之後的比對中被判斷出來的讀法（supports 不是 0），作為扣除再判斷的依據。 */
+  function resolvedSince(seq: number): DoubtEvidence[] {
+    return life.after(seq, [OUTCOME_KIND], 50).flatMap((o) =>
+      ((o.data as OutcomeData).tested ?? [])
+        .filter((t) => t.supports > 0)
+        .flatMap((t): DoubtEvidence[] => {
+          const source = life.get(t.key.slice('doubt:'.length))?.data as OutcomeData | undefined
+          const readings = (source?.doubt ?? []).map((d) => d.reading)
+          const supported = readings[t.supports - 1]
+          if (!supported) return []
+          return [{ key: t.key, readings, resolved: { supported, refuted: readings.filter((_, i) => i !== t.supports - 1), lesson: t.lesson } }]
+        }),
+    )
   }
   type Prepared = ReturnType<typeof prepare>
 
@@ -468,6 +529,8 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
     let near: ReturnType<typeof neighbors> = []
     let reviews: ReturnType<typeof exclusionReviews> = []
     let refLabels = new Map<string, string>()
+    /** H-EX：這次的扣除判斷列出了讀法（提示換成可以引用 D 編號的版本）。 */
+    let doubtful = false
     let reviewAttempts = 0
     const reviewProblems: string[] = []
 
@@ -484,10 +547,20 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
       // 處境、drive、候選與扣除理由都會進入準備訊息與紀錄：把編號換成那件事的描述（編號只在這次思考的輸入中有意義）。
       // dev5：處境寫著「她欠我回覆的：…（P1」，主模型的推理跟著寫「不該再讓 P1、P2 無限懸著」。
       deliberation = mapDeliberationText(subtraction ? parsed : withoutExclusions(parsed), (s) => unlabel(s, prep.potentialLabels, prep.heldNow))
+      // H-EX：tells 的 P 編號換成勢能的 key（編號只在這次思考的輸入中有意義）。
+      if (explore) {
+        deliberation = {
+          ...deliberation,
+          candidates: deliberation.candidates.map((c) => (c.tells ? { ...c, tells: c.tells.flatMap((l) => prep.potentialLabels.get(l) ?? []) } : c)),
+        }
+      }
       near = jitrl ? neighbors(deliberation.situation, prep.memory, prep.params, deliberation.similar) : []
       // D20 第三版：扣除本身會被經驗改變，由個體判斷，但強制判斷（memory.ts 的 exclusionReviews）。
       // 類似處境的經驗：思考時列出的（回憶帶進來的＋詞彙相近的），加上 JitRL 依處境找到的鄰居。
       reviews = revision ? exclusionReviews(deliberation.candidates, [...prep.shown, ...near.map((n) => n.experience)], prep.params, prep.shownIds) : []
+      // H-EX：分辨得出卻被扣除的做法、上一個決定之後有讀法剛被判斷時被扣除的做法，也要判斷（memory.ts 的 withDoubtReviews）。
+      if (revision && explore) reviews = withDoubtReviews(reviews, deliberation.candidates, prep.openDoubts, prep.resolvedDoubts)
+      doubtful = reviews.some((r) => (r.doubts ?? []).length > 0)
       if (reviews.length === 0) return finish(deliberation.candidates, undefined)
       const rendered = renderExclusionReview(deliberation.situation, deliberation.candidates, reviews)
       refLabels = rendered.labels
@@ -543,11 +616,15 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
       get fresh() {
         return phase === 'deliberate' && attempts === 0
       },
+      /** H-EX：扣除的判斷列出了讀法。 */
+      get doubtful() {
+        return doubtful
+      },
       /** 思考的輸出（呼叫失敗時是 undefined）。 */
       answer(output: string | undefined): Next {
         if (phase === 'excluded') {
           // 全部扣除時的重問：輸出不合格就保留第一次的（程式不替個體改選）。
-          const retried = output === undefined ? undefined : parseDeliberation(output, prep.labels, prep.withExcluded)
+          const retried = output === undefined ? undefined : parseDeliberation(output, prep.labels, prep.withExcluded, prep.doubtLabels)
           return proceed(retried?.ok ? retried.deliberation : first!)
         }
         attempts++
@@ -560,11 +637,11 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
           problems.push('第 2 次：思考的呼叫失敗')
           return fail()
         }
-        const parsed = parseDeliberation(output, prep.labels, prep.withExcluded)
+        const parsed = parseDeliberation(output, prep.labels, prep.withExcluded, prep.doubtLabels)
         if (!parsed.ok) {
           problems.push(...parsed.problems.map((p) => `第 ${attempts} 次：${p}`))
           // 輸出不合格時附上問題重試一次（e2e-37；列出的經驗沒有逐筆判斷也是不合格，D23）；仍不合格就不做準備。
-          return attempts === 1 ? { kind: 'retry', note: deliberationRetryNote(parsed.problems) } : fail()
+          return attempts === 1 ? { kind: 'retry', note: deliberationRetryNote(parsed.problems, prep.doubtLabels.size > 0) } : fail()
         }
         // 全部的做法都被扣除時，附上說明重問一次；仍全部扣除，就照實記下：沒有準備好的做法（chosen＝-1）。
         if (subtraction && allExcluded(parsed.deliberation.candidates)) {
@@ -581,7 +658,7 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         if (judged?.ok) return finish(applyJudgments(deliberation!.candidates, judged.judgments), { required: reviews.length })
         if (!judged) reviewProblems.push(reviewAttempts === 1 ? '判斷的呼叫失敗' : '第 2 次：判斷的呼叫失敗')
         else reviewProblems.push(...judged.problems.map((p) => `第 ${reviewAttempts} 次：${p}`))
-        if (judged && reviewAttempts === 1) return { kind: 'review', text: renderExclusionReview(deliberation!.situation, deliberation!.candidates, reviews).text, note: revisionRetryNote(judged.problems) }
+        if (judged && reviewAttempts === 1) return { kind: 'review', text: renderExclusionReview(deliberation!.situation, deliberation!.candidates, reviews).text, note: revisionRetryNote(judged.problems, doubtful) }
         return finish(deliberation!.candidates, { required: reviews.length, failed: reviewProblems.join('；') })
       },
       /** context 模式：主 agent 沒有完成就結束了這一回合（或對方又說了話）。 */
@@ -603,7 +680,6 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
       if (previous) evaluate(previous, cue, route)
       const prep = { ...prepare(stepInput), cueSeq: life.lastSeq() }
       const machine = deliberating(prep, 'aux')
-      const revising = revisionSystem(prep.procedures.subtract)
       let next = machine.answer(await call('deliberate', route, prep.system, prep.input, session, [], prep.used, signal))
       // 最多：思考兩次（或全部扣除時重問一次）、判斷兩次。中途被取消就不再呼叫，也不記失敗。
       for (let round = 0; round < 4; round++) {
@@ -612,7 +688,10 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         const output =
           next.kind === 'retry'
             ? await call('deliberate', route, `${prep.system}\n${next.note}`, prep.input, session, [], prep.used, signal)
-            : await call('revise', route, next.note ? `${revising}\n${next.note}` : revising, next.text, session, [], [prep.procedures.subtract], signal)
+            : await (() => {
+                const revising = revisionSystem(prep.procedures.subtract, machine.doubtful)
+                return call('revise', route, next.note ? `${revising}\n${next.note}` : revising, next.text, session, [], [prep.procedures.subtract], signal)
+              })()
         if (signal.aborted || !life.isOpen) return undefined
         next = next.kind === 'retry' ? machine.answer(output) : machine.review(output)
       }
@@ -642,7 +721,7 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
         : undefined
     const prep = { ...prepare(stepInput), cueSeq: life.lastSeq() }
     pending.set(session, { prep, machine: deliberating(prep, 'context') })
-    return deliberateNotice({ procedures: prep.procedures, energy, subtraction, perPerson, held: prep.heldLines, experiences: prep.experienceText, ...(reminder ? { reminder } : {}) })
+    return deliberateNotice({ procedures: prep.procedures, energy, subtraction, perPerson, explore, held: prep.heldLines, experiences: prep.experienceText, ...(reminder ? { reminder } : {}) })
   }
 
   /**
@@ -679,7 +758,7 @@ export function createRd(deps: RdDeps, config: Config | undefined): Rd {
       case 'retry':
         return `思考還沒有完成，再呼叫一次 ${DELIBERATE_TOOL}：${next.note}`
       case 'review':
-        return `${revisionNotice(prep.procedures.subtract, next.text)}${next.note ? `\n${next.note}` : ''}`
+        return `${revisionNotice(prep.procedures.subtract, next.text, machine.doubtful)}${next.note ? `\n${next.note}` : ''}`
       case 'done':
         return `${next.preparation.text}\n\n（這是你自己的準備。接著回應對方；實際怎麼做由你決定。）`
       case 'failed':

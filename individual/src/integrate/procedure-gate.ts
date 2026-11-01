@@ -55,7 +55,12 @@ const PURPOSE: Readonly<Record<ProcedureName, string>> = { deliberate: 'delibera
 
 /** 那次呼叫被消融關掉的機制（memory/aux 的 variant）→ 組系統提示與通知的選項。 */
 function flagsOf(variant: ProcedureVariant) {
-  return { ...(variant.energy === false ? { energy: false } : {}), ...(variant.subtraction === false ? { subtraction: false } : {}), ...(variant.perPerson === false ? { perPerson: false } : {}) }
+  return {
+    ...(variant.energy === false ? { energy: false } : {}),
+    ...(variant.subtraction === false ? { subtraction: false } : {}),
+    ...(variant.perPerson === false ? { perPerson: false } : {}),
+    ...(variant.explore ? { explore: true } : {}),
+  }
 }
 
 /** 以某個版本的做法組出那個步驟的系統提示；其他做法用現行版本，框架與輸出照那次呼叫的設定（variant）。 */
@@ -67,11 +72,11 @@ export function systemWith(life: LifeStore, name: ProcedureName, procedure: Proc
     case 'subtract':
       return deliberateSystem({ procedures: { deliberate: currentProcedure(life, 'deliberate'), subtract: procedure }, ...flags })
     case 'outcome':
-      return outcomeSystem({ procedure, ...flags, ...(variant.attribution ? { attribution: true } : {}) })
+      return outcomeSystem({ procedure, ...flags, ...(variant.attribution ? { attribution: true } : {}), ...(variant.revisit ? { revisit: true } : {}) })
     case 'integrate':
       return integrateSystem({ procedure, ...(variant.deep ? { deep: true } : {}) })
     case 'thought':
-      return thoughtSystem(procedure)
+      return thoughtSystem(procedure, variant.revisit ? { revisit: true } : {})
   }
 }
 

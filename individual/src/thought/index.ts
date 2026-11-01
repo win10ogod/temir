@@ -32,6 +32,7 @@ import {
   INITIATIVE_IM_KIND,
   INITIATIVE_KIND,
   InitiativeRelay,
+  dueItems,
   hasPotential,
   initiativeNote,
   lastThoughtSeq,
@@ -64,6 +65,12 @@ export interface Config {
   readonly spontaneous?: boolean
   /** 主動開口也送到這些 IM 目標（dsh-im 的 botId＋targetId；ADR-0006）。 */
   readonly imTargets?: readonly ImTarget[]
+  /**
+   * 懸著的事的時間（hypotheses.md H-ET；使用者 2026-11-01 確認；預設關，think-v2 之後決定）：
+   * 打算要判斷再想起的時間；時間到了、還沒放下的事，即使之後沒有新的經歷，安靜時念頭也會醒來（dueItems）。
+   * 與 temir-rd 的 revisit 一起開（比對留下的事也要有時間）。
+   */
+  readonly revisit?: boolean
 }
 
 /** dsh-im 的同 Host 服務（只用到的部分；PROACTIVE_DELIVERY.md）。 */
@@ -156,26 +163,27 @@ export function apply(ctx: Context, config: Config | undefined): void {
   let running: Promise<void> | undefined
   /** 上一次念頭（或嘗試）時生命紀錄的最後一個 seq：之後沒有新的經歷就不再想。重啟之後從生命紀錄接著算。 */
   let quietAfter = lastThoughtSeq(life)
+  const revisit = config?.revisit ?? false
 
   async function think(): Promise<void> {
     const route = latestRoute(life)
     if (!route) return
     const model = `${route.provider}/${route.model}`
-    const { input, labels } = thoughtInput(life)
+    const { input, labels, due } = thoughtInput(life, Date.now(), { revisit })
     const procedure = currentProcedure(life, 'thought')
-    const system = thoughtSystem(procedure)
-    // 輸入保留換行：做法的閘門以真實的輸入重跑（ADR-0008 §3）。
-    const used = { procedures: procedureVersions([procedure]), input: clipKeepLines(input, 20_000) }
+    const system = thoughtSystem(procedure, { revisit })
+    // 輸入保留換行：做法的閘門以真實的輸入重跑（ADR-0008 §3）；revisit 開時記下 variant，閘門照同樣的輸出段重跑。
+    const used = { procedures: procedureVersions([procedure]), input: clipKeepLines(input, 20_000), ...(revisit ? { variant: { revisit: true } } : {}) }
     const ask = async (prompt: string) => {
       const call = await callModel(ctx, route, prompt, input, AbortSignal.timeout(timeoutMs))
       if (life.isOpen) life.append({ kind: 'memory/aux', origin: 'self', model, data: { purpose: 'thought', ...auxRecord(call), ...used, systemHash: promptHash(prompt), output: call.output } })
-      return parseThought(call.output, labels)
+      return parseThought(call.output, labels, { revisit, due })
     }
     try {
       let parsed = await ask(system)
       if (!life.isOpen) return
       // 強制判斷：不合格時附上問題重問一次；仍不合格就不寫念頭（memory/aux 留著兩次的輸出）。
-      if (!parsed.ok) parsed = await ask(`${system}\n${thoughtRetryNote(parsed.problems)}`)
+      if (!parsed.ok) parsed = await ask(`${system}\n${thoughtRetryNote(parsed.problems, revisit)}`)
       if (!life.isOpen || !parsed.ok) return
       const judged = parsed.judgment
       const id = life.transaction(() => recordThought(life, judged, labels, model))
@@ -191,9 +199,17 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const timer = setInterval(() => {
     try {
       if (running || !life.isOpen) return
-      if (!newExperienceSince(life, quietAfter)) return
-      const quiet = quietFor(life, Date.now(), [THOUGHT_KIND])
-      if (quiet === undefined || quiet < idleMs) return
+      const now = Date.now()
+      // H-ET：時間到了、還沒放下的事，不需要新的經歷；仍要等對話安靜下來（不在對話中打斷）。
+      const due = revisit ? dueItems(life, now) : []
+      if (due.length > 0) {
+        const quiet = quietFor(life, now)
+        if (quiet === undefined || quiet < idleMs) return
+      } else {
+        if (!newExperienceSince(life, quietAfter)) return
+        const quiet = quietFor(life, now, [THOUGHT_KIND])
+        if (quiet === undefined || quiet < idleMs) return
+      }
       if (!hasPotential(life)) {
         quietAfter = life.lastSeq()
         return

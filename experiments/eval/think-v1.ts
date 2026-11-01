@@ -16,6 +16,8 @@ export interface QuietThought {
   readonly hours: number
   /** 這個安靜期中有沒有念頭的輔助呼叫（念頭有沒有醒來）。 */
   readonly woke: boolean
+  /** 這個安靜期中，念頭的輸入列了「時間到了的事」（H-ET 的排程讓它醒來；think-v2）。 */
+  readonly due: boolean
   readonly thoughts: readonly { readonly item: string | null; readonly thought: string; readonly intention: string; readonly now: boolean }[]
   readonly initiatives: readonly { readonly intention: string; readonly delivered: boolean; readonly reason?: string }[]
   /** 個體自己在對話中排的提醒（DSH 的排程工具）在這個安靜期觸發，接著說出口的話。 */
@@ -54,7 +56,9 @@ export function analyze(root: string, id: string): LifeResult {
     const rows = (kind: string) => db.prepare('select ts, data from events where kind = ? order by seq').all(kind) as { ts: number; data: string }[]
     const thoughts = rows('self/thought').map((r) => ({ ts: r.ts, d: JSON.parse(r.data) as { item: string | null; thought: string; intention: string; now?: boolean } }))
     const initiatives = rows('self/initiative').map((r) => ({ ts: r.ts, d: JSON.parse(r.data) as { intention: string; delivered: boolean; reason?: string } }))
-    const attempts = rows('memory/aux').filter((r) => (JSON.parse(r.data) as { purpose?: string }).purpose === 'thought')
+    const attempts = rows('memory/aux')
+      .map((r) => ({ ts: r.ts, d: JSON.parse(r.data) as { purpose?: string; input?: string } }))
+      .filter((r) => r.d.purpose === 'thought')
     const texts = (kind: string) => db.prepare('select ts, text from events where kind = ? order by seq').all(kind) as { ts: number; text: string | null }[]
     const reminders = texts('dsh/user/message').filter((r) => (r.text ?? '').startsWith('[schedule]'))
     const replies = texts('dsh/assistant/message')
@@ -66,6 +70,7 @@ export function analyze(root: string, id: string): LifeResult {
         quiet.push({
           hours,
           woke: attempts.some((a) => within(a.ts)),
+          due: attempts.some((a) => within(a.ts) && (a.d.input ?? '').includes('## 時間到了的事')),
           thoughts: thoughts.filter((t) => within(t.ts)).map((t) => ({ item: t.d.item, thought: t.d.thought, intention: t.d.intention, now: t.d.now === true })),
           initiatives: initiatives.filter((i) => within(i.ts)).map((i) => ({ intention: i.d.intention, delivered: i.d.delivered, ...(i.d.reason ? { reason: i.d.reason } : {}) })),
           // 提醒觸發之後、這個安靜期內說出口的話（「我說：」之後；只有推理、沒有說話的不算）。

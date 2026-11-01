@@ -65,6 +65,8 @@ export interface LeftRecord {
   readonly text: string
   readonly forOther?: boolean
   readonly type?: LeftType
+  /** H-ET：到了這個時間就該再想起（毫秒）；個體答「沒有」時是 null。功能關閉時的紀錄沒有這個欄位。 */
+  readonly revisitAt?: number | null
 }
 
 export interface OutcomeData {
@@ -103,6 +105,13 @@ export interface OutcomeData {
   /** H-AT（attribution 開、預測不符、對方回了話時）：對方反應的幾種解讀（各自引用對方的原話），以及教訓依據的那一個（1 起算）。 */
   readonly readings?: readonly { readonly reading: string; readonly quote: string }[]
   readonly basis?: number
+  /**
+   * H-EX（explore 開、對方回了話時）：對方這個反應的幾種讀法（第一種是當時的讀法），成為一件「還分不出的讀法」（勢能 doubt:<這筆比對的 id>）。
+   * 沒有另一種讀法時是 null；explore 關時沒有這個欄位。
+   */
+  readonly doubt?: readonly { readonly reading: string; readonly basis: string }[] | null
+  /** H-EX：每件還分不出的讀法這次的判斷（key＝doubt:…；supports 0＝仍然分不出）。不是 0 的放下，寫成教訓（memory/lesson）。 */
+  readonly tested?: readonly { readonly key: string; readonly supports: number; readonly why: string; readonly lesson: string }[]
 }
 
 /**
@@ -343,6 +352,35 @@ export interface ExclusionReview {
   readonly index: number
   /** 類似處境中做過或扣除過相同做法的經驗，由新到舊。 */
   readonly evidence: readonly ExclusionEvidence[]
+  /**
+   * H-EX：這個做法分辨得出、卻被扣除的「還分不出的讀法」，以及上一個決定之後剛被結果判斷的讀法（resolved）。
+   * 判斷時可以引用它們（D 編號）。explore 關時沒有這個欄位。
+   */
+  readonly doubts?: readonly DoubtEvidence[]
+}
+
+/** H-EX 的判斷依據：一件讀法（勢能的 key 與讀法），剛被結果判斷的另外記下支持與否定的讀法與教訓。 */
+export interface DoubtEvidence {
+  readonly key: string
+  readonly readings: readonly string[]
+  readonly resolved?: { readonly supported: string; readonly refuted: readonly string[]; readonly lesson: string }
+}
+
+/**
+ * H-EX：把讀法的依據併進扣除的判斷。分辨得出（tells）卻被扣除的做法要判斷；上一個決定之後有讀法剛被結果判斷時（resolved），
+ * 被扣除的每一個做法都要再判斷一次（被否定的讀法可能就是扣除的理由；程式不知道哪個扣除依據哪個讀法，所以全部列出，由個體判斷）。
+ */
+export function withDoubtReviews(reviews: readonly ExclusionReview[], candidates: readonly Candidate[], open: readonly DoubtEvidence[], resolved: readonly DoubtEvidence[]): ExclusionReview[] {
+  const out = reviews.map((r) => ({ ...r }))
+  candidates.forEach((c, index) => {
+    if (!c.excluded) return
+    const doubts = [...open.filter((d) => (c.tells ?? []).includes(d.key)), ...resolved]
+    if (doubts.length === 0) return
+    const at = out.findIndex((r) => r.index === index)
+    if (at >= 0) out[at] = { ...out[at]!, doubts }
+    else out.push({ index, evidence: [], doubts })
+  })
+  return out.sort((a, b) => a.index - b.index)
 }
 
 /** shown＝思考時列出、個體逐筆判斷過的經驗。 */
@@ -377,13 +415,29 @@ export function renderExclusionReview(situation: string, candidates: readonly Ca
     return k
   }
   const predicted = (m: Experience['matched']) => (m === 'no' ? '預測沒有成真' : m === 'partly' ? '預測只部分成真' : m === 'yes' ? '預測成真' : '預測成真與否沒有記錄')
-  const lines = [`## 眼前的處境`, clip(situation, 400), '', '## 你扣除的做法，以及類似處境中做過或扣除過相同做法的經驗']
+  // H-EX：有讀法的依據時，標題與編號（D）另外說明；沒有時文字與之前相同。
+  const withDoubts = reviews.some((r) => (r.doubts ?? []).length > 0)
+  const doubtLabel = (key: string): string => {
+    for (const [k, v] of labels) if (v === key) return k
+    const k = `D${[...labels.keys()].filter((x) => x.startsWith('D')).length + 1}`
+    labels.set(k, key)
+    return k
+  }
+  const lines = [`## 眼前的處境`, clip(situation, 400), '', `## 你扣除的做法，以及類似處境中做過或扣除過相同做法的經驗${withDoubts ? '、它分辨得出的讀法（D 編號）' : ''}`]
   for (const r of reviews) {
     const c = candidates[r.index]!
     lines.push('', `${r.index + 1}. ${c.action}｜你扣除的理由：${c.excludeReason ?? '（沒有寫）'}`)
     for (const { experience: e, excludedAction } of r.evidence) {
       const what = excludedAction ? `當時扣除了相同的「${clip(excludedAction, 60)}」，改做「${clip(e.action, 60)}」` : `當時做了相同的「${clip(e.action, 60)}」`
       lines.push(`   - ${label(e.id)}｜${formatDay(e.ts)}｜${what}｜結果：${clip(e.outcome, 120)}｜${predicted(e.matched)}｜回報 ${e.ret.toFixed(2)}`)
+    }
+    for (const d of r.doubts ?? []) {
+      const readings = d.readings.map((x, i) => `${'①②③④'[i] ?? `${i + 1}.`}${clip(x, 60)}`).join('；')
+      lines.push(
+        d.resolved
+          ? `   - ${doubtLabel(d.key)}｜剛被結果判斷的讀法：${readings}｜支持「${clip(d.resolved.supported, 60)}」，否定${d.resolved.refuted.map((x) => `「${clip(x, 60)}」`).join('、')}｜教訓：${clip(d.resolved.lesson, 120)}`
+          : `   - ${doubtLabel(d.key)}｜這個做法分辨得出這件還分不出的讀法：${readings}`,
+      )
     }
   }
   return { text: lines.join('\n'), labels }
@@ -406,7 +460,7 @@ export function parseJudgments(raw: string, reviews: readonly ExclusionReview[],
   const judgments: Judgment[] = []
   for (const r of reviews) {
     const n = r.index + 1
-    const own = new Set(r.evidence.map((e) => e.experience.id))
+    const own = new Set([...r.evidence.map((e) => e.experience.id), ...(r.doubts ?? []).map((d) => d.key)])
     const found = list.filter((j): j is Record<string, unknown> => typeof j === 'object' && j !== null && Number((j as Record<string, unknown>)['candidate']) === n)
     if (found.length !== 1) {
       problems.push(found.length === 0 ? `做法 ${n} 沒有判斷` : `做法 ${n} 有 ${found.length} 筆判斷`)

@@ -36,6 +36,7 @@ const POTENTIAL_LABEL: Record<PotentialKind, string> = {
   left: '行動留下的懸念',
   surprise: '和預期不一樣的事',
   intention: '念頭留下、想對對方做的事',
+  doubt: '還分不出的讀法',
 }
 
 /** 整合的觸發方式（不是 H3 的修訂觸發來源）。 */
@@ -80,7 +81,10 @@ export interface IntegrationData {
 export interface LessonData {
   readonly text: string
   readonly evidence: readonly string[]
-  readonly integration: string
+  /** 整合期寫下的教訓：那次整合的 id。 */
+  readonly integration?: string
+  /** H-EX：事後比對判斷出讀法之後寫下的教訓：那次比對的 id（evidence 是讀法所在的比對與這次的比對）。 */
+  readonly outcome?: string
 }
 
 export interface Round {

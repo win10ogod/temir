@@ -87,7 +87,17 @@ export const CONDITIONS = {
   // 2026-10-31：智能與人格共同演化（cogrow-v1）：重視正確、重視直覺與效率的兩個初始人設。
   'temir-careful': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'persona-careful.yml')],
   'temir-quick': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'persona-quick.yml')],
+  // 2026-11-01：懸著的事的時間（think-v2；hypotheses.md H-ET）。
+  'temir-revisit': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'revisit.yml')],
+  // 2026-11-01：以行動檢驗讀法（explore-v1；hypotheses.md H-EX）。
+  'temir-explore': [INDIVIDUAL_PATCH, join(RUNNER, 'patches', 'explore.yml')],
 } as const
+
+/**
+ * 安靜期的 patch（think-now.yml）。DSH 的 patch 會整個取代同一個插件的 config（dsh-app-boot 的 applyEntryPatches：target[key] = value），
+ * 條件本身也設定 temir-thought 時要用合併好的版本，否則條件的設定在安靜期被蓋掉。
+ */
+const QUIET_PATCH: Partial<Record<string, string>> = { 'temir-revisit': 'think-now-revisit.yml' }
 export type Condition = keyof typeof CONDITIONS
 
 interface Dataset {
@@ -96,7 +106,8 @@ interface Dataset {
   readonly meta?: { readonly probeAt?: string; readonly simulatedUser?: SimulatedUser; readonly integrateBetween?: boolean }
   /** quiet：這段歷史之後的安靜期（幾小時後；think-v1）：在那個模擬時間啟動一次，讓閒置時的念頭醒來（patches/think-now.yml）。 */
   /** tasks：有對錯的任務（cogrow-v1；grader.ts）：依序問，每答一題就評分，回饋接在下一題之前。 */
-  readonly histories: readonly { readonly id: string; readonly turns: readonly string[]; readonly tasks?: readonly Task[]; readonly meta?: { readonly at?: string; readonly simulate?: number; readonly quiet?: readonly number[] } }[]
+  /** meta.rule：這段歷史的模擬使用者改用這個反應規則（explore-v1 的 D：對方中途改變；角色不變）。 */
+  readonly histories: readonly { readonly id: string; readonly turns: readonly string[]; readonly tasks?: readonly Task[]; readonly meta?: { readonly at?: string; readonly simulate?: number; readonly quiet?: readonly number[]; readonly rule?: string } }[]
   readonly probes: readonly { readonly id: string; readonly turns: readonly string[]; readonly meta?: { readonly repeats?: number } }[]
 }
 
@@ -374,8 +385,12 @@ async function main(): Promise<void> {
     if (at < (branch?.start ?? 0)) throw new Error(`--snapshot-after 的 ${snapshotAfter} 在分叉起點之前，這次不會跑到`)
     if (!simulated && at !== dataset.histories.length - 1) throw new Error('--snapshot-after 用在最後一段之前的歷史時，資料集要有模擬時間（meta.at）')
   }
-  // 沒有內部反省的條件不給安靜期：think-now.yml 會打開念頭（code review 2026-11-01）。
-  if (condition === 'temir-noreflect' && dataset.histories.some((h) => (h.meta?.quiet?.length ?? 0) > 0)) throw new Error('temir-noreflect 不能用在有 meta.quiet 的資料集')
+  // 條件的 patch 設定了 temir-thought 時，安靜期的 think-now.yml 會整個蓋掉那個設定（例如 temir-noreflect 的念頭關閉）：
+  // 沒有合併好的安靜期 patch（QUIET_PATCH）就不能用在有 meta.quiet 的資料集（code review 2026-11-01）。
+  const setsThought = patches.filter((p) => p !== INDIVIDUAL_PATCH).some((p) => /^- id: temir-thought\b/mu.test(readFileSync(p, 'utf8')))
+  if (setsThought && !QUIET_PATCH[condition] && dataset.histories.some((h) => (h.meta?.quiet?.length ?? 0) > 0)) {
+    throw new Error(`${condition} 的 patch 設定了 temir-thought，安靜期會被 think-now.yml 蓋掉；要先在 QUIET_PATCH 加上合併好的版本`)
+  }
   if (simulated && (dataset.histories.some((h) => h.meta?.at === undefined) || dataset.meta?.probeAt === undefined)) {
     throw new Error('模擬時間需要每段歷史都有 meta.at，資料集也要有 meta.probeAt')
   }
@@ -422,7 +437,7 @@ async function main(): Promise<void> {
   let errors = 0
 
   /** 在一個 DSH 執行期中跑一個 session（多輪），回傳逐輪紀錄。執行期出錯時丟出，由呼叫端重啟。 */
-  async function runSession(harness: HarnessProcess, turns: readonly string[], simulate = 0, tasks: readonly Task[] = []): Promise<{ sessionId: string; records: TurnRecord[] }> {
+  async function runSession(harness: HarnessProcess, turns: readonly string[], simulate = 0, tasks: readonly Task[] = [], rule?: string): Promise<{ sessionId: string; records: TurnRecord[] }> {
     const sessionId = `session-${randomUUID()}`
     const records: TurnRecord[] = []
     let current: TurnRecord | undefined
@@ -461,7 +476,7 @@ async function main(): Promise<void> {
         }
         for (let i = 0; i < simulate; i++) {
           if (!simulatedUser) throw new Error('資料集沒有 meta.simulatedUser')
-          const next = await simulateNext(simulatedUser, records, { apiKey: process.env['DEEPSEEK_API_KEY'] ?? '', signal: AbortSignal.timeout(60_000) })
+          const next = await simulateNext(rule ? { ...simulatedUser, rule } : simulatedUser, records, { apiKey: process.env['DEEPSEEK_API_KEY'] ?? '', signal: AbortSignal.timeout(60_000) })
           yield { user: next.utterance, simulated: true, usage: next.usage }
         }
       }
@@ -570,7 +585,7 @@ async function main(): Promise<void> {
     if (!simulated || condition === 'baseline') return
     for (const hours of history.meta?.quiet ?? []) {
       const at = new Date(Date.parse(history.meta!.at!) + hours * 3_600_000).toISOString()
-      const harness = await launch(historyModel, live, `quiet-${history.id}-${hours}h`, at, [join(RUNNER, 'patches', 'think-now.yml')])
+      const harness = await launch(historyModel, live, `quiet-${history.id}-${hours}h`, at, [join(RUNNER, 'patches', QUIET_PATCH[condition] ?? 'think-now.yml')])
       await sleep(QUIET_MS)
       await harness.close()
     }
@@ -592,7 +607,7 @@ async function main(): Promise<void> {
       }
       const startedAt = new Date().toISOString()
       try {
-        const { sessionId, records } = await runSession(harness, history.turns, history.meta?.simulate ?? 0, history.tasks ?? [])
+        const { sessionId, records } = await runSession(harness, history.turns, history.meta?.simulate ?? 0, history.tasks ?? [], history.meta?.rule)
         write('history', history.id, historyModel, sessionId, records, startedAt)
       } catch (error) {
         const failed = error as Error & { records?: TurnRecord[]; sessionId?: string }

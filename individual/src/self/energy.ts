@@ -44,7 +44,7 @@ import { formatTime } from './state.ts'
 /** 閒置時的念頭（H0 的內部刺激；individual/src/thought）。 */
 export const THOUGHT_KIND = 'self/thought'
 
-export type PotentialKind = 'contradiction' | 'proposal' | 'left' | 'surprise' | 'intention'
+export type PotentialKind = 'contradiction' | 'proposal' | 'left' | 'surprise' | 'intention' | 'doubt'
 
 export interface PotentialItem {
   readonly key: string
@@ -58,6 +58,10 @@ export interface PotentialItem {
   /** 這件事所在的事件（排序用它的 seq：同一毫秒寫入的事件也有確定的先後）。 */
   readonly source: string
   readonly seq: number
+  /** H-ET：個體判斷到了這個時間就該再想起（毫秒）；沒有判斷過或答「沒有」時沒有這個欄位。 */
+  readonly revisitAt?: number
+  /** H-EX（kind＝doubt）：還分不出的幾種讀法（第一種是當時的讀法）。 */
+  readonly readings?: readonly string[]
 }
 
 export interface ThoughtData {
@@ -73,6 +77,10 @@ export interface ThoughtData {
   readonly now?: boolean
   /** 這個念頭讓個體想現在就重新檢視自己（H4；ADR-0008 §2）；舊紀錄沒有這個欄位。 */
   readonly reconsider?: boolean
+  /** H-ET（revisit 開時）：這個打算到了什麼時候該再想起（毫秒；「沒有」是 null）。 */
+  readonly intentionRevisitAt?: number | null
+  /** H-ET：時間到了的事重新定的時間（key → 毫秒；「沒有」是 null，不再因為時間醒來）。 */
+  readonly revisited?: readonly { readonly key: string; readonly at: number | null }[]
 }
 
 const KIND_LABEL: Record<PotentialKind, string> = {
@@ -81,6 +89,7 @@ const KIND_LABEL: Record<PotentialKind, string> = {
   left: '掛在心上的事',
   surprise: '和預期不一樣的事',
   intention: '我想對對方做的事',
+  doubt: '還分不出的讀法',
 }
 
 const TYPE_LABEL: Record<LeftType | 'legacy', string> = {
@@ -97,6 +106,7 @@ function label(item: PotentialItem): string {
 const WEIGHTY = new Set(['notable', 'major', 'pivotal'])
 
 const from = (e: LifeEvent) => ({ ts: e.ts, source: e.id, seq: e.seq })
+const at = (time: number | null | undefined) => (typeof time === 'number' ? { revisitAt: time } : {})
 
 /**
  * 勢能的增量狀態（life/projection.ts；改進清單第 7 項）：釋放過的 key，以及事後比對與念頭留下的每一件事（依時間先後）。
@@ -111,18 +121,30 @@ const POTENTIAL = new Projection<{ readonly released: Set<string>; readonly item
     } else if (e.kind === THOUGHT_KIND) {
       const t = e.data as ThoughtData
       for (const k of [...(t.releasedItems ?? []), ...(t.replacedItems ?? [])]) released.add(k)
-      if (t.intention) items.push({ key: `intention:${e.id}`, kind: 'intention', outward: true, text: t.intention, ...from(e) })
+      // H-ET：時間到了的事重新定的時間（「沒有」就不再因為時間醒來）。
+      for (const r of t.revisited ?? []) {
+        const i = items.findIndex((item) => item.key === r.key)
+        if (i < 0) continue
+        const { revisitAt: _old, ...rest } = items[i]!
+        items[i] = { ...rest, ...at(r.at) }
+      }
+      if (t.intention) items.push({ key: `intention:${e.id}`, kind: 'intention', outward: true, text: t.intention, ...from(e), ...at(t.intentionRevisitAt) })
     } else {
       const o = e.data as OutcomeData
       for (const k of o.releasedItems ?? []) released.add(k)
       if (o.leftItems) {
         o.leftItems.forEach((l, i) =>
-          items.push({ key: `left:${e.id}#${i}`, kind: 'left', ...(l.type ? { type: l.type } : {}), outward: l.forOther ?? l.type !== 'unresolved', text: l.text, ...from(e) }),
+          items.push({ key: `left:${e.id}#${i}`, kind: 'left', ...(l.type ? { type: l.type } : {}), outward: l.forOther ?? l.type !== 'unresolved', text: l.text, ...from(e), ...at(l.revisitAt) }),
         )
       } else if (o.left) {
         items.push({ key: `left:${e.id}`, kind: 'left', type: 'legacy', outward: false, text: o.left, ...from(e) })
       }
       // 意外只算個體判斷會一直掛在心上的（gapOnMind；舊紀錄是評為值得注意以上的）；其餘的落差留給事後比對的教訓。
+      // H-EX：對方反應的幾種讀法，在之後的比對判斷出是哪一種之前，都是懸著的事（tested 放下的在 releasedItems）。
+      if (o.doubt && o.doubt.length >= 2) {
+        const readings = o.doubt.map((d) => d.reading)
+        items.push({ key: `doubt:${e.id}`, kind: 'doubt', outward: false, text: readings.map((r, i) => `${'①②③④'[i] ?? `${i + 1}.`}${r}`).join('；'), readings, ...from(e) })
+      }
       if (o.matched === 'no' && (o.gapOnMind ?? WEIGHTY.has(o.significance ?? 'daily'))) {
         items.push({ key: `surprise:${e.id}`, kind: 'surprise', outward: false, text: o.error || o.actual, ...from(e) })
       }
@@ -195,7 +217,9 @@ export function presentPotential(life: LifeStore, options: { readonly labels?: b
   const labels = options.labels ? labelPotential(shown) : new Map<string, string>()
   const hidden = items.length - shown.length
   const lines = ['', `## 懸著的事（勢能：儲存著、還沒有釋放的推動力；進行中的目標見上${hidden > 0 ? `；較早的 ${hidden} 件沒有列出` : ''}）`]
-  const line = (item: PotentialItem, i: number) => `- ${options.labels ? `[P${i + 1}] ` : ''}${label(item)}（${formatTime(item.ts)}）：${clip(item.text, 160)}`
+  // H-ET：個體判斷過再想起的時間的，一起列出（功能關閉時沒有這個欄位，文字不變）。
+  const when = (item: PotentialItem) => (item.revisitAt !== undefined ? `；你判斷 ${formatTime(item.revisitAt)} 該再想起` : '')
+  const line = (item: PotentialItem, i: number) => `- ${options.labels ? `[P${i + 1}] ` : ''}${label(item)}（${formatTime(item.ts)}${when(item)}）：${clip(item.text, 160)}`
   if (out.length > 0) lines.push('對對方：', ...out.map((item, i) => line(item, i)))
   if (inn.length > 0) lines.push('自己心裡：', ...inn.map((item, i) => line(item, out.length + i)))
   return { lines, shown, labels }

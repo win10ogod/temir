@@ -1,0 +1,9 @@
+# think-v2（experiments/specs/think-v2.md）：懸著的事的時間（hypotheses.md H-ET；使用者 2026-11-01 確認）。
+# 事後比對與念頭留下的每件事，都要判斷「有沒有一個時間，到了就該再想起」；時間到了、還沒放下，安靜時念頭會醒來。
+# DSH 的 patch 會整個取代同一個插件的 config，所以安靜期用 think-now-revisit.yml（執行器依條件選）。
+- id: temir-rd
+  config:
+    revisit: true
+- id: temir-thought
+  config:
+    revisit: true

@@ -1,0 +1,6 @@
+# explore-v1（experiments/specs/explore-v1.md）：以行動檢驗讀法（hypotheses.md H-EX；使用者 2026-11-01 確認）。
+# 對方回了話，比對要判斷有沒有另一種讀法；之後的思考每個做法都要判斷分不分辨得出，分辨得出卻被扣除的要再判斷；
+# 之後的比對判斷結果支持哪一種，支持了就放下、寫成教訓。
+- id: temir-rd
+  config:
+    explore: true

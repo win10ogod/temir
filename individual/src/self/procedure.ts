@@ -153,6 +153,10 @@ export interface ProcedureVariant {
   readonly perPerson?: false
   /** 事後比對的歸因（H-AT）開著（預設關；attribution-v1）。 */
   readonly attribution?: true
+  /** 懸著的事的時間（H-ET）開著（預設關；think-v2）：比對與念頭都要判斷再想起的時間。 */
+  readonly revisit?: true
+  /** 以行動檢驗讀法（H-EX）開著（預設關；T4）：比對要判斷讀法，思考要判斷做法分不分辨得出。 */
+  readonly explore?: true
 }
 
 /** memory/aux 記下這次呼叫用了哪幾個做法的哪一版（name → version）。 */

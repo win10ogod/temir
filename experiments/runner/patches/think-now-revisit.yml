@@ -1,0 +1,6 @@
+# think-v2 的安靜期（temir-revisit）：同 think-now.yml，加上 revisit（DSH 的 patch 取代整個 config，不能只疊 think-now.yml）。
+- id: temir-thought
+  config:
+    checkMinutes: 0.05
+    idleMinutes: 60
+    revisit: true

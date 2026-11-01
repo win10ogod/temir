@@ -10,6 +10,7 @@
  */
 import { extractJson, strings } from '../recall/aux.ts'
 import { DEFAULT_PROCEDURES, procedurePrompt, procedureSection, withoutLines, type Procedure } from '../self/procedure.ts'
+import { NO_TIME, TIME_FORMAT, parseRevisit } from '../self/time.ts'
 import type { Candidate } from './jitrl.ts'
 
 const DEFAULT = (name: 'deliberate' | 'subtract' | 'outcome'): Procedure => ({ name, version: 1, text: DEFAULT_PROCEDURES[name] })
@@ -27,6 +28,8 @@ export interface DeliberateOptions {
   readonly subtraction?: boolean
   /** 逐一檢查每一個人（ADR-0002 D17；dev6 q11、q51）；消融（patches/no-perperson.yml）時關閉。 */
   readonly perPerson?: boolean
+  /** 以行動檢驗讀法（hypotheses.md H-EX；預設關，T4）：每個做法都要判斷分不分辨得出「還分不出的讀法」（tells）。需要 energy。 */
+  readonly explore?: boolean
 }
 
 /** 從輸出段中拿掉指定的欄位：JSON 範例中的鍵，以及以「- 欄位：」「  - 欄位：」開頭的說明行。 */
@@ -44,6 +47,13 @@ function withoutFields(contract: string, fields: readonly string[]): string {
 
 /** 輸出段的開頭：輔助呼叫只輸出 JSON；context 模式（主 agent 自己思考）以工具的參數作答。 */
 const JSON_ONLY = '只輸出一個 JSON 物件，不要任何其他文字：'
+
+/**
+ * H-EX（使用者 2026-11-01 確認；預設關）：「還分不出的讀法」是一種懸著的事。每個做法都要判斷：對方對它的反應，
+ * 會不會因為讀法不同而不同（分辨得出）。分辨得出、卻被扣除的做法，要再判斷一次維持或解除（memory.ts 的 exclusionReviews）。
+ */
+const REASON_LINE = '  - reason：扣除的理由，一句話；沒有扣除就給空字串。'
+const TELLS_LINE = '  - tells：「懸著的事」中每一件「還分不出的讀法」都要判斷：對方對這個做法的反應，會不會因為讀法不同而不同。分得出的那幾件的 P 編號；都分不出、或沒有列出這種事時給空陣列。'
 
 const DELIBERATE_CONTRACT = `${JSON_ONLY}
 {"situation": "...", "drive": "...", "activated": [], "people": [], "candidates": [{"action": "...", "prediction": "...", "confidence": 50, "excluded": false, "reason": ""}], "experiences": [{"id": "E1", "sameSituation": false, "sameAction": [], "sameExcluded": []}]}
@@ -75,6 +85,7 @@ function deliberateParts(options: DeliberateOptions): { readonly procedures: Pro
   if (!energy) contract = withoutFields(contract, ['drive', 'activated'])
   if (!perPerson) contract = withoutFields(contract, ['people'])
   if (!subtraction) contract = withoutFields(contract, ['excluded', 'reason', 'sameExcluded'])
+  if (options.explore && energy) contract = contract.replace('"excluded": false, "reason": ""}', '"excluded": false, "reason": "", "tells": []}').replace(REASON_LINE, `${REASON_LINE}\n${TELLS_LINE}`)
   return { procedures: subtraction ? [deliberate, options.procedures?.subtract ?? DEFAULT('subtract')] : [deliberate], contract }
 }
 
@@ -146,13 +157,32 @@ const OUTCOME_CONTRACT = `只輸出一個 JSON 物件，不要任何其他文字
 const ATTRIBUTION_FIELDS = `- readings：matched 是 partly 或 no 時必答：對方為什麼會這樣回應我實際做的事，至少兩種彼此不同的解讀；matched 是 yes 時給空陣列。每條 {"reading": "一句話的解讀", "quote": "對方接著說的話中支持這個解讀的原文，逐字摘錄；沒有就給空字串"}。
 - basis：列了 readings、而且 lesson 不是空的時必答：lesson 依據的是哪一個解讀（readings 的順序：1、2…）。那個解讀要有對方原話的支持（quote 不是空的）；沒有任何解讀有原話支持時，lesson 給空字串。`
 
-/** 事後比對的系統提示（框架＋比對做法＋輸出）。energy 關閉時沒有 released、left、gapOnMind（勢能的釋放與留下）；attribution 開時要逐一判斷解讀。 */
-export function outcomeSystem(options: { readonly procedure?: Procedure; readonly energy?: boolean; readonly attribution?: boolean } = {}): string {
+/**
+ * H-ET（使用者 2026-11-01 確認；預設關）：每件留下的事都要判斷「有沒有一個時間，到了就該再想起」。
+ * 時間到了、事情還沒放下，念頭就醒來（thought/index.ts）；想什麼、要不要開口仍由個體判斷。
+ */
+const REVISIT_LEFT = `  - revisitAt：每條必答：這件事有沒有一個時間，到了就該再想起：有就寫那個時間（${TIME_FORMAT}），沒有就寫「${NO_TIME}」。`
+const FOR_OTHER_LINE = '  - forOther：每條必答：這件事推動你對對方做什麼（true），還是推動你自己的反省（false）。'
+
+/**
+ * H-EX（使用者 2026-11-01 確認；預設關）：對方回了話，就要判斷有沒有另一種讀法（成為「還分不出的讀法」，一件懸著的事）；
+ * 已經懸著的讀法，每次比對都要判斷這次的結果支持哪一種，支持了就放下，寫成教訓。
+ */
+const EXPLORE_FIELDS = `- doubt：對方接著說了話時必答（對方還沒有回話時給 null）：對方這個反應，有沒有另一種說得通、而且會讓你之後做法不同的讀法？沒有就給 null。有的話給 {"readings": [{"reading": "一句話的讀法", "basis": "依據"}]}：至少兩種，第一種是你現在的讀法。
+- tested：「懸著的事」中每一件「還分不出的讀法」都要剛好一筆：{"item": "P3", "supports": 0, "why": "一句話", "lesson": ""}。supports：這次的結果支持那件事的第幾種讀法（1 起算），還是仍然分不出（0）。supports 不是 0 時 lesson 必答：從這件事帶到以後的教訓。沒有列出這種事時給空陣列。`
+
+/**
+ * 事後比對的系統提示（框架＋比對做法＋輸出）。energy 關閉時沒有 released、left、gapOnMind（勢能的釋放與留下）；attribution 開時要逐一判斷解讀；
+ * revisit 開時（而且 energy 開），每件留下的事都要判斷再想起的時間。
+ */
+export function outcomeSystem(options: { readonly procedure?: Procedure; readonly energy?: boolean; readonly attribution?: boolean; readonly revisit?: boolean; readonly explore?: boolean } = {}): string {
   const energy = options.energy ?? true
   const procedure = options.procedure ?? DEFAULT('outcome')
   const frame = '你是一個人工個體，回頭比對自己上一個決定：當時的預測，和實際發生的事一不一樣。照下面你自己的做法比對，輸出照最後一段的格式。'
   let contract = energy ? OUTCOME_CONTRACT : withoutFields(OUTCOME_CONTRACT, ['gapOnMind', 'released', 'left', 'forOther'])
   if (options.attribution) contract = `${contract.replace('"reason": "...", "lesson": ""', '"reason": "...", "readings": [], "basis": 0, "lesson": ""')}\n${ATTRIBUTION_FIELDS}`
+  if (energy && options.explore) contract = `${contract.replace('"left": []}', '"left": [], "doubt": null, "tested": []}')}\n${EXPLORE_FIELDS}`
+  if (energy && options.revisit) contract = contract.replace('{"text": "一句話", "forOther": true}', `{"text": "一句話", "forOther": true, "revisitAt": "${NO_TIME}"}`).replace(FOR_OTHER_LINE, `${FOR_OTHER_LINE}\n${REVISIT_LEFT}`)
   return procedurePrompt(frame, [energy ? procedure : withoutLines(procedure, ENERGY_WORDS)], contract)
 }
 
@@ -170,31 +200,47 @@ const REVISION_CONTRACT = `${JSON_ONLY}
  * 有問題的是沒有作強制要求判斷」）。程式找出需要判斷的扣除（memory.ts 的 exclusionReviews），這個提示要求逐一作答，
  * 答案由 parseJudgments 驗證；缺了就附上缺少的部分再問一次。框架＋扣除做法＋輸出。
  */
-export function revisionSystem(procedure: Procedure = DEFAULT('subtract')): string {
+export function revisionSystem(procedure: Procedure = DEFAULT('subtract'), doubts = false): string {
   const frame =
     '你是一個人工個體。你剛才在行動前的思考中扣除了一些做法。下面列出每一個被扣除的做法，以及類似處境中與它相同的做法的經驗（當時扣除了相同的做法、或做了相同的做法，之後發生了什麼、當時的預測有沒有成真）。照你自己的扣除做法，對每一個列出的做法都明確判斷：維持扣除（keep），或依經驗解除扣除（lift）。兩種答案都可以，但不能不判斷。'
-  return procedurePrompt(frame, [procedure], REVISION_CONTRACT)
+  return procedurePrompt(doubts ? withDoubtFrame(frame) : frame, [procedure], doubts ? DOUBT_REVISION_CONTRACT : REVISION_CONTRACT)
 }
+
+/**
+ * H-EX：判斷的依據也可以是讀法（D 編號）。只在列出了讀法時換成這個版本，沒有時文字不變。
+ */
+const DOUBT_REVISION_CONTRACT = REVISION_CONTRACT.replace('說明你依據哪一次經驗、為什麼這樣判斷', '說明你依據哪一次經驗或哪一件讀法、為什麼這樣判斷').replace(
+  '- refs：你依據的經驗編號（列表中的 X 編號），至少一個。',
+  '- refs：你依據的經驗或讀法的編號（列表中的 X 或 D 編號），至少一個。',
+)
+const withDoubtFrame = (frame: string) =>
+  frame.replace(
+    '照你自己的扣除做法',
+    '有的做法另外列出它分辨得出的讀法（D 編號：做了它，對方的反應會因讀法不同而不同），或剛被結果判斷的讀法（被否定的讀法可能正是扣除的理由）。照你自己的扣除做法',
+  )
 
 export const REVISION_SYSTEM = revisionSystem()
 
 /** context 模式：扣除的強制判斷以 deliberate 工具的 judgments 參數作答（框架＋扣除做法＋參數）。 */
-export function revisionNotice(procedure: Procedure, review: string): string {
+export function revisionNotice(procedure: Procedure, review: string, doubts = false): string {
   const frame = `你剛才扣除了一些做法。下面列出每一個被扣除的做法，以及類似處境中與它相同的做法的經驗。照你自己的扣除做法，對每一個列出的做法都明確判斷：維持扣除（keep），或依經驗解除扣除（lift）。兩種答案都可以，但不能不判斷。判斷完才會得到準備。`
-  return [procedurePrompt(frame, [procedure], REVISION_CONTRACT.replace(JSON_ONLY, `再呼叫一次 ${DELIBERATE_TOOL} 工具，只給 judgments 參數：`)), review].join('\n\n')
+  const contract = (doubts ? DOUBT_REVISION_CONTRACT : REVISION_CONTRACT).replace(JSON_ONLY, `再呼叫一次 ${DELIBERATE_TOOL} 工具，只給 judgments 參數：`)
+  return [procedurePrompt(doubts ? withDoubtFrame(frame) : frame, [procedure], contract), review].join('\n\n')
 }
 
 /** 判斷不合格時重問一次所附的說明，列出缺少或不合格的部分。 */
-export function revisionRetryNote(problems: readonly string[]): string {
-  return `（重寫一次：上一次的判斷不完整。每一個列出的做法都要剛好一筆判斷，decision 只能是 keep 或 lift，why 不能是空的，refs 要引用列出的 X 編號。不合格的地方：${problems.join('；')}）`
+export function revisionRetryNote(problems: readonly string[], doubts = false): string {
+  return `（重寫一次：上一次的判斷不完整。每一個列出的做法都要剛好一筆判斷，decision 只能是 keep 或 lift，why 不能是空的，refs 要引用列出的 ${doubts ? 'X 或 D' : 'X'} 編號。不合格的地方：${problems.join('；')}）`
 }
 
 /**
  * 思考的輸出不合格時，重試一次所附的說明，列出不合格的地方（不同模型照格式的能力不同；插件不能只對某些模型有效）。
  * 不合格：不是完整的 JSON、少於兩個可用的做法、列出的經驗沒有逐筆判斷（parseDeliberation 的 problems）。
  */
-export function deliberationRetryNote(problems: readonly string[]): string {
-  return `（重寫一次：上一次的輸出不合格。只輸出一個完整的 JSON 物件，candidates 要有 2 到 4 個做法；「過去類似處境的經驗」列出的每一個經驗，experiences 都要剛好一筆（sameSituation 是 true 或 false，sameAction 是做法編號的陣列，可以是空的；那筆經驗寫了「當時扣除」時，sameExcluded 也是做法編號的陣列）。不合格的地方：${problems.join('；')}）`
+export function deliberationRetryNote(problems: readonly string[], explore = false): string {
+  // explore 關閉時文字與之前完全相同。
+  const tells = explore ? '有「還分不出的讀法」時，每個做法都要有 tells（P 編號的陣列，可以是空的）。' : ''
+  return `（重寫一次：上一次的輸出不合格。只輸出一個完整的 JSON 物件，candidates 要有 2 到 4 個做法；「過去類似處境的經驗」列出的每一個經驗，experiences 都要剛好一筆（sameSituation 是 true 或 false，sameAction 是做法編號的陣列，可以是空的；那筆經驗寫了「當時扣除」時，sameExcluded 也是做法編號的陣列）。${tells}不合格的地方：${problems.join('；')}）`
 }
 
 /** 思考把全部做法都扣除時，重問一次所附的說明（輸出段本來就要求「至少保留一個不扣除的做法」；改進清單第 6 項）。 */
@@ -313,7 +359,13 @@ function experienceJudgments(
  * 不合格（列出 problems，呼叫端附上 deliberationRetryNote 重問；仍不合格就不做準備，直接讓主模型回應）：
  * 不是 JSON 物件、沒有 candidates、少於兩個可用的做法、列出的經驗沒有逐筆判斷（experienceJudgments）。
  */
-export function parseDeliberation(output: string, labels: ReadonlyMap<string, string>, withExcluded: ReadonlySet<string> = new Set()): DeliberationParse {
+export function parseDeliberation(
+  output: string,
+  labels: ReadonlyMap<string, string>,
+  withExcluded: ReadonlySet<string> = new Set(),
+  /** H-EX（explore 開時）：列出的「還分不出的讀法」的 P 編號；每個做法都要判斷 tells。 */
+  doubts: ReadonlySet<string> = new Set(),
+): DeliberationParse {
   const obj = extractJson(output)
   if (!obj) return { ok: false, problems: [TOOL_CALL.test(output) ? '輸出的是工具呼叫，不是 JSON 物件：這一步不能呼叫工具' : '不是 JSON 物件'] }
   if (!Array.isArray(obj['candidates'])) return { ok: false, problems: [TOOL_CALL.test(output) ? '輸出的是工具呼叫，不是思考的結果：這一步不能呼叫工具' : '沒有 candidates'] }
@@ -329,6 +381,16 @@ export function parseDeliberation(output: string, labels: ReadonlyMap<string, st
     const excluded = c['excluded'] === true
     // 舊版提示（D20 第一、二版）的選填欄位，現行的提示已經沒有；照舊解析，只為了相容（jitrl.ts 的 Candidate.revised）。
     const revised = text(c['revised'], 200)
+    // H-EX：每個做法對每件還分不出的讀法，分不分辨得出（分得出的 P 編號；可以是空陣列）。
+    const tells: string[] = []
+    if (doubts.size > 0) {
+      if (!Array.isArray(c['tells'])) problems.push(`做法 ${i + 1} 的 tells 不是陣列`)
+      for (const raw of Array.isArray(c['tells']) ? (c['tells'] as unknown[]) : []) {
+        const ref = typeof raw === 'string' ? raw.trim().toUpperCase() : ''
+        if (!doubts.has(ref)) problems.push(`做法 ${i + 1} 的 tells 有「${String(raw)}」，不是列出的還分不出的讀法`)
+        else if (!tells.includes(ref)) tells.push(ref)
+      }
+    }
     candidates.push({
       action,
       prediction: text(c['prediction'], 300),
@@ -336,6 +398,7 @@ export function parseDeliberation(output: string, labels: ReadonlyMap<string, st
       sameAs: [],
       ...(excluded ? { excluded, excludeReason: text(c['reason'], 200) } : {}),
       ...(revised ? { revised } : {}),
+      ...(doubts.size > 0 ? { tells } : {}),
     })
     numbered.set(i + 1, candidates.length - 1)
     if (candidates.length >= 4) break
@@ -369,6 +432,8 @@ export function parseDeliberation(output: string, labels: ReadonlyMap<string, st
 export interface LeftItem {
   readonly text: string
   readonly forOther: boolean
+  /** H-ET（revisit 開時）：到了這個時間就該再想起（毫秒）；個體答「沒有」時是 null。revisit 關時沒有這個欄位。 */
+  readonly revisitAt?: number | null
 }
 
 export interface OutcomeJudgement {
@@ -396,6 +461,83 @@ export interface OutcomeJudgement {
   /** H-AT（attribution 開、預測不符、對方回了話時）：對方反應的幾種解讀，以及教訓依據的那一個（1 起算；沒有教訓時沒有）。 */
   readonly readings?: readonly Reading[]
   readonly basis?: number
+  /** H-EX（explore 開時）：對方這個反應的幾種讀法（第一種是現在的讀法）；沒有另一種讀法、或對方還沒回話時是 null。 */
+  readonly doubt?: readonly DoubtReading[] | null
+  /** H-EX：每件「還分不出的讀法」這次的判斷（模型寫的 P 編號，原樣保留；supports 0＝仍然分不出）。 */
+  readonly tested?: readonly Tested[]
+}
+
+/** 「還分不出的讀法」中的一種（H-EX）：讀法與它的依據。 */
+export interface DoubtReading {
+  readonly reading: string
+  readonly basis: string
+}
+
+export interface Tested {
+  readonly ref: string
+  /** 支持第幾種讀法（1 起算）；0＝仍然分不出。 */
+  readonly supports: number
+  readonly why: string
+  /** supports 不是 0 時必答的教訓。 */
+  readonly lesson: string
+}
+
+/** H-EX 的 doubt：null，或至少兩種彼此不同、各有依據的讀法。 */
+function doubtOf(value: unknown, problems: string[]): readonly DoubtReading[] | null {
+  if (value === null) return null
+  const raw = typeof value === 'object' && value !== null ? (value as Record<string, unknown>)['readings'] : undefined
+  if (!Array.isArray(raw)) {
+    problems.push('doubt 不是 null，也不是含有 readings 陣列的物件')
+    return null
+  }
+  const readings: DoubtReading[] = []
+  for (const [i, r] of (raw as unknown[]).entries()) {
+    const o = typeof r === 'object' && r !== null ? (r as Record<string, unknown>) : {}
+    const reading = text(o['reading'], 200)
+    const basis = text(o['basis'], 200)
+    if (!reading || !basis) {
+      problems.push(`doubt 第 ${i + 1} 種讀法${reading ? '沒有依據（basis）' : '是空的'}`)
+      continue
+    }
+    if (!readings.some((x) => x.reading === reading)) readings.push({ reading, basis })
+  }
+  if (readings.length < 2) problems.push('doubt 少於兩種彼此不同的讀法')
+  return readings.slice(0, 4)
+}
+
+/** H-EX 的 tested：列出的每件「還分不出的讀法」（doubts：P 編號 → 讀法的數目）剛好一筆。 */
+function testedOf(value: unknown, doubts: ReadonlyMap<string, number>, problems: string[]): Tested[] {
+  if (doubts.size === 0) return []
+  if (!Array.isArray(value)) {
+    problems.push('有還分不出的讀法，但 tested 不是陣列')
+    return []
+  }
+  const out: Tested[] = []
+  for (const raw of value as unknown[]) {
+    const o = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {}
+    const ref = text(o['item'], 10).toUpperCase()
+    const count = doubts.get(ref)
+    if (count === undefined) {
+      problems.push(`tested 的「${ref || String(raw)}」不是列出的還分不出的讀法`)
+      continue
+    }
+    if (out.some((t) => t.ref === ref)) {
+      problems.push(`${ref} 在 tested 中判斷了不只一次`)
+      continue
+    }
+    const supports = o['supports']
+    const why = text(o['why'], 300)
+    const lesson = text(o['lesson'], 300)
+    if (typeof supports !== 'number' || !Number.isInteger(supports) || supports < 0 || supports > count) {
+      problems.push(`${ref} 的 supports 不是 0 到 ${count} 的整數`)
+      continue
+    }
+    if (!why) problems.push(`${ref} 沒有寫 why`)
+    if (supports !== 0 && !lesson) problems.push(`${ref} 的 supports 不是 0，但沒有 lesson`)
+    out.push({ ref, supports, why, lesson: supports !== 0 ? lesson : '' })
+  }
+  for (const ref of doubts.keys()) if (!out.some((t) => t.ref === ref)) problems.push(`還分不出的讀法 ${ref} 沒有在 tested 中作答`)
+  return out
 }
 
 /** 對方反應的一種解讀（H-AT）：quote 是對方原話的逐字摘錄，沒有就是空字串。 */
@@ -461,8 +603,8 @@ function releases(value: unknown): { text: string; refs: string[] } {
   return { text: items.map((v) => (v.how ? `${v.item}：${v.how}` : v.item)).join('；'), refs: items.map((v) => v.item) }
 }
 
-/** left 是陣列，每條必答 forOther（ADR-0008 §2）。 */
-function lefts(value: unknown, problems: string[]): LeftItem[] {
+/** left 是陣列，每條必答 forOther（ADR-0008 §2）；revisit 開時每條也必答 revisitAt（H-ET）。 */
+function lefts(value: unknown, problems: string[], revisit = false): LeftItem[] {
   if (value === undefined || value === null) return []
   if (!Array.isArray(value)) {
     problems.push('left 不是陣列')
@@ -475,6 +617,15 @@ function lefts(value: unknown, problems: string[]): LeftItem[] {
     if (!body) continue
     if (typeof item?.['forOther'] !== 'boolean') {
       problems.push(`left 第 ${i + 1} 條的 forOther 不是 true 或 false`)
+      continue
+    }
+    if (revisit) {
+      const at = parseRevisit(item['revisitAt'])
+      if (!at.ok) {
+        problems.push(`left 第 ${i + 1} 條的 revisitAt 不是「${NO_TIME}」或 YYYY-MM-DD HH:MM 的時間`)
+        continue
+      }
+      out.push({ text: body, forOther: item['forOther'], revisitAt: at.at })
       continue
     }
     out.push({ text: body, forOther: item['forOther'] })
@@ -492,7 +643,17 @@ export type OutcomeParse = { readonly ok: true; readonly judgment: OutcomeJudgem
  * 所以缺了就列出問題，由呼叫端附上 outcomeRetryNote 重問；仍不合格就記下失敗，不當成經驗。
  * labels＝輸入中懸著的事的編號（能量開時）：released 寫了認不得的編號也是問題，不靜默丟掉（改進清單第 6 項）。
  */
-export function parseOutcome(output: string, options: { readonly labels?: ReadonlyMap<string, string>; readonly energy?: boolean; readonly attribution?: { readonly heard: string } } = {}): OutcomeParse {
+export function parseOutcome(
+  output: string,
+  options: {
+    readonly labels?: ReadonlyMap<string, string>
+    readonly energy?: boolean
+    readonly attribution?: { readonly heard: string }
+    readonly revisit?: boolean
+    /** H-EX：列出的「還分不出的讀法」（P 編號 → 讀法的數目），以及對方是不是真的回了話（暫時的比對不問 doubt）。 */
+    readonly explore?: { readonly doubts: ReadonlyMap<string, number>; readonly replied: boolean }
+  } = {},
+): OutcomeParse {
   const energy = options.energy ?? true
   const obj = extractJson(output)
   if (!obj) return { ok: false, problems: ['不是 JSON 物件'] }
@@ -510,10 +671,13 @@ export function parseOutcome(output: string, options: { readonly labels?: Readon
   if (energy && matched === 'no' && typeof obj['gapOnMind'] !== 'boolean') problems.push('matched 是 no，但 gapOnMind 不是 true 或 false')
   const released = energy ? releases(obj['released']) : { text: '', refs: [] }
   if (options.labels) for (const ref of released.refs) if (!options.labels.has(ref.trim().toUpperCase())) problems.push(`released 的「${ref}」不是輸入中列出的懸著的事的編號`)
-  const left = energy ? lefts(obj['left'], problems) : []
+  const left = energy ? lefts(obj['left'], problems, options.revisit === true) : []
   const lesson = text(obj['lesson'], 300)
   // H-AT：預測不符、對方真的回了話時（暫時的比對沒有原話可引用，不要求）。
   const attributed = options.attribution && (matched === 'partly' || matched === 'no') ? readingsOf(obj, options.attribution.heard, lesson, problems) : undefined
+  const explore = energy ? options.explore : undefined
+  const doubt = explore?.replied ? doubtOf(obj['doubt'], problems) : null
+  const tested = explore ? testedOf(obj['tested'], explore.doubts, problems) : []
   if (problems.length > 0 || typeof reward !== 'number' || (matched !== 'yes' && matched !== 'partly' && matched !== 'no')) return { ok: false, problems }
   return {
     ok: true,
@@ -535,13 +699,14 @@ export function parseOutcome(output: string, options: { readonly labels?: Readon
       left,
       ...(attributed ? { readings: attributed.readings } : {}),
       ...(attributed?.basis !== undefined ? { basis: attributed.basis } : {}),
+      ...(explore ? { doubt, tested } : {}),
     },
   }
 }
 
 /** 事後比對不合格時重問一次所附的說明，列出缺少或不合格的部分（輸出段本來就要求這些欄位）。 */
-export function outcomeRetryNote(problems: readonly string[], attribution = false): string {
-  // attribution 關閉時文字與之前完全相同（之前的實驗可以比較）。
-  const readings = attribution ? 'matched 是 partly 或 no 時，readings 至少兩種彼此不同的解讀，quote 只能是對方原話的逐字摘錄（沒有就空字串），有 lesson 時 basis 指向一個有原話支持的解讀。' : ''
+export function outcomeRetryNote(problems: readonly string[], attribution = false, revisit = false, explore = false): string {
+  // attribution、revisit 關閉時文字與之前完全相同（之前的實驗可以比較）。
+  const readings = `${attribution ? 'matched 是 partly 或 no 時，readings 至少兩種彼此不同的解讀，quote 只能是對方原話的逐字摘錄（沒有就空字串），有 lesson 時 basis 指向一個有原話支持的解讀。' : ''}${revisit ? `left 的每一條都要有 revisitAt（「${NO_TIME}」或 YYYY-MM-DD HH:MM 的時間）。` : ''}${explore ? '對方回了話時 doubt 是 null 或至少兩種各有依據的讀法；每件「還分不出的讀法」在 tested 中剛好一筆，supports 是整數，不是 0 時要有 lesson。' : ''}`
   return `（重寫一次：上一次的比對不完整。只輸出一個完整的 JSON 物件；didAction 不能是空的，matched 只能是 yes、partly 或 no，reward 是 -1 到 1 之間的數，declined 與 reconsider 是 true 或 false；有 feeling 時 keepFeeling 是 true 或 false，matched 是 no 時 gapOnMind 是 true 或 false，left 的每一條都要有 forOther（true 或 false）。${readings}不合格的地方：${problems.join('；')}）`
 }

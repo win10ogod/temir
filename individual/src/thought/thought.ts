@@ -14,7 +14,8 @@ import { extractJson } from '../recall/aux.ts'
 import { clip, clipEnds, lastConversation, replyOf } from '../recall/retrieve.ts'
 import { INTEGRATION_KIND } from '../integrate/carried.ts'
 import { OUTCOME_KIND } from '../rd/memory.ts'
-import { THOUGHT_KIND, potentialItems, presentPotential, resolvePotential, unlabel, type ThoughtData } from '../self/energy.ts'
+import { THOUGHT_KIND, potentialItems, presentPotential, resolvePotential, unlabel, type PotentialItem, type ThoughtData } from '../self/energy.ts'
+import { NO_TIME, TIME_FORMAT, parseRevisit } from '../self/time.ts'
 import { DEFAULT_PROCEDURES, PROCEDURE_KIND, procedurePrompt, type Procedure } from '../self/procedure.ts'
 import { KIND, appraisalText, formatTime, goals, renderSelfSnapshot, type AppraisalData } from '../self/state.ts'
 
@@ -30,9 +31,23 @@ const THOUGHT_CONTRACT = `只輸出一個 JSON 物件，不要任何其他文字
 - replaces：intention 不是空的時必答：這個打算取代了「懸著的事」中的哪幾件（P 編號的陣列，例如同一件事換了寫法、或已經包含在這個打算裡的；被取代的就不再列出）；沒有就給空陣列。
 - now：intention 不是空的時必答：要不要現在就主動對對方說，不等對方先開口：true 或 false。`
 
-/** 念頭的系統提示（框架＋念頭做法＋輸出；ADR-0008 §1）。 */
-export function thoughtSystem(procedure: Procedure = { name: 'thought', version: 1, text: DEFAULT_PROCEDURES.thought }): string {
-  return procedurePrompt('你是一個人工個體。現在沒有人在跟你說話，你有一段安靜的時間。照下面你自己的做法想，輸出照最後一段的格式。', [procedure], THOUGHT_CONTRACT)
+const RELEASE_LINE = '- release：item 不是空的時必答：這件事是否可以放下了：true 或 false。目標不在這裡放下。'
+/**
+ * H-ET：放下的意思（tv2pilot：等對方面試結果的事，在面試前兩天的念頭中被「放下」，之後時間到了也不會再想起）。
+ * 程式只說明欄位的意思，放不放下仍由個體判斷。
+ */
+const RELEASE_WITH_TIME = '放下就是這件事已經結束，之後時間到了也不會再想起；只是現在不必再想、到了你判斷的時間再想的，不要放下，它會在那時再浮上來。'
+
+/** H-ET（使用者 2026-11-01 確認；預設關）：打算與時間到了的事，都要判斷再想起的時間。 */
+const REVISIT_FIELDS = `- intentionAt：item 與 intention 都不是空的時必答：這個打算有沒有一個時間，到了就該再想起：有就寫那個時間（${TIME_FORMAT}），沒有就寫「${NO_TIME}」。
+- revisit：item 不是空的時必答：輸入中「時間到了的事」列出的每一件都要剛好一筆（這次 release 放下的那一件除外）。每條 {"item": "P1", "at": "…"}：要不要再定一個時間想起它（${TIME_FORMAT}），不再定就寫「${NO_TIME}」。沒有列出時給空陣列。`
+
+/** 念頭的系統提示（框架＋念頭做法＋輸出；ADR-0008 §1）。revisit 開時多兩個必答的欄位（H-ET）。 */
+export function thoughtSystem(procedure: Procedure = { name: 'thought', version: 1, text: DEFAULT_PROCEDURES.thought }, options: { readonly revisit?: boolean } = {}): string {
+  const contract = options.revisit
+    ? `${THOUGHT_CONTRACT.replace('"now": false}', `"now": false, "intentionAt": "${NO_TIME}", "revisit": []}`).replace(RELEASE_LINE, `${RELEASE_LINE}${RELEASE_WITH_TIME}`)}\n${REVISIT_FIELDS}`
+    : THOUGHT_CONTRACT
+  return procedurePrompt('你是一個人工個體。現在沒有人在跟你說話，你有一段安靜的時間。照下面你自己的做法想，輸出照最後一段的格式。', [procedure], contract)
 }
 
 export const THOUGHT_SYSTEM = thoughtSystem()
@@ -51,6 +66,10 @@ export interface ThoughtJudgement {
   readonly replaces: readonly string[]
   /** 現在就主動開口（M4 的自發行動）。 */
   readonly now: boolean
+  /** H-ET（revisit 開、有打算時）：這個打算再想起的時間（毫秒；「沒有」是 null）。 */
+  readonly intentionAt?: number | null
+  /** H-ET（revisit 開時）：時間到了的事重新定的時間（模型寫的 P 編號，原樣保留）。 */
+  readonly revisit?: readonly { readonly ref: string; readonly at: number | null }[]
 }
 
 function text(value: unknown, max: number): string {
@@ -64,7 +83,7 @@ export type ThoughtParse = { readonly ok: true; readonly judgment: ThoughtJudgem
  * 有打算時 now 與 replaces 必答（replaces 只能指名輸入中列出的 P 編號，labels）。缺了就列出問題，由呼叫端附上 thoughtRetryNote 重問一次。
  * 沒有浮上心頭的事時 item 為空字串。
  */
-export function parseThought(output: string, labels: ReadonlyMap<string, string> = new Map()): ThoughtParse {
+export function parseThought(output: string, labels: ReadonlyMap<string, string> = new Map(), options: { readonly revisit?: boolean; readonly due?: readonly string[] } = {}): ThoughtParse {
   const obj = extractJson(output)
   if (!obj) return { ok: false, problems: ['不是 JSON 物件'] }
   const item = text(obj['item'], 40)
@@ -73,6 +92,8 @@ export function parseThought(output: string, labels: ReadonlyMap<string, string>
   const problems: string[] = []
   const bool = (key: string) => typeof obj[key] === 'boolean'
   const replaces: string[] = []
+  let intentionAt: number | null = null
+  const revisit: { ref: string; at: number | null }[] = []
   if (item) {
     if (!bool('reconsider')) problems.push('reconsider 不是 true 或 false')
     if (!bool('release')) problems.push('release 不是 true 或 false')
@@ -85,6 +106,31 @@ export function parseThought(output: string, labels: ReadonlyMap<string, string>
         if (!labels.has(ref)) problems.push(`replaces 的「${String(raw)}」不是列出的懸著的事`)
         else if (!replaces.includes(ref)) replaces.push(ref)
       }
+    }
+    // H-ET：打算的時間，以及時間到了的每一件（這次放下的那一件除外）都要作答；程式只驗證格式。
+    if (options.revisit) {
+      if (intention) {
+        const t = parseRevisit(obj['intentionAt'])
+        if (!t.ok) problems.push(`有 intention，但 intentionAt 不是「${NO_TIME}」或 YYYY-MM-DD HH:MM 的時間`)
+        else intentionAt = t.at
+      }
+      const due = (options.due ?? []).map((d) => d.toUpperCase())
+      const released = obj['release'] === true ? item.toUpperCase() : ''
+      const expected = due.filter((ref) => ref !== released)
+      const raw = obj['revisit']
+      if (expected.length > 0 && !Array.isArray(raw)) problems.push('有時間到了的事，但 revisit 不是陣列')
+      for (const entry of Array.isArray(raw) ? (raw as unknown[]) : []) {
+        const e = typeof entry === 'object' && entry !== null ? (entry as Record<string, unknown>) : {}
+        const ref = text(e['item'], 40).toUpperCase()
+        if (!due.includes(ref)) {
+          problems.push(`revisit 的「${ref || String(entry)}」不是時間到了的事`)
+          continue
+        }
+        const t = parseRevisit(e['at'])
+        if (!t.ok) problems.push(`revisit 的 ${ref} 的 at 不是「${NO_TIME}」或 YYYY-MM-DD HH:MM 的時間`)
+        else if (!revisit.some((r) => r.ref === ref)) revisit.push({ ref, at: t.at })
+      }
+      for (const ref of expected) if (!revisit.some((r) => r.ref === ref)) problems.push(`時間到了的事 ${ref} 沒有在 revisit 中作答`)
     }
   }
   if (problems.length > 0) return { ok: false, problems }
@@ -100,13 +146,17 @@ export function parseThought(output: string, labels: ReadonlyMap<string, string>
       intention,
       replaces: intention ? replaces : [],
       now: intention !== '' && obj['now'] === true,
+      ...(options.revisit && item && intention ? { intentionAt } : {}),
+      ...(options.revisit && item ? { revisit } : {}),
     },
   }
 }
 
 /** 念頭不合格時重問一次所附的說明。 */
-export function thoughtRetryNote(problems: readonly string[]): string {
-  return `（重寫一次：上一次的輸出不完整。只輸出一個完整的 JSON 物件；item 不是空的時，reconsider 與 release 是 true 或 false，有 feeling 時 keepFeeling 是 true 或 false，有 intention 時 now 是 true 或 false、replaces 是列出的 P 編號的陣列（可以是空的）。不合格的地方：${problems.join('；')}）`
+export function thoughtRetryNote(problems: readonly string[], revisit = false): string {
+  // revisit 關閉時文字與之前完全相同。
+  const times = revisit ? `有 intention 時 intentionAt 是「${NO_TIME}」或 YYYY-MM-DD HH:MM 的時間，「時間到了的事」每一件（放下的除外）都要在 revisit 中作答。` : ''
+  return `（重寫一次：上一次的輸出不完整。只輸出一個完整的 JSON 物件；item 不是空的時，reconsider 與 release 是 true 或 false，有 feeling 時 keepFeeling 是 true 或 false，有 intention 時 now 是 true 或 false、replaces 是列出的 P 編號的陣列（可以是空的）。${times}不合格的地方：${problems.join('；')}）`
 }
 
 /**
@@ -118,6 +168,22 @@ export const EXPERIENCE_KINDS: readonly string[] = ['dsh/user/message', 'dsh/ass
 /** seq 之後有沒有新的經歷（排程用：每段新的經歷之後、再度閒置時，最多一次念頭）。 */
 export function newExperienceSince(life: LifeStore, seq: number): boolean {
   return life.after(seq, EXPERIENCE_KINDS, 1).length > 0
+}
+
+/** 上一次念頭（或嘗試：念頭的輔助呼叫）的時間；沒有就是 -Infinity。 */
+export function lastThoughtAt(life: LifeStore): number {
+  const thought = life.latest(THOUGHT_KIND)?.ts ?? -Infinity
+  const attempt = life.recent(400, ['memory/aux']).find((e) => (e.data as { purpose?: string }).purpose === 'thought')?.ts ?? -Infinity
+  return Math.max(thought, attempt)
+}
+
+/**
+ * H-ET：時間到了、還沒放下，而且那個時間之後還沒有想過（念頭或念頭的嘗試）的事。
+ * 想過一次之後就不再因為同一個時間醒來；個體在念頭中可以重新定一個時間（revisit）。
+ */
+export function dueItems(life: LifeStore, now = Date.now()): PotentialItem[] {
+  const last = lastThoughtAt(life)
+  return potentialItems(life).filter((i) => i.revisitAt !== undefined && i.revisitAt <= now && last < i.revisitAt)
 }
 
 /** 上一次念頭（或嘗試：念頭的輔助呼叫）的 seq；沒有就是 -1。程序重啟之後，排程從這裡接著算。 */
@@ -152,18 +218,30 @@ export function initiativeFacts(life: LifeStore, now = Date.now()): string[] {
   return [`- 最近一次主動開口：${formatTime(last.ts)}；之後對方${replied ? '回過話' : '還沒有回話'}。`, `- 過去 24 小時內主動開口 ${day} 次。`]
 }
 
-/** 念頭的輸入：自我狀態（含編號的懸著的事）、最近一次對話、最近的念頭、主動開口的事實。 */
-export function thoughtInput(life: LifeStore, now = Date.now()): { readonly input: string; readonly labels: ReadonlyMap<string, string> } {
+/**
+ * 念頭的輸入：自我狀態（含編號的懸著的事）、最近一次對話、最近的念頭、主動開口的事實。
+ * revisit 開時（H-ET），時間到了的事另外列一節，due 是它們的 P 編號（念頭要逐一作答）。
+ */
+export function thoughtInput(life: LifeStore, now = Date.now(), options: { readonly revisit?: boolean } = {}): { readonly input: string; readonly labels: ReadonlyMap<string, string>; readonly due: readonly string[] } {
   const view = presentPotential(life, { labels: true })
   const labels = view.labels
   const last = lastConversation(life, undefined)
   const lines = ['## 你目前的自我狀態', renderSelfSnapshot(life, [...view.lines, ...renderThoughts(life)])]
+  const dueNow = options.revisit ? dueItems(life, now) : []
+  const due = [...labels].filter(([, key]) => dueNow.some((d) => d.key === key)).map(([label]) => label)
+  if (due.length > 0) {
+    lines.push('', '## 時間到了的事（你判斷過到了這個時間就該再想起，還沒有放下）')
+    for (const label of due) {
+      const item = dueNow.find((d) => d.key === labels.get(label))!
+      lines.push(`- [${label}] ${formatTime(item.revisitAt!)}：${clip(item.text, 160)}`)
+    }
+  }
   lines.push('', '## 最近一次對話')
   if (!last || (!last.heard && !last.said)) lines.push('（沒有）')
   if (last?.heard) lines.push(`對方說：${clipEnds((last.heard.text ?? '').replace(/^對方說：/, ''), 300)}`)
   if (last?.said) lines.push(`我說：${clipEnds(replyOf(last.said), 400)}`)
   lines.push('', '## 主動開口', ...initiativeFacts(life, now))
-  return { input: lines.join('\n'), labels }
+  return { input: lines.join('\n'), labels, due }
 }
 
 /**
@@ -186,6 +264,14 @@ export function recordThought(life: LifeStore, judged: ThoughtJudgement, labels:
     trigger: 'idle',
     ...(judged.now && judged.intention ? { now: true } : {}),
     ...(judged.reconsider ? { reconsider: true } : {}),
+    ...(judged.intention && judged.intentionAt !== undefined ? { intentionRevisitAt: judged.intentionAt } : {}),
+    ...(() => {
+      const revisited = (judged.revisit ?? []).flatMap((r) => {
+        const k = labels.get(r.ref)
+        return k && !k.startsWith('goal:') ? [{ key: k, at: r.at }] : []
+      })
+      return revisited.length > 0 ? { revisited } : {}
+    })(),
   }
   const about = item ? clip(item.text, 80) : (goals(life).find((g) => `goal:${g.id}` === key)?.text ?? '')
   const event = life.append({
@@ -193,7 +279,7 @@ export function recordThought(life: LifeStore, judged: ThoughtJudgement, labels:
     origin: 'self',
     model,
     data,
-    text: `我想到（${about}）：${data.thought}${data.intention ? `\n我打算：${data.intention}` : ''}${replaced.length > 0 ? `\n這個打算取代了：${replaced.map((k) => clip(held.find((h) => h.key === k)?.text ?? k, 40)).join('、')}` : ''}${data.releasedItems.length > 0 ? '\n這件事我可以放下了。' : ''}`,
+    text: `我想到（${about}）：${data.thought}${data.intention ? `\n我打算：${data.intention}${typeof data.intentionRevisitAt === 'number' ? `（${formatTime(data.intentionRevisitAt)} 再想起）` : ''}` : ''}${replaced.length > 0 ? `\n這個打算取代了：${replaced.map((k) => clip(held.find((h) => h.key === k)?.text ?? k, 40)).join('、')}` : ''}${data.releasedItems.length > 0 ? '\n這件事我可以放下了。' : ''}`,
     causes: item ? [item.source] : [],
   })
   if (judged.feeling && judged.keepFeeling) {

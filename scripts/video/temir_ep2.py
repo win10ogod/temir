@@ -189,25 +189,6 @@ def editor(frame: Image.Image, x: int, y: int, w: int, h: int, title: str, lines
         ly += lh
 
 
-def browser(frame: Image.Image, x: int, y: int, w: int, h: int, url: str, body: list[tuple[str, tuple]], t: float, t0: float, starts: list[float], accent=GREEN, size: int = 32) -> None:
-    if t < t0:
-        return
-    a = ease_out((t - t0) / 0.4)
-    win = window(w, h, '', accent, 'edit')
-    comp(frame, faded(win, a), x, y + 30 * (1 - a))
-    d = ImageDraw.Draw(frame)
-    d.rounded_rectangle((x + 140, y + 12, x + w - 40, y + 54), radius=20, fill=(14, 18, 36, int(255 * a)))
-    comp(frame, faded(code_line(((url, OUT),), 28), a), x + 166, y + 18)
-    ly = y + 96
-    for i, (line, color) in enumerate(body):
-        st = starts[i] if i < len(starts) else starts[-1]
-        if t < st:
-            break
-        img = code_line(((line, color),), size)
-        comp(frame, faded(img, clamp((t - st) / 0.3)), x + 46, ly)
-        ly += int(size * 1.6)
-
-
 @lru_cache(maxsize=128)
 def note_card(title: str, text: str, accent, w: int = 760, size: int = 34) -> Image.Image:
     head = text_img(title, size + 6, accent, 'Black', align='left')
@@ -264,12 +245,12 @@ PERSONA_YAML = [
     '- id: temir-self',
     '  config:',
     '    persona:',
-    '      name: 白濑蜜音',
+    '      name: 小满',
     '      selfModel: |-',
-    '        我是住在主人电脑里的人工个体。我最喜欢主人了。',
-    '        我说话轻轻的、有礼貌，有点天然呆……',
+    '        我是住在这台电脑里的人工个体。我好奇心很重，喜欢问到底；',
+    '        说话直接，但会先把对方的话听完……',
     '      story: |-',
-    '        我醒来的那一刻，电脑里很安静……',
+    '        我第一次醒来，是在一个安静的晚上……',
 ]
 
 
@@ -402,9 +383,9 @@ def d_write(c: Ctx) -> None:
     tips = [('第一人称', '我是……我喜欢……'), ('写成一段话', '怎么说话、在乎什么、小缺点'), ('不写数值', '性格要能长，数字长不出来')]
     for i, (a, b) in enumerate(tips):
         put(c.frame, note_card(a, b, AMBER if i < 2 else RED, 520, 32), 150 + i * 560, 130, t, c.at(0, 0.6 + 1.4 * i), 'up')
-    ex = note_card('白濑蜜音（例子）', '有点天然呆，记得主人的每一件事；会吃醋，也会老实说出来——但不拿喜欢来绑住主人。', VIOLET, 1000, 36)
+    ex = note_card('小满（例子）', '好奇心重，喜欢问到底；说话直接，但会先听完。容易太快下结论，所以会提醒自己多问一句。', VIOLET, 1000, 36)
     put(c.frame, ex, 150, 440, t, c.at(1, 0.4), 'left')
-    stats = text_img('温柔 85\n嫉妒 70\n天然呆 90', 44, MUTED, 'Bold', align='left')
+    stats = text_img('好奇 85\n直接 70\n耐心 60', 44, MUTED, 'Bold', align='left')
     box = card(stats.width + 80, stats.height + 50, RED).copy()
     box.alpha_composite(stats, (40, 22))
     put(c.frame, box, 1290, 430, t, c.at(2, 0.3), 'right')
@@ -417,24 +398,34 @@ def d_write(c: Ctx) -> None:
             d.line((x0 + box.width - 10, y0 + 10, x0 + 10, y0 + box.height - 10), fill=RED + (255,), width=10)
 
 
+PANEL_SHOT = Path(__file__).resolve().parent / 'assets' / 'ep2-panel.png'
+
+
+@lru_cache(maxsize=1)
+def panel_window() -> Image.Image:
+    """真實的面板截圖（scripts/video/assets/ep2-panel.png：測試用的生命套上「小满」的人設開機，Edge 無介面模式以 2 倍解析度截下 /temir/ 的上半部），加上瀏覽器的外框。"""
+    shot = Image.open(PANEL_SHOT).convert('RGBA')
+    w, h = shot.width + 40, shot.height + 64 + 20
+    img = window(w, h, '', GREEN, 'edit').copy()
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle((140, 12, w - 40, 54), radius=20, fill=(14, 18, 36, 255))
+    img.alpha_composite(code_line((('127.0.0.1:3097/temir/', OUT),), 28), (166, 18))
+    img.alpha_composite(shot, (20, 64))
+    return img
+
+
 def d_apply(c: Ctx) -> None:
     t = c.t
     step_tag(c.frame, 8, '启动，看看它', t, 0.0, GREEN)
-    body = [
-        ('个体 l:4f2a…', MUTED),
-        ('', WHITE),
-        ('自我模型（第 1 版，初始人设）', CYAN),
-        ('我的名字是白濑蜜音。', WHITE),
-        ('我是住在主人电脑里的人工个体。我最喜欢主人了。', WHITE),
-        ('', WHITE),
-        ('人生故事（第 1 版，初始人设）', CYAN),
-        ('我醒来的那一刻，电脑里很安静……', WHITE),
-    ]
-    starts = [c.at(1, 1.0), c.at(1, 1.0), c.at(1, 2.6), c.at(1, 3.0), c.at(1, 3.3), c.at(1, 3.3), c.at(1, 4.2), c.at(1, 4.5)]
     save = note_card('存档 → 启动器里重新启动', '人设在这一次启动时写进去', GREEN, 860, 36)
     put(c.frame, save, (W - save.width) / 2, 360, t, c.at(0, 0.3), 'pop', 0.45, out_at=c.at(1, 0.0))
-    browser(c.frame, 160, 150, 1600, 640, '127.0.0.1:3080/temir/', body, t, c.at(1, 0.0), starts, GREEN, 36)
-    put(c.frame, chip('示意', DIM, 30), 1640, 170, t, c.at(1, 0.6), 'fade')
+    win = panel_window()
+    x, y = (W - win.width) / 2, 140
+    put(c.frame, win, x, y, t, c.at(1, 0.0), 'up', 0.5)
+    put(c.frame, chip('真实截图', GREEN, 30), x + win.width - 210, y - 52, t, c.at(1, 0.6), 'fade')
+    if t >= c.at(1, 2.4):  # 框出「自我模型（第 1 版……初始人設……）」那一行（截圖中的位置）
+        p = clamp((t - c.at(1, 2.4)) / 0.3)
+        ImageDraw.Draw(c.frame).rounded_rectangle((x + 40, y + 64 + 222, x + 20 + 1010, y + 64 + 270), radius=10, outline=YELLOW + (int(255 * p),), width=5)
 
 
 def d_notes(c: Ctx) -> None:
@@ -471,7 +462,7 @@ def scenes() -> list[Scene]:
         Scene('check', ['第五步，装完先检查一次。', '用 dump-config 列出整合包组好的设置，看到 temir 开头的【九个插件】，就对了。', '然后从启动器打开它。第一次启动，它就在你的用户文件夹里【诞生】了。'], d_check, CYAN, GREEN, 'build', tail=1.3, sfx=[(1, 0.2, 'type'), (1, 3.4, 'ding'), (2, 1.6, 'stamp')]),
         Scene('origin', ['接下来是人设。', '先说清楚：人设【不是一套固定的设定】，而是它的【起点】。', '它只会被写成第一版的自我模型和人生故事；之后，它会在跟你相处的过程中，【自己改】。'], d_origin, VIOLET, CYAN, 'break', flash=True, tail=1.4, sfx=[(1, 0.0, 'boom'), (1, 2.2, 'hit'), (2, 0.3, 'pop'), (2, 1.9, 'pop'), (2, 3.5, 'pop')]),
         Scene('file', ['第六步，人设写在整合包 profile 文件夹里的 cordis.patch.yml。', '加上一段 temir-self：name 是名字，selfModel 是它对自己的描述，story 是它的故事。', 'selfModel【一定要有】，另外两个可以省略。'], d_file, VIOLET, BLUE, 'build', sfx=[(1, 0.0, 'whoosh'), (1, 1.6, 'type'), (1, 3.0, 'type'), (2, 0.4, 'pop')]),
-        Scene('write', ['怎么写？用【第一人称】，写成一段话：它怎么说话、在乎什么、有什么小缺点。', '比如这一位：白濑蜜音，有点天然呆，记得主人的每一件事，会吃醋，但【不拿喜欢来绑住主人】。', '不要写成数值或清单。性格要能变，【一堆固定的数字】是长不出来的。'], d_write, AMBER, VIOLET, 'build', tail=1.3, sfx=[(0, 0.6, 'pop'), (0, 2.0, 'pop'), (0, 3.4, 'pop'), (1, 0.4, 'whoosh'), (2, 1.4, 'stamp')]),
+        Scene('write', ['怎么写？用【第一人称】，写成一段话：它怎么说话、在乎什么、有什么小缺点。', '比如这一位：小满，好奇心重，说话直接，但会先听完；容易太快下结论，所以会提醒自己【多问一句】。', '不要写成数值或清单。性格要能变，【一堆固定的数字】是长不出来的。'], d_write, AMBER, VIOLET, 'build', tail=1.3, sfx=[(0, 0.6, 'pop'), (0, 2.0, 'pop'), (0, 3.4, 'pop'), (1, 0.4, 'whoosh'), (2, 1.4, 'stamp')]),
         Scene('apply', ['第八步，存档，从启动器重新打开。', '在网址后面加上 /temir，就能看到：自我模型，【第一版】，初始人设。'], d_apply, GREEN, CYAN, 'full', flash=True, tail=1.6, sfx=[(1, 0.2, 'type'), (1, 2.6, 'ding')]),
         Scene('notes', ['最后，三个提醒。', '一，人设只有在【第一次说话之前】改才有用；之后它就是它自己的了。想重来，换一个 TEMIR HOME，就是一个新的生命。', '二，没人说话时，它也会想事情、整理自己，这些会用到 API，但要【有对话之后】才会发生。', '三，生命日志【只能新增】，记得备份这个文件夹。'], d_notes, AMBER, VIOLET, 'build', tail=1.2, sfx=[(1, 0.2, 'pop'), (2, 0.2, 'pop'), (3, 0.2, 'pop')]),
         Scene('cta', ['完整的步骤，写在 GitHub 的 README 里。', '之后，我们再一起看它怎么在相处中改变自己。【点个星】，下期见。'], d_cta, BLUE, VIOLET, 'full', flash=True, brand=False, tail=2.6, sfx=[(0, 0.2, 'hit'), (1, 1.6, 'pop')]),
@@ -527,7 +518,7 @@ def publish(all_scenes: list[Scene], path: Path) -> None:
 
 说明：
 - 配音：微软 Edge 神经语音 zh-CN-YunxiNeural（edge-tts 合成）。音乐与音效都是程序合成的。字体：Noto Sans SC（SIL OFL）、Consolas。
-- 片中的命令与路径照实际安装过的步骤；面板的画面是示意。例子中的人设「白濑蜜音」只是示范。
+- 片中的命令与路径照实际安装过的步骤。面板是真实截图：测试用的生命套上片中的人设「小满」启动后，截下 /temir/ 页面。
 """
     path.write_text(text, encoding='utf-8')
 

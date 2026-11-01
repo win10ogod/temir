@@ -101,6 +101,49 @@ scripts/temir.sh chat --model nemotron    # 改用 OpenRouter 上的 NVIDIA Nemo
 
 開發：`npm run typecheck`、`npm test`。測試時請設定 `TEMIR_HOME` 指向另一個目錄，不要寫進正式個體的生命。
 
+### 安裝到 DSH Launcher 的整合包（Windows）
+
+影片教學：第 2 期「安裝與人設」。需要：
+- DSH Launcher 與 DSH 0.2.2-alpha.2 的整合包；
+- Node.js 24.9 以上（個體是 TypeScript，由 Node 直接執行）；
+- DeepSeek API 金鑰（在 Launcher 中登入）。
+
+步驟：
+1. 取得程式碼（`git clone https://github.com/win10ogod/temir` 或下載 ZIP），把 `individual` 資料夾放到固定的位置，例如 `D:\DSH\temir-individual`。之後不要搬動，整合包會一直從這裡載入。
+2. 找到整合包：在 `%APPDATA%\dsh-launcher\dsh-packs\<ID>`，資料夾名稱就是整合包的 ID。下面以 `pack-tw` 為例。
+3. 在 PowerShell 執行：
+
+   ```powershell
+   $env:DSH_HOME = "$env:APPDATA\dsh-launcher\dsh-packs\pack-tw"
+   $dsh = "$env:APPDATA\dsh-launcher\dsh-runtime\versions\0.2.2-alpha.2\node_modules\.bin\dsh.cmd"
+   & $dsh plugin --profile pack-tw add -w link:D:/DSH/temir-individual
+   & $dsh --profile pack-tw --dump-config   # 看得到 temir-life … temir-panel 九個插件就對了
+   ```
+
+   - `-w`：整合包是 pnpm 工作區，要明確裝在根目錄。
+   - `link:`：Node 不剝除 `node_modules` 中 `.ts` 檔的型別，所以要連到原始碼的資料夾。
+   - 其他插件（例如 IM 的 `@xmanrui/dsh-im`）用同樣的指令。宣告的 DSH 版本不相容的插件，DSH 會略過，不會載入。
+4. 從 Launcher 啟動整合包。第一次啟動時，個體在 `%USERPROFILE%\.local\share\temir` 誕生。生命日誌只能新增，請備份這個資料夾。
+
+**整合包中的初始人設**：在 `<整合包>\profiles\<ID>\cordis.patch.yml` 加上：
+
+```yaml
+- id: temir-self
+  config:
+    persona:
+      name: 名字
+      selfModel: |-
+        第一人稱寫的一段話：我是誰、怎麼說話、在乎什麼、有什麼小缺點。
+      story: |-
+        背景故事（可省略）
+```
+
+- `selfModel` 必填，`name`、`story` 可以省略。不要寫成數值或清單：人設是起點，之後要能在經歷中改變。
+- 它只在個體還沒有自我模型時，寫成第一版的自我模型與人生敘事。之後由個體自己修訂，再改這個設定也不會覆蓋。
+- 想重新開始，在同一個檔案為 `temir-life` 加上 `config: { home: <新的資料夾> }`（或設定 `TEMIR_HOME`），那就是一個新的生命。舊的生命紀錄保留不動。
+- 重新啟動之後，打開 `http://127.0.0.1:3080/temir/` 就看得到目前的自我模型。
+- 沒有人說話的時候，個體也會想事情、整理自己，這些會用到 API，但要有對話之後才會發生。
+
 ## 實驗：與原始 DSH 的對照
 
 三輪實驗都在執行前預先登記題目、計分方式與驗收線（[`experiments/specs/`](experiments/specs)）。評估器由一個專用子代理研究 LongMemEval、MemoryAgentBench、Dialogue NLI 等 17 篇論文後建構；資料集、評估器、逐例紀錄與 judge 原始輸出全部公開。比較的對象是**原始 DeepSeek Harness**（同樣的工具與權限，只是沒有個體插件）。

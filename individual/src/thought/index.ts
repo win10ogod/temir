@@ -22,6 +22,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type {} from '../life/index.ts'
+import { isSubagentSession } from '../life/subagent.ts'
 import { latestRoute } from '../integrate/index.ts'
 import { auxRecord, callModel, promptHash } from '../recall/aux.ts'
 import { clipKeepLines, quietFor } from '../recall/retrieve.ts'
@@ -136,6 +137,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const targets = config?.imTargets ?? []
   if (targets.length > 0) {
     ctx.on('session/event', (session: Session, event: SessionEvent) => {
+      if (isSubagentSession(session)) return
       const done = relay.observe(session.id, event)
       if (!done) return
       const im = ctx.get('dshIm') as DshIm | undefined

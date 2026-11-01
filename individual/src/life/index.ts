@@ -10,6 +10,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { LifeStore } from './store.ts'
 import { IngestState, fromSessionEvent } from './ingest.ts'
+import { isSubagentSession } from './subagent.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -43,7 +44,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const ingest = new IngestState()
   ctx.on('session/event', (session: Session, event: SessionEvent) => {
     try {
-      life.append(fromSessionEvent(session.id, event, ingest))
+      life.append(fromSessionEvent(session.id, event, ingest, { subagent: isSubagentSession(session) }))
     } catch (error) {
       // 生命日誌寫入失敗不能中斷對話，但必須被看見。
       logger.error('failed to record session event %s#%d: %s', session.id, event.seq, error)

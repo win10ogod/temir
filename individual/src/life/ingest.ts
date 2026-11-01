@@ -6,6 +6,7 @@
  */
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type { LifeEventInput } from './store.ts'
+import { SUBAGENT_KIND_PREFIX } from './subagent.ts'
 
 /** 本專案注入訊息使用的 source kind 前綴。 */
 export const TEMIR_SOURCE_PREFIX = 'temir-'
@@ -97,8 +98,14 @@ function searchableText(event: SessionEvent, state: IngestState): { text?: strin
   }
 }
 
-/** DSH session 事件 → 生命日誌事件。id 由 session 與序號組成，重播時冪等。 */
-export function fromSessionEvent(sessionId: string, event: SessionEvent, state: IngestState): LifeEventInput {
+/**
+ * DSH session 事件 → 生命日誌事件。id 由 session 與序號組成，重播時冪等。
+ * 子代理的 session（subagent.ts）照記，但 kind 是 `subagent/…`、不建立回憶索引：不是對方說的話，也不是自己說的話。
+ */
+export function fromSessionEvent(sessionId: string, event: SessionEvent, state: IngestState, options: { readonly subagent?: boolean } = {}): LifeEventInput {
+  if (options.subagent) {
+    return { id: `${sessionId}#${event.seq}`, ts: event.time, kind: `${SUBAGENT_KIND_PREFIX}${event.type}`, origin: 'session', session: sessionId, data: event }
+  }
   const { text, model } = searchableText(event, state)
   return {
     id: `${sessionId}#${event.seq}`,

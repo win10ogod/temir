@@ -25,6 +25,7 @@ import { createUserMessage, isAgentLoopRequest, type ContextFormed } from '@deep
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { LifeEvent, LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
+import { SELF_ONLY, isSubagent, selfOnly } from '../life/subagent.ts'
 import { latestRoute } from '../integrate/index.ts'
 import { LESSON_KIND } from '../integrate/carried.ts'
 import type { LessonData } from '../integrate/evidence.ts'
@@ -825,7 +826,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
       return next()
     })
     // 處境的事實：這個身體在 context 模式下怎麼運作（e2e-42b：只有通知時，第二、三回合在推理中照做法想過，卻沒有呼叫工具）。
-    ctx.systemPrompt.section({ name: 'temir:deliberate', order: 2, text: CONTEXT_SITUATION })
+    ctx.systemPrompt.section({ name: 'temir:deliberate', order: 2, text: selfOnly(CONTEXT_SITUATION) })
     // context 模式：deliberate 工具一直註冊（工具清單不隨步驟變動，前綴快取才不會失效），沒有要思考的事時回覆說明。
     ctx.tools.register(
       defineTool({
@@ -849,6 +850,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
           return rd.deliberateTool(exec.agent?.session.id, args as Record<string, unknown>)
         },
       }),
+      SELF_ONLY,
     )
     // 思考完成之前只能用 recall 查記憶（dsh-memory-evolve 的「weak followers cannot skip a review silently」：由程式強制）。
     ctx.tools.guard((execution) => {
@@ -872,7 +874,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
       const action = await next()
       const session = payload.agent.session.id
       const key = `${session}#${payload.turn}#${payload.step}`
-      if (action || payload.signal.aborted || payload.failure.code !== 'MALFORMED_RESPONSE' || retried.has(key)) return action
+      if (action || isSubagent(payload.agent) || payload.signal.aborted || payload.failure.code !== 'MALFORMED_RESPONSE' || retried.has(key)) return action
       retried.add(key)
       if (ctx.life.isOpen) ctx.life.append({ kind: REQUEST_RETRY_KIND, origin: 'self', session, data: { turn: payload.turn, step: payload.step, awaiting: rd.awaiting(session), code: payload.failure.code, message: clip(payload.failure.message, 300) } })
       return { kind: 'retry' }
@@ -883,7 +885,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
     'agent/pre-step',
     async (payload, next) => {
       const decision = await next()
-      if (decision.kind !== 'enter' || payload.signal.aborted) return decision
+      if (decision.kind !== 'enter' || payload.signal.aborted || isSubagent(payload.agent)) return decision
       const cue = decision.messages
         .filter((m) => m.source.kind === 'user')
         .map((m) => textOf(m.content))

@@ -16,6 +16,7 @@ import type {} from '@deepseek-ai/dsh-system-prompt'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { randomBytes } from 'node:crypto'
 import type {} from '../life/index.ts'
+import { SELF_ONLY, isSubagent, isSubagentSession, selfOnly } from '../life/subagent.ts'
 import { readFileSync } from 'node:fs'
 import { resolveIds } from '../recall/retrieve.ts'
 import { renderOwnPlugins } from '../plugin/plugin.ts'
@@ -114,13 +115,15 @@ export function apply(ctx: Context, config: Config | undefined): void {
   // 個體自己的做法（ADR-0008）：生命日誌中還沒有的，寫入第一版（創造者撰寫）。之後只有通過閘門的修訂會改變它。
   const seeded = seedProcedures(life)
   if (seeded.length > 0) logger.info('procedures written as version 1 (%d)', seeded.length)
-  ctx.systemPrompt.section({ name: 'temir:situation', order: 1, text: situation(life.latest(KIND.persona) !== undefined, { skills: config?.skills ?? true }) })
+  ctx.systemPrompt.section({ name: 'temir:situation', order: 1, text: selfOnly(situation(life.latest(KIND.persona) !== undefined, { skills: config?.skills ?? true })) })
 
   // 沉默的回合：整個回合只有推理、沒有說出話就要結束時，steer 一次讓回合多跑一步（silence.ts）。
   const silence = new SilenceWatch()
-  ctx.on('session/event', (session: Session, event: SessionEvent) => silence.observe(session, event))
+  ctx.on('session/event', (session: Session, event: SessionEvent) => {
+    if (!isSubagentSession(session)) silence.observe(session, event)
+  })
   ctx.on('agent/turn-stopping', ({ agent, turn, signal }) => {
-    if (signal.aborted || !silence.claim(agent.session, turn)) return
+    if (signal.aborted || isSubagent(agent) || !silence.claim(agent.session, turn)) return
     try {
       if (life.isOpen) life.append({ kind: SILENCE_KIND, origin: 'body', session: agent.session.id, data: { turn } })
       agent.steer(createUserMessage({ content: [{ type: 'text', text: SILENCE_NOTE }], source: { kind: 'temir-self' } }))
@@ -134,12 +137,13 @@ export function apply(ctx: Context, config: Config | undefined): void {
       order: 10,
       interpolate: false,
       required: true,
-      text: () =>
+      text: selfOnly(() =>
         renderSelfSnapshot(life, [
           ...((config?.energy ?? true) ? [...renderPotential(life), ...renderThoughts(life)] : []),
           ...((config?.skills ?? true) ? renderOwnSkills(life) : []),
           ...renderOwnPlugins(life),
         ]),
+      ),
     })
   }
 
@@ -185,6 +189,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
         return `已寫入自我模型第 ${version} 版（${event.id}）。`
       },
     }),
+    SELF_ONLY,
   )
 
   ctx.tools.register(
@@ -218,6 +223,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
         return `已寫入人生敘事第 ${version} 版（${event.id}）。`
       },
     }),
+    SELF_ONLY,
   )
 
   ctx.tools.register(
@@ -256,6 +262,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
         return `${existing ? '已更新' : '已建立'}目標 ${goalId}：${GOAL_STATUS_LABEL[data.status]}（${event.id}）。`
       },
     }),
+    SELF_ONLY,
   )
 
   ctx.tools.register(
@@ -302,6 +309,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
         return `${data.status === 'dropped' ? '已放下' : existing ? '已改寫' : '已寫下'}看法 ${opinionId}（${event.id}）。`
       },
     }),
+    SELF_ONLY,
   )
 
   ctx.tools.register(
@@ -344,5 +352,6 @@ export function apply(ctx: Context, config: Config | undefined): void {
         return `已記下感受（${label ? `${label}，` : ''}${event.id}），關聯 ${about.length} 個事件。`
       },
     }),
+    SELF_ONLY,
   )
 }

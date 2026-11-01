@@ -125,6 +125,17 @@ scripts/temir.sh chat --model nemotron    # 改用 OpenRouter 上的 NVIDIA Nemo
    - 其他插件（例如 IM 的 `@xmanrui/dsh-im`）用同樣的指令。宣告的 DSH 版本不相容的插件，DSH 會略過，不會載入。
 4. 從 Launcher 啟動整合包。第一次啟動時，個體在 `%USERPROFILE%\.local\share\temir` 誕生。生命日誌只能新增，請備份這個資料夾。
 
+**和其他插件一起用**：個體不改組合原本的提示與工具，只加上自己的。
+- 子代理（包括 agent-team 的隊友）不知道自己屬於個體：看不到個體的處境、自我狀態、技能與工具，也不會被要求先思考。它們的事件照記進生命日誌，標成 `subagent/…`，不算對話。
+- 裝了 `dsh-auto-tool-prune` 的話，把 `recall` 與 `deliberate` 加進它的保護清單。它預設把超過 8,192 字的工具結果截成頭尾，`recall` 最多回 16,000 字。在 profile 的 `cordis.patch.yml` 加上：
+
+  ```yaml
+  - id: auto-tool-prune
+    name: dsh-auto-tool-prune
+    config:
+      protectedTools: [skill, read, read_file, readFile, recall, deliberate]
+  ```
+
 **整合包中的初始人設**：在 `<整合包>\profiles\<ID>\cordis.patch.yml` 加上：
 
 ```yaml

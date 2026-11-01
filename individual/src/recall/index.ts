@@ -23,6 +23,7 @@ import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
+import { SELF_ONLY, isSubagent, isSubagentSession } from '../life/subagent.ts'
 import { auxRecord, modelCaller, runAux, type AuxCall, type AuxPurpose, type AuxRoute, type CallModel, type Log } from './aux.ts'
 import { FACTS_KIND, clip, hybridRecall, knownFacts, recalledOf, recentPages, renderRecall, resolveIds, selectFacts, shadowedIds, workingSetDue, type FactsData } from './retrieve.ts'
 
@@ -269,7 +270,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
   if (automatic || expansion) {
     ctx.on('agent/pre-step', async (payload, next) => {
       const decision = await next()
-      if (decision.kind !== 'enter') return decision
+      if (decision.kind !== 'enter' || isSubagent(payload.agent)) return decision
       const human = decision.messages.filter((m) => m.source.kind === 'user')
       const cue = human.map((m) => textOf(m.content)).join('\n').trim()
       if (!cue) return decision
@@ -286,6 +287,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
     })
 
     ctx.on('session/event', (session: Session, event: SessionEvent) => {
+      if (isSubagentSession(session)) return
       try {
         if (event.type === 'user/message') {
           recall.heard(session.id, event.data.id, `${session.id}#${event.seq}`)
@@ -346,5 +348,6 @@ export function apply(ctx: Context, config: Config | undefined): void {
         return `${renderRecall(life, recalled, undefined, `找到 ${recalled.length} 筆相關的經歷：`, [], { maxChars: 16_000 })}${note}`
       },
     }),
+    SELF_ONLY,
   )
 }

@@ -21,6 +21,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { LifeStore } from '../life/store.ts'
 import type {} from '../life/index.ts'
+import { SELF_ONLY, isSubagentSession } from '../life/subagent.ts'
 import { auxRecord, modelCaller, promptHash, type AuxRoute, type CallModel, type Log } from '../recall/aux.ts'
 import { clip, clipKeepLines, isHeard, quietFor } from '../recall/retrieve.ts'
 import { currentProcedure, pendingProcedureProposals, procedureVersions } from '../self/procedure.ts'
@@ -241,9 +242,9 @@ export function apply(ctx: Context, config: Config | undefined): void {
 
   // 轉折：回合結束時整合；啟動時若有還沒整合的轉折，稍後補做（不阻塞啟動）；沒有的話，接著對照中斷的做法提案。
   if (config?.pivotal ?? true) {
-    ctx.on('session/event', (_session: unknown, event: { readonly type: string }) => {
+    ctx.on('session/event', (session: Parameters<typeof isSubagentSession>[0], event: { readonly type: string }) => {
       try {
-        if (event.type === 'turn/end' && !running && life.isOpen && pendingPivotal(life)) void start('pivotal', true)
+        if (event.type === 'turn/end' && !isSubagentSession(session) && !running && life.isOpen && pendingPivotal(life)) void start('pivotal', true)
       } catch (error) {
         logger.error('pivotal check failed: %s', error)
       }
@@ -307,5 +308,6 @@ export function apply(ctx: Context, config: Config | undefined): void {
         return start('voluntary', args.deep ?? false)
       },
     }),
+    SELF_ONLY,
   )
 }

@@ -356,6 +356,20 @@
   - auto-tool-prune ed59553、turn-continuation dd8901b、knowledge-work e4ed581、evidence-first-knowledge-work 7a8a7dd；
   - 有 CI 的三個，Ubuntu 與 Windows 都通過。
   - 插件本身不用改。DSH 0.2.2 要求組裝中載入工具執行器，測試的組裝改為載入 dsh-tool-executor-native（同 dsh-base）。
+- [x] 組合與插件互不影響（使用者：「不能剔除原始預設的提示（因為包含工具之類的），而且插件也必須有效的處理」「子代理不該知道自己是個體的一部分」）：
+  - 審查時發現兩處：
+    - 交給子代理的任務來源也是 `user`，個體把子代理當成自己在和對方說話；
+    - auto-tool-prune 會截掉 recall 結果的中段。
+  - 個體：`individual/src/life/subagent.ts` 以 session 的 `origin: 'subagent'` 判斷子代理（agent-team 的隊友也是）。
+    - 處境、自我狀態、思考的段落在子代理的組合中是空的；工具用 `when` 排除；技能改為註冊在每個主 agent 自己的範圍。
+    - 回憶、思考、沉默提醒、事實擷取、MALFORMED 重試、插件的自動啟用都不作用在子代理。
+    - 事件照記，kind 是 `subagent/…`、不建立回憶索引。
+    - 主 agent 的提示、工具與行為不變。
+  - 測試 `test/subagent.test.ts`：真的 DSH 組合，只有模型是替身。
+    - 主 agent 照舊，而且能執行 recall；子代理的提示、工具、技能都沒有個體的東西，呼叫 self_revise 得到 unknown tool。
+    - 用舊的程式跑會失敗。
+  - 整合包：auto-tool-prune 的保護清單加上 recall、deliberate（profile 的 cordis.patch.yml；README 也寫了）。
+  - 沒有呼叫 DeepSeek 驗證，真實的子代理對話**未驗證**。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID

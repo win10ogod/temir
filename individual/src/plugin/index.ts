@@ -15,6 +15,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import DynamicCordisRunnerService from '@deepseek-ai/dsh-cordis-host-runner'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '../life/index.ts'
+import { SELF_ONLY, isSubagent } from '../life/subagent.ts'
 import { PLUGIN_KIND, PLUGIN_OPS, activationRoute, approvalText, codeHash, idPrefix, ownPlugins, validatePlugin, type OwnPlugin, type PluginApprovalData, type PluginOp, type PluginProposalData, type PluginRunData } from './plugin.ts'
 
 export const name = 'temir-plugin'
@@ -88,7 +89,7 @@ export function apply(ctx: Context): void {
   ctx.on('agent/pre-step', async (payload, next) => {
     const decision = await next()
     const agent = payload.agent
-    if (initialized.has(agent.session.id)) return decision
+    if (isSubagent(agent) || initialized.has(agent.session.id)) return decision
     initialized.add(agent.session.id)
     for (const plugin of ownPlugins(life).filter((p) => p.approved)) {
       const result = await start(agent, plugin)
@@ -154,6 +155,7 @@ export function apply(ctx: Context): void {
         return `已寫下插件 ${proposal.name}（${event.id}，sha256 ${data.sha256.slice(0, 12)}）。要使用就呼叫 plugin_activate；這個版本啟用前要經過創造你的人核准。`
       },
     }),
+    SELF_ONLY,
   )
 
   ctx.tools.register(
@@ -179,5 +181,6 @@ export function apply(ctx: Context): void {
         return `插件 ${plugin.name} 已啟用（${result.status ?? 'running'}）。它提供的工具從下一步起可以使用；之後每段對話都會自動啟用這個版本。`
       },
     }),
+    SELF_ONLY,
   )
 }

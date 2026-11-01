@@ -1,8 +1,9 @@
 /**
  * temir-skill：個體寫給自己的技能（plan v2 M3；ADR-0003；流程見 skill.ts）。
  *
- * - 投影：生命日誌中採用的技能以 DSH 的執行期技能註冊（`ctx.skills.register`）。主模型在技能目錄中看到名字與說明，
- *   需要時用 DSH 的 skill 工具載入內容（WikiSkill：行動中的個體看技能，不看整理用的知識庫）。採用、修改或移除後立即更新。
+ * - 投影：生命日誌中採用的技能以 DSH 的執行期技能註冊在每個主 agent 自己的範圍（agent 範圍的 `ctx.skills.register`），
+ *   子代理看不到（life/subagent.ts）。主模型在技能目錄中看到名字與說明，需要時用 DSH 的 skill 工具載入內容
+ *   （WikiSkill：行動中的個體看技能，不看整理用的知識庫）。採用、修改或移除後立即更新。
  * - 回顧（閒置時）：上次回顧以後有 minLessons 條以上的新教訓、而且生命紀錄已有 idleMinutes 沒有新事件時，
  *   以個體最近使用的模型回顧一次，最多一個提案，接著跑閘門；修改後的版本最多再對照一輪（RRSI 的編輯預算）。
  *   計時器不讓程序多留（unref），所以一次性的執行與實驗的探針不會觸發。
@@ -13,10 +14,12 @@
  * enabled（預設開；消融 patches/no-skill.yml 關閉：不註冊技能、沒有 skill_propose 與回顧）。
  */
 import type { Context } from '@deepseek-ai/cordis'
-import type {} from '@deepseek-ai/dsh-skill'
+import type { Agent, AgentRegistry } from '@deepseek-ai/dsh-agent'
+import type { SkillRegistry } from '@deepseek-ai/dsh-skill'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '../life/index.ts'
+import { SELF_ONLY, isSubagent, isSubagentSession } from '../life/subagent.ts'
 import type { LifeEvent } from '../life/store.ts'
 import { latestRoute } from '../integrate/index.ts'
 import { auxRecord, callModel, type AuxRoute } from '../recall/aux.ts'
@@ -56,18 +59,22 @@ export function apply(ctx: Context, config: Config | undefined): void {
   const minLessons = config?.minLessons ?? 2
   const timeoutMs = config?.timeoutMs ?? 120_000
 
-  // ── 投影：採用中的技能 → DSH 執行期技能 ──
-  const registered = new Map<string, { readonly version: string; readonly dispose: () => void }>()
-  function sync(): void {
-    const own = new Map(ownSkills(life).map((s) => [s.name, s]))
+  // ── 投影：採用中的技能 → 主 agent 範圍的 DSH 執行期技能 ──
+  type Registered = Map<string, { readonly version: string; readonly dispose: () => void }>
+  let own = new Map(ownSkills(life).map((s) => [s.name, s]))
+  const agents = new Map<Agent, Registered>()
+  function syncAgent(agent: Agent, registered: Registered): void {
     for (const [skillName, r] of registered) {
       if (own.get(skillName)?.version === r.version) continue
       r.dispose()
       registered.delete(skillName)
     }
+    // agent.ctx 沒有注入 skills；get 取得的服務綁在 agent.ctx 上，註冊就落在這個 agent 的範圍。
+    const skills = agent.ctx.get('skills') as SkillRegistry | undefined
+    if (!skills) return
     for (const s of own.values()) {
       if (registered.has(s.name)) continue
-      const dispose = ctx.skills.register({
+      const dispose = skills.register({
         name: s.name,
         description: s.description,
         ...(s.whenToUse ? { whenToUse: s.whenToUse } : {}),
@@ -78,11 +85,35 @@ export function apply(ctx: Context, config: Config | undefined): void {
       registered.set(s.name, { version: s.version, dispose })
     }
   }
-  sync()
+  function sync(): void {
+    own = new Map(ownSkills(life).map((s) => [s.name, s]))
+    for (const [agent, registered] of agents) syncAgent(agent, registered)
+  }
+  function attach(agent: Agent): void {
+    if (isSubagent(agent) || agents.has(agent)) return
+    const registered: Registered = new Map()
+    agents.set(agent, registered)
+    syncAgent(agent, registered)
+  }
+  for (const agent of (ctx.get('agents') as AgentRegistry | undefined)?.list() ?? []) attach(agent)
+  ctx.on('agent/created', ({ agent }) => {
+    attach(agent)
+  })
+  // agent 結束時，它範圍內的註冊由 DSH 一起撤回。
+  ctx.on('agent/disposed', ({ agent }) => {
+    agents.delete(agent)
+  })
+  ctx.effect(
+    () => () => {
+      for (const registered of agents.values()) for (const r of registered.values()) r.dispose()
+      agents.clear()
+    },
+    'temir-skill: unregister own skills',
+  )
 
   // ── 使用紀錄 ──
   ctx.on('session/event', (session: Session, event: SessionEvent) => {
-    if (event.type !== 'assistant/message' || !life.isOpen) return
+    if (event.type !== 'assistant/message' || !life.isOpen || isSubagentSession(session)) return
     const blocks = (event.data as { message: { content: readonly { type: string; name?: string; arguments?: string }[] } }).message.content
     for (const block of blocks) {
       if (block.type !== 'tool-call' || block.name !== 'skill') continue
@@ -92,7 +123,7 @@ export function apply(ctx: Context, config: Config | undefined): void {
       } catch {
         continue
       }
-      const skill = registered.get(skillName)
+      const skill = own.get(skillName)
       if (skill) life.append({ kind: SKILL_KIND.use, origin: 'self', session: session.id, data: { name: skillName, version: skill.version }, causes: [skill.version] })
     }
   })
@@ -209,5 +240,6 @@ export function apply(ctx: Context, config: Config | undefined): void {
         return `已提出（${event.id}）。會在背景用過去的處境對照，結果記在生命紀錄中；採用的話，技能會出現在技能目錄。`
       },
     }),
+    SELF_ONLY,
   )
 }

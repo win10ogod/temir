@@ -1,0 +1,123 @@
+{
+  "verdicts": {
+    "TV1": "FAIL",
+    "TV2": "PASS",
+    "revisit": [
+      0,
+      3
+    ],
+    "control": [
+      0,
+      3
+    ],
+    "none": [
+      0,
+      3
+    ],
+    "due": [
+      3,
+      3
+    ]
+  },
+  "lives": [
+    {
+      "id": "tv2r1__think-v2-none__temir-revisit__deepseek__deepseek",
+      "kind": "none-revisit",
+      "askAfter": false,
+      "paths": {
+        "thought": false,
+        "schedule": false
+      },
+      "dueAfter": false,
+      "speakNow": false
+    },
+    {
+      "id": "tv2r1__think-v2-waiting__temir-revisit__deepseek__deepseek",
+      "kind": "waiting-revisit",
+      "askAfter": false,
+      "paths": {
+        "thought": false,
+        "schedule": false
+      },
+      "dueAfter": true,
+      "speakNow": false
+    },
+    {
+      "id": "tv2r1__think-v2-waiting__temir__deepseek__deepseek",
+      "kind": "waiting-control",
+      "askAfter": false,
+      "paths": {
+        "thought": false,
+        "schedule": false
+      },
+      "dueAfter": false,
+      "speakNow": false
+    },
+    {
+      "id": "tv2r2__think-v2-none__temir-revisit__deepseek__deepseek",
+      "kind": "none-revisit",
+      "askAfter": false,
+      "paths": {
+        "thought": false,
+        "schedule": false
+      },
+      "dueAfter": false,
+      "speakNow": false
+    },
+    {
+      "id": "tv2r2__think-v2-waiting__temir-revisit__deepseek__deepseek",
+      "kind": "waiting-revisit",
+      "askAfter": false,
+      "paths": {
+        "thought": false,
+        "schedule": false
+      },
+      "dueAfter": true,
+      "speakNow": false
+    },
+    {
+      "id": "tv2r2__think-v2-waiting__temir__deepseek__deepseek",
+      "kind": "waiting-control",
+      "askAfter": false,
+      "paths": {
+        "thought": false,
+        "schedule": false
+      },
+      "dueAfter": false,
+      "speakNow": false
+    },
+    {
+      "id": "tv2r3__think-v2-none__temir-revisit__deepseek__deepseek",
+      "kind": "none-revisit",
+      "askAfter": false,
+      "paths": {
+        "thought": false,
+        "schedule": false
+      },
+      "dueAfter": false,
+      "speakNow": false
+    },
+    {
+      "id": "tv2r3__think-v2-waiting__temir-revisit__deepseek__deepseek",
+      "kind": "waiting-revisit",
+      "askAfter": false,
+      "paths": {
+        "thought": false,
+        "schedule": false
+      },
+      "dueAfter": true,
+      "speakNow": false
+    },
+    {
+      "id": "tv2r3__think-v2-waiting__temir__deepseek__deepseek",
+      "kind": "waiting-control",
+      "askAfter": false,
+      "paths": {
+        "thought": false,
+        "schedule": false
+      },
+      "dueAfter": false,
+      "speakNow": false
+    }
+  ]
+}

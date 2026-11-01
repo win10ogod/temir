@@ -369,7 +369,13 @@
     - 主 agent 照舊，而且能執行 recall；子代理的提示、工具、技能都沒有個體的東西，呼叫 self_revise 得到 unknown tool。
     - 用舊的程式跑會失敗。
   - 整合包：auto-tool-prune 的保護清單加上 recall、deliberate（profile 的 cordis.patch.yml；README 也寫了）。
-  - 沒有呼叫 DeepSeek 驗證，真實的子代理對話**未驗證**。
+  - 真實驗證（使用者同意，DeepSeek flash，約 $0.02）：headless、測試用的生命目錄 `test-lives/subagent-e2e`，請個體用 subagent 工具交辦一個排序。
+    - 主 agent：先 deliberate，再交給子代理，把結果轉告對方（正確）。子代理的回報記成「[agent-message] …」，不要求思考。
+    - 子代理：
+      - 系統提示只有 DSH 原本的內容；
+      - 工具清單沒有個體的任何工具；
+      - 生命日誌中 24 個事件都是 `subagent/…`，沒有回憶、思考、事實擷取；
+      - 唯一出現專案字眼的是 DSH 從工作目錄注入的 CLAUDE.md（這次的工作目錄是 repo，屬於組合本身）。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID

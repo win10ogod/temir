@@ -397,7 +397,10 @@
 - [x] 載入測試：rc.1 的整合包形狀 profile（dsh-base＋dsh-web-app＋全部插件），模型是本機替身。
   - 除了 agent-browser 沒有 linux-x64 原生檔（由它的發布流程建置），全部啟用。
   - 酒館頁面、人物卡、世界書、設定、開局，以及一個故事回合都通過，頁面沒有錯誤。
-- [ ] GitHub Releases：沒有建立。自動權限檢查擋下了「建立公開發布」，等使用者決定。
+- [x] GitHub Releases（使用者「發布啊」）：都附上安裝包。
+  - 用 `gh release create` 建立：auto-tool-prune v0.2.5、turn-continuation v0.2.4、knowledge-work v0.1.3、evidence-first-knowledge-work v0.1.4、fount-memory v0.2.3、fount-reality v0.1.3。
+  - tavern-room 推 `v0.3.0` tag，由它的流程在 Windows 建置後發布。
+  - agent-browser 沒有發布：它的發布流程目前建置失敗（下一項）。
 - [ ] agent-browser 的發布流程：從 11-08 起每天失敗，與 DSH 無關。上游 agent-browser 0.42.0 移除了 `session_settings`，`bridge/lib.rs` 編譯不過。
 - [ ] tavern-room 只用替身模型驗證過；需要真模型的流程（結算、MVU、手機、後台任務）未驗證。
 

@@ -398,7 +398,9 @@
     - 補上 MIT 授權：與 kiseki-input 及大多數插件相同。
     - `package.json` 補上授權與 repository 欄位。
     - 本機 git commit 3c190c6，共 308 個檔案。`artifacts/` 的實機截圖與整合包備份不納入。
-  - 建立公開 repo（`gh repo create --public`）被自動權限檢查擋下，等使用者決定。
+  - 第一次建立公開 repo 被自動權限檢查擋下。使用者回覆「我就說了公開上傳」後建立：
+    - https://github.com/win10ogod/dsh-kiseki-input（public，main 為 3c190c6）；
+    - release v0.2.2，附 dsh-kiseki-input-0.2.2.tgz。
 - [x] 載入測試：rc.1 的整合包形狀 profile（dsh-base＋dsh-web-app＋全部插件），模型是本機替身。
   - 除了 agent-browser 沒有 linux-x64 原生檔（由它的發布流程建置），全部啟用。
   - 酒館頁面、人物卡、世界書、設定、開局，以及一個故事回合都通過，頁面沒有錯誤。

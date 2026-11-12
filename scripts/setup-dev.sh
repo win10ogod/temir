@@ -5,7 +5,8 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 
 NODE_VERSION=v24.21.0
-DSH_VERSION=0.2.2-alpha.2   # 對應 references/LOCK.md 的 deepseek-harness f3803c96
+DSH_VERSION=0.2.2-rc.1     # 2026-11-12 起；references/LOCK.md 的 deepseek-harness 原始碼仍是 alpha.2 的 f3803c96
+# 之前的 0.2.2-alpha.2 保留在 ~/.cache/temir/dsh-runtime-0.2.2-alpha.2（凍結的實驗 worktree 連到這裡）
 TS_VERSION=6.0.3            # 與 DSH repo devDependencies（^6.0.3）一致
 
 # 1. Node 24（DSH engines: >=24.9.0），以 nodejs.org SHASUMS256 驗證
@@ -23,7 +24,12 @@ if [ ! -x "$TEMIR_DSH_RUNTIME/bin/dsh" ]; then
   mkdir -p "$TEMIR_DSH_RUNTIME"
   npm_config_cache="$TEMIR_DSH_RUNTIME/npm-cache" npm install -g --prefix "$TEMIR_DSH_RUNTIME" "@deepseek-ai/dsh@$DSH_VERSION"
 fi
-echo "dsh: $(dsh --version)"
+installed_dsh=$(dsh --version)
+if [ "$installed_dsh" != "$DSH_VERSION" ]; then
+  echo "DSH 執行期是 $installed_dsh，不是 $DSH_VERSION：把 $TEMIR_DSH_RUNTIME 改名保留，再重新執行這個腳本" >&2
+  exit 1
+fi
+echo "dsh: $installed_dsh"
 
 # 3. TypeScript（只用於型別檢查；個體的程式碼由 Node 24 直接剝除型別執行）
 if [ ! -x "$TEMIR_TOOLS/node_modules/.bin/tsc" ]; then

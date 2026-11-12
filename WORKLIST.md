@@ -377,6 +377,30 @@
       - 生命日誌中 24 個事件都是 `subagent/…`，沒有回憶、思考、事實擷取；
       - 唯一出現專案字眼的是 DSH 從工作目錄注入的 CLAUDE.md（這次的工作目錄是 repo，屬於組合本身）。
 
+## DSH 0.2.2-rc.1（2026-11-12）
+
+使用者：「把F:\DSH所有的dsh插件支持移植到最新版本0.2.2 rc.1, 並幫我全部更新上到github」。細節見 `research/log/2026-11-12-s15.md`。
+
+- [x] 開發環境改用 0.2.2-rc.1（npm 的 latest；rc.2 是 next）。
+  - `scripts/setup-dev.sh` 會檢查執行期版本。
+  - 之前的 alpha.2 保留在 `~/.cache/temir/dsh-runtime-0.2.2-alpha.2`，39 個凍結的實驗 worktree 改連到那裡。
+- [x] 個體：在 rc.1 上 typecheck、單元 219/219、experiments 169/169 都通過。
+  - 以本機替身模型在 rc.1 的 headless 跑一回合，沒有錯誤（沒有呼叫 DeepSeek）。
+  - peer 改成 alpha.2 或 rc.1。
+- [x] 推上 main 的插件（各自的測試在 rc.1 上通過；有 CI 的都通過）：
+  - auto-tool-prune 0.2.5、turn-continuation 0.2.4、knowledge-work 0.1.3、evidence-first-knowledge-work 0.1.4、fount-memory 0.2.3、fount-reality 0.1.3、agent-browser 0.38.1-dsh.0.2.2。
+  - tavern-room 0.3.0 需要改程式：DSH 0.2.2 的 `system-prompt/assemble` 不再有 `assembly.tools`，故事回合在呼叫模型之前就失敗。
+    - 移植上游 DSH Tavern 3.3 的 `host/tools.js`。
+    - dsh-mnemon 升到 0.5.31。
+    - 不再支援 DSH 0.1.7。
+- [x] dsh-kiseki-input 0.2.2：只在本機（沒有 GitHub repo），已更新 `F:\DSH\dsh-kiseki-input` 與新的 tgz。
+- [x] 載入測試：rc.1 的整合包形狀 profile（dsh-base＋dsh-web-app＋全部插件），模型是本機替身。
+  - 除了 agent-browser 沒有 linux-x64 原生檔（由它的發布流程建置），全部啟用。
+  - 酒館頁面、人物卡、世界書、設定、開局，以及一個故事回合都通過，頁面沒有錯誤。
+- [ ] GitHub Releases：沒有建立。自動權限檢查擋下了「建立公開發布」，等使用者決定。
+- [ ] agent-browser 的發布流程：從 11-08 起每天失敗，與 DSH 無關。上游 agent-browser 0.42.0 移除了 `session_settings`，`bridge/lib.rs` 編譯不過。
+- [ ] tavern-room 只用替身模型驗證過；需要真模型的流程（結算、MVU、手機、後台任務）未驗證。
+
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID
 - H-EX（以行動檢驗想像出來的讀法；T4 的前提）與 H-ET（勢能的時間：在該想起的時候想起）：兩個草案，確認前不實作

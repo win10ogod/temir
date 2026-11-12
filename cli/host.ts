@@ -4,7 +4,7 @@
  * - PID 檔：`<pid> <開始時間>`。開始時間取自 /proc/<pid>/stat（第 22 欄，開機後的 clock ticks）；
  *   結束前確認 PID 還是同一個程序，不會因為 PID 被重用而結束到別的程序。不再用 `pgrep -f` 以樣式結束程序
  *   （曾經兩次結束到代理自己的 shell；session log）。程序以 setsid 啟動時，連同它的程序群組一起結束。
- * - 啟動網址：DSH Web 把啟動用的 token 放在網址的 `token` 參數（dsh-client-connection@0.2.2-alpha.2 lib/index.js:276、442）；
+ * - 啟動網址：DSH Web 把啟動用的 token 放在網址的 `token` 參數（dsh-client-connection@0.2.2-alpha.2 lib/index.js:276、442；0.2.2-rc.1 同一行）；
  *   `GET /connect?token=…` 以 302 回應並設定 cookie（同檔 505–538 行）。token 只用來換 cookie，不印出、不寫進檔案。
  * - dsh-im（@xmanrui/dsh-im@5.8.0）的本機管理 API：`POST /api/dsh-im/telegram`，
  *   內容 `{"type":"client-request","rpcId",…,"method":"dsh-im/telegram","payload":{"method","payload"}}`（plugin-src/management-rpc.mjs）；

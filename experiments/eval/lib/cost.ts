@@ -61,7 +61,7 @@ const count = (v: unknown): number | undefined => (typeof v === 'number' && Numb
  * 把一筆用量轉成 Tokens；認不得時回傳 undefined。兩種格式：
  * - DSH 的 TokenUsage（dsh-llm lib/types/types.d.ts：「Counts are DISJOINT: inputTokens is uncached input only」）。
  *   reasoning 算在 outputTokens 裡：DeepSeek 的轉接器把 totalTokens 算成 input＋output＋cacheRead＋cacheWrite，沒有另加思考
- *   （dsh-llm-deepseek@0.2.2-alpha.2 lib/index.js:2019）。
+ *   （dsh-llm-deepseek@0.2.2-alpha.2 lib/index.js:2019；0.2.2-rc.1 同一行）。
  * - OpenAI 相容的 /chat/completions（模擬使用者）：prompt_tokens、completion_tokens、prompt_cache_hit_tokens、
  *   prompt_cache_miss_tokens、completion_tokens_details.reasoning_tokens。欄位名依 DeepSeek API 的文件；
  *   2026-10-30 以一次真實的模擬使用者呼叫對照過（deepseek-flash，思考開著：這五個欄位都在，reasoning_tokens 算在 completion_tokens 裡；

@@ -83,7 +83,7 @@ DeepSeek Harness（身體：CLI、Web、工具、技能、MCP、子代理……�
 需求：Linux／WSL（macOS 未測）、能連上 DeepSeek API 的金鑰，或任何 OpenAI 相容的本機模型。
 
 ```sh
-bash scripts/setup-dev.sh           # Node 24、DeepSeek Harness 0.2.2-alpha.2、TypeScript（裝在 ~/.cache/temir）
+bash scripts/setup-dev.sh           # Node 24、DeepSeek Harness 0.2.2-rc.1、TypeScript（裝在 ~/.cache/temir）
 mkdir -p ~/.config/temir && echo "DEEPSEEK_API_KEY=sk-..." > ~/.config/temir/secrets.env && chmod 600 ~/.config/temir/secrets.env
 
 scripts/temir.sh chat               # 終端機對話（第一次執行時，個體在 ~/.local/share/temir 誕生）
@@ -104,7 +104,7 @@ scripts/temir.sh chat --model nemotron    # 改用 OpenRouter 上的 NVIDIA Nemo
 ### 安裝到 DSH Launcher 的整合包（Windows）
 
 影片教學：第 2 期「安裝與人設」。需要：
-- DSH Launcher 與 DSH 0.2.2-alpha.2 的整合包；
+- DSH Launcher 與 DSH 0.2.2-rc.1（或 0.2.2-alpha.2）的整合包；
 - Node.js 24.9 以上（個體是 TypeScript，由 Node 直接執行）；
 - DeepSeek API 金鑰（在 Launcher 中登入）。
 
@@ -115,7 +115,7 @@ scripts/temir.sh chat --model nemotron    # 改用 OpenRouter 上的 NVIDIA Nemo
 
    ```powershell
    $env:DSH_HOME = "$env:APPDATA\dsh-launcher\dsh-packs\pack-tw"
-   $dsh = "$env:APPDATA\dsh-launcher\dsh-runtime\versions\0.2.2-alpha.2\node_modules\.bin\dsh.cmd"
+   $dsh = "$env:APPDATA\dsh-launcher\dsh-runtime\versions\0.2.2-rc.1\node_modules\.bin\dsh.cmd"
    & $dsh plugin --profile pack-tw add -w link:D:/DSH/temir-individual
    & $dsh --profile pack-tw --dump-config   # 看得到 temir-life … temir-panel 九個插件就對了
    ```

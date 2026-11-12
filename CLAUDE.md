@@ -49,7 +49,7 @@
 ## 環境與指令
 
 ```sh
-bash scripts/setup-dev.sh        # 一次性：Node 24、DSH 0.2.2-alpha.2、TypeScript 6、node_modules 連結（全在 ext4）
+bash scripts/setup-dev.sh        # 一次性：Node 24、DSH 0.2.2-rc.1、TypeScript 6、node_modules 連結（全在 ext4）
 source scripts/env.sh            # PATH、DSH_HOME、金鑰
 npm run typecheck                # tsc，型別解析到 DSH 執行期的同一份套件
 npm test                         # node:test 單元測試

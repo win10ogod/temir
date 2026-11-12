@@ -393,7 +393,12 @@
     - 移植上游 DSH Tavern 3.3 的 `host/tools.js`。
     - dsh-mnemon 升到 0.5.31。
     - 不再支援 DSH 0.1.7。
-- [x] dsh-kiseki-input 0.2.2：只在本機（沒有 GitHub repo），已更新 `F:\DSH\dsh-kiseki-input` 與新的 tgz。
+- [x] dsh-kiseki-input 0.2.2：已更新 `F:\DSH\dsh-kiseki-input` 與新的 tgz。
+  - 使用者要求建立 GitHub repo。
+    - 補上 MIT 授權：與 kiseki-input 及大多數插件相同。
+    - `package.json` 補上授權與 repository 欄位。
+    - 本機 git commit 3c190c6，共 308 個檔案。`artifacts/` 的實機截圖與整合包備份不納入。
+  - 建立公開 repo（`gh repo create --public`）被自動權限檢查擋下，等使用者決定。
 - [x] 載入測試：rc.1 的整合包形狀 profile（dsh-base＋dsh-web-app＋全部插件），模型是本機替身。
   - 除了 agent-browser 沒有 linux-x64 原生檔（由它的發布流程建置），全部啟用。
   - 酒館頁面、人物卡、世界書、設定、開局，以及一個故事回合都通過，頁面沒有錯誤。
@@ -401,7 +406,13 @@
   - 用 `gh release create` 建立：auto-tool-prune v0.2.5、turn-continuation v0.2.4、knowledge-work v0.1.3、evidence-first-knowledge-work v0.1.4、fount-memory v0.2.3、fount-reality v0.1.3。
   - tavern-room 推 `v0.3.0` tag，由它的流程在 Windows 建置後發布。
   - agent-browser 沒有發布：它的發布流程目前建置失敗（下一項）。
-- [ ] agent-browser 的發布流程：從 11-08 起每天失敗，與 DSH 無關。上游 agent-browser 0.42.0 移除了 `session_settings`，`bridge/lib.rs` 編譯不過。
+- [x] agent-browser 配合上游 0.42.0（使用者要求，commit 437eac0）：發布流程從 11-08 起每天失敗，與 DSH 無關。
+  - 0.42.0 新增根模組（browser_security、session_files、session_settings），`bridge/lib.rs` 寫死的模組清單沒有它們；`DaemonState::new()` 也改成只在測試用。
+  - `prepare.mjs` 改為從上游 `main.rs` 複製模組宣告（含屬性），tls 的特例一併拿掉。
+  - session 照上游常駐程序建立：`FsStore`（daemon socket 目錄旁的設定檔）＋`Running::boot`＋`DaemonState::with_store`，再套上 DSH 的 session id 與分頁釘選。
+  - 本機 linux-x64 驗證：cargo build、native-smoke、live-smoke（Chromium）、plugin-smoke、pnpm check 3/3；含原生檔的包在 rc.1 整合包形狀 profile 裡啟用，沒有任何未啟用的項目。
+  - CI（run 43227241916）四個平台都建置並測試通過，自動發布 v0.42.0（附 dsh-agent-browser-0.42.0.tgz，28 MB，含四個平台的原生檔）。
+  - 下載發布包，裝進 rc.1 的測試 profile 開機，沒有警告。
 - [ ] tavern-room 只用替身模型驗證過；需要真模型的流程（結算、MVU、手機、後台任務）未驗證。
 
 ## 待使用者確認

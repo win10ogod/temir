@@ -431,6 +431,32 @@
   - 下載發布包，裝進 rc.1 的測試 profile 開機，沒有警告。
 - [ ] tavern-room 只用替身模型驗證過；需要真模型的流程（結算、MVU、手機、後台任務）未驗證。
 
+## dsh-live-sight（2026-11-13）
+
+使用者：「我們自己做一個更優秀更符合需求與美學的…我想讓 agent 能實時看螢幕與陪玩（也能用這個視覺插件來操作電腦等，剛好順便把 fount-reality 取代掉）」。細節見 `research/log/2026-11-13-s16.md`。
+
+- [x] 插件 https://github.com/win10ogod/dsh-live-sight（public，MIT），release v0.1.0 附安裝包。
+  - 原理參考 dsh-see-now，程式重新寫。
+  - 個體在同一段對話裡陪看。
+  - 回覆顯示在 Windows 桌面懸浮窗，不用語音。
+  - `sight look` 回傳的圖片附有換回螢幕座標的方式，可以接 dsh-kiseki-input 操作電腦。
+- [x] 測試：`npm test` 36/36；CI（Ubuntu、Windows）通過。
+- [x] 程式碼審查（high）找到 10 個問題，全部修正並補上測試。
+- [x] 實機測試：TW 整合包、本地 Qwen3.8-Flash-Next、測試生命。
+  - 陪看、懸浮窗打字、暫停、繼續、停止都通過。
+  - 實測找到 6 個問題，已修正：黑色空格、丟格偏差、懸浮窗外觀、粗體。
+  - 已從 release 下載的安裝包裝進 TW 整合包，以 `file:` 安裝；懸浮窗標題設為人設的名字。
+- [x] 個體：沉默提醒只追問對方說話或念頭開口的回合（b1bd42b）；已更新 `F:\DSH\temir-individual`。
+- [x] dsh-fount-reality 的 README 註明已被取代（6c70dbd）。
+- [ ] 未驗證：
+  - 用 DeepSeek 陪看的節奏與花費；
+  - 真實遊戲與影片的持續動態；
+  - 長時間陪看時圖片的累積；
+  - macOS 與 Linux 的擷取；
+  - 最大化視窗與非 100% 縮放的座標換算。
+- [ ] 第一次實機測試時懸浮窗沒有出現在截圖中，原因未查明；之後的測試都正常。
+- [ ] 整合包的 Default workspace 留下 5 個測試會話（其中一個原本是 11/10 的空會話），由使用者決定是否刪除。
+
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID
 - H-EX（以行動檢驗想像出來的讀法；T4 的前提）與 H-ET（勢能的時間：在該想起的時候想起）：兩個草案，確認前不實作

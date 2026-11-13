@@ -465,6 +465,20 @@
     - `storages/workspace.json` 中的 6 個 ID。刪除前的備份在 `backup-before-live-sight-20261113/workspace.json.before-session-delete`。
   - 開機檢查：側邊欄只剩使用者的會話，頁面沒有錯誤。
   - 開機時 DSH 自己建了一個只有初始設定的空草稿會話，就是側邊欄的「New Session」；它和原本那個空會話一樣，所以保留。
+- [x] 反應速度（使用者：「dsh-live-sight 的反應速度不理想」）→ 0.2.0，release v0.2.0，CI 通過，`npm test` 43/43。
+  - 量測：插件自己只用一兩秒，其餘是模型的時間。
+    - 本地 vLLM 輸入處理約每秒 400～500 token，每一步光等第一個字就要 4～18 秒。
+    - 一個回合常有兩三次模型呼叫（appraise 或 deliberate，再回覆）。
+  - 實測從看到畫面或使用者打字到開始回覆（各跑一次，獨立的測試 DSH_HOME）：
+    - xhigh：32 秒、60 秒；
+    - medium：11～18 秒、35 秒；
+    - low：8～11 秒、34 秒，有一次混進簡體字。
+  - 插件的改進：
+    - 回覆邊寫邊顯示在懸浮窗；
+    - 使用者說話時，只在看畫面的回合讓開（取出訊息、取消、重新送出）；
+    - `watchEffort`：只在陪看期間改思考等級，停止時改回。
+  - TW 整合包裝上 0.2.0，設定 `watchEffort: medium`（整合包本身仍是 xhigh），可以刪掉那一行改回。
+  - 個體的流程（使用者說話前強制 deliberate、每步重送自身狀態約 1.5k token）是延遲的一部分，屬於 PC 的設計，沒有改。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID

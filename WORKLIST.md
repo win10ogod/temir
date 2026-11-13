@@ -455,7 +455,16 @@
   - macOS 與 Linux 的擷取；
   - 最大化視窗與非 100% 縮放的座標換算。
 - [ ] 第一次實機測試時懸浮窗沒有出現在截圖中，原因未查明；之後的測試都正常。
-- [ ] 整合包的 Default workspace 留下 5 個測試會話（其中一個原本是 11/10 的空會話），由使用者決定是否刪除。
+- [x] 刪除整合包的測試會話（使用者：「刪掉那 5 個測試會話」）。
+  - 實際是 6 個：我先前少算了暫停按鈕測試那一個。
+  - DSH 沒有刪除會話的功能（`dsh-workspace` README：「session deletion … absent capabilities」），所以直接刪除資料：
+    - 會話目錄；
+    - `storages/session_projcache` 中對應的檔案；
+    - live-compact 的 `compaction-spine/shadow` 備份；
+    - 只被這些會話引用的 19 張測試拼圖（保留的會話引用的 11 張沒有共用）；
+    - `storages/workspace.json` 中的 6 個 ID。刪除前的備份在 `backup-before-live-sight-20261113/workspace.json.before-session-delete`。
+  - 開機檢查：側邊欄只剩使用者的會話，頁面沒有錯誤。
+  - 開機時 DSH 自己建了一個只有初始設定的空草稿會話，就是側邊欄的「New Session」；它和原本那個空會話一樣，所以保留。
 
 ## 待使用者確認
 - `research/pc-theory/hypotheses.md` 的 H0–H5、H-E、H-M1、H-M2、H-N、H-S、H-ID

@@ -5,9 +5,14 @@
  * DSH 在回合結束前發出 `agent/turn-stopping`（serial）：listener 可以 steer，機器重讀 inbox，有新的引導就再跑一步
  * （dsh-agent runtime-types.d.ts 的說明）。這裡在「整個回合都沒有說出話、最後一步也沒有呼叫工具」時提醒一次。
  * 要不要說、說什麼，仍由個體決定；提醒每回合最多一次，不會反覆。
+ * 只提醒「對方說了話」或「念頭決定開口」的回合；其他插件送來的訊息（例如 dsh-live-sight 的即時畫面）開始的回合，
+ * 安靜是正常的，不提醒（2026-11-13：陪看時每次安靜都被提醒，會多跑一次模型）。
  * 純邏輯（不依賴 DSH），可單獨測試；接線在 index.ts。
  */
 export const SILENCE_KIND = 'self/silence'
+
+/** 念頭決定開口時送進來的訊息來源（thought/index.ts）；和對方的話一樣，這種回合沉默才提醒。 */
+const ADDRESSING_SOURCE = 'temir-thought'
 
 /** 提醒的內容：只陳述發生了什麼，不指定要說什麼。來源是 temir-self，不會被當成對方的話。 */
 export const SILENCE_NOTE = '（這不是對方說的話：你剛才只有思考，沒有說出任何話，對方什麼也沒看到。把你要說的話說出來；如果你決定不說，也簡短說一聲。）'
@@ -27,6 +32,8 @@ export function voiceOf(blocks: readonly Block[]): { readonly text: boolean; rea
 
 interface TurnVoice {
   turn: number
+  /** 這個回合有沒有對方的話（source user）或念頭的開口（temir-thought）。 */
+  addressed: boolean
   /** 這個回合有沒有任何一步說出話。 */
   spoke: boolean
   /** 最後一則 assistant 訊息有沒有呼叫工具。 */
@@ -43,7 +50,13 @@ export class SilenceWatch {
   observe(session: object, event: { readonly type: string; readonly data?: unknown }): void {
     const data = (event.data ?? {}) as { turn?: number; message?: { content?: readonly Block[] } }
     if (event.type === 'turn/start' && typeof data.turn === 'number') {
-      this.turns.set(session, { turn: data.turn, spoke: false, lastTool: false, answered: false, nudged: false })
+      this.turns.set(session, { turn: data.turn, addressed: false, spoke: false, lastTool: false, answered: false, nudged: false })
+      return
+    }
+    if (event.type === 'user/message') {
+      const kind = (event.data as { source?: { kind?: string } } | undefined)?.source?.kind
+      const state = this.turns.get(session)
+      if (state && (kind === 'user' || kind === ADDRESSING_SOURCE)) state.addressed = true
       return
     }
     if (event.type !== 'assistant/message') return
@@ -55,10 +68,10 @@ export class SilenceWatch {
     state.lastTool = voice.tool
   }
 
-  /** 回合要結束時：整個回合都沒有說出話、最後一步也沒有呼叫工具，就回傳 true（每回合最多一次）。 */
+  /** 回合要結束時：對方說了話（或念頭要開口），整個回合卻沒有說出話、最後一步也沒有呼叫工具，就回傳 true（每回合最多一次）。 */
   claim(session: object, turn: number): boolean {
     const state = this.turns.get(session)
-    if (!state || state.turn !== turn || state.nudged || !state.answered || state.spoke || state.lastTool) return false
+    if (!state || state.turn !== turn || state.nudged || !state.addressed || !state.answered || state.spoke || state.lastTool) return false
     state.nudged = true
     return true
   }

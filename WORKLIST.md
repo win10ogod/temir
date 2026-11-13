@@ -377,6 +377,20 @@
       - 生命日誌中 24 個事件都是 `subagent/…`，沒有回憶、思考、事實擷取；
       - 唯一出現專案字眼的是 DSH 從工作目錄注入的 CLAUDE.md（這次的工作目錄是 repo，屬於組合本身）。
 
+- [x] TW 整合包（DSH 0.2.2-alpha.2）再裝四個插件（2026-11-13，使用者要求）：
+  - 三個換成新的 release：agent-browser 0.38.1→0.42.0、evidence-first-knowledge-work 0.1.3→0.1.4、turn-continuation 0.2.3→0.2.4。
+  - 新裝第三方的 dsh-live-compact 1.1.5（Tranquillitatis-Lab，MIT）。
+    - 安裝前讀過程式。每輪結束在本機壓縮長輸出，不呼叫模型；模型摘要模式 `SPINE_THUNDER` 預設關。
+    - 原文備份在 `DSH_HOME/compaction-spine/shadow`。Windows 上只用 whoami 與 PowerShell 收緊備份目錄的權限；沒有其他外連。
+    - 會停用內建的 compaction-basic，改由它接管（`takeoverPresets`）。
+    - npm 的 1.1.5 與 GitHub v1.1.5 的 19 個檔案逐一相同。
+  - 安裝包放在 pack 的 plugin-cache，以 `dsh plugin --profile pack-tw add -w file:…` 安裝；安裝前的 profile 備份在 `backup-before-20261113`。
+  - 驗證：
+    - `--dump-config` 沒有任何插件被略過；
+    - 以測試用的 TEMIR_HOME 開機，沒有未啟用的項目；
+    - 插件管理的 API 回報四個新版本都已啟用；
+    - 沒有送訊息。測試的 DSH 已關閉，測試生命目錄已刪除。
+
 ## DSH 0.2.2-rc.1（2026-11-12）
 
 使用者：「把F:\DSH所有的dsh插件支持移植到最新版本0.2.2 rc.1, 並幫我全部更新上到github」。細節見 `research/log/2026-11-12-s15.md`。
